@@ -1,0 +1,732 @@
+ArtificialIntelligence339(2025)104244
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+Human-AI coevolution
+Pedreschia,∗, Pappalardob,c,∗, Ferraginad,∗,
+Dino Luca Emanuele
+Ricardo Baeza-Yatese, Albert-László Barabásie, Frank Dignumf, Virginia Dignumf,
+Tina Eliassi-Rade, Fosca Giannottic, János Kertészg, Alistair Knotth,
+Yannis Ioannidisi, Paul Lukowiczj, Andrea Passarellab, Alex Sandy Pentlandk,
+John Shawe-Taylorl, Alessandro Vespignanie
+aUniversity of Pisa, Italy
+bConsiglio Nazionale delle Ricerche (CNR), Pisa, Italy
+cScuola Normale Superiore, Pisa, Italy
+dSciences Po, Paris, France
+eNortheastern University, Boston, USA
+fUmeå University, Sweden
+gCentral European University (CEU), Vienna, Austria
+hVictoria University Wellington, New Zealand
+iUniversity of Athens, Greece
+jDFKI and University of Kaiserslautern, Germany
+kMassachusetts Institute of Technology (MIT), Boston, USA
+lUniversity College London, UK
+A R T I C L E I N F O A B S T R A C T
+Keywords: Human-AI coevolution, defined as a process in which humans and AI algorithms continuously
+Artificial intelligence influence each other, increasingly characterises our society, but is understudied in artificial
+Complex systems intelligence and complexity science literature. Recommender systems and assistants play a
+Computati onalsocialscience
+prominent role in human-AI coevolution, as they permeate many facets of daily life and influence
+Human-AIcoevolution
+human choices through online platforms. The interaction between users and AI results in a
+potentially endless feedback loop, wherein users’ choices generate data to train AI models,
+which, in turn, shape subsequent user preferences. This human-AI feedback loop has peculiar
+characteristics compared to traditional human-machine interaction and gives rise to complex
+and often “unintended” systemic outcomes. This paper introduces human-AI coevolution as the
+cornerstone for a new field of study at the intersection between AI and complexity science focused
+on the theoretical, empirical, and mathematical investigation of the human-AI feedback loop. In
+doing so, we: (i)outline the pros and cons of existing methodologies and highlight shortcomings
+and potential ways for capturing feedback loop mechanisms; (ii) propose a reflection at the
+intersection between complexity science, AI and society; (iii) provide real-world examples for
+different human-AI ecosystems; and (iv)illustrate challenges to the creation of such a field of
+study, conceptualising them at increasing levels of abstraction, i.e., scientific, legal and socio-
+political.
+* Correspondingauthors.
+E-mailaddresses:dino.pedreschi@unipi.it(D.Pedreschi),luca.pappalardo@isti.cnr.it(L.Pappalardo),emanuele.ferragina@sciencespo.fr(E.Ferragina).
+https://doi.org/10.1016/j.artint.2024.104244
+Received 7 July 2023; Received in revised form 24 September 2024; Accepted 2 November 2024
+Availableonline13November2024
+0004-3702/© 2024 The Authors. Published by Elsevier B.V. This is an open access article under the CC BY license
+(http://creativecommons.org/licenses/by/4.0/).
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+1. Introduction
+It is change, continuing change, inevitable change, that is the dominant factor in society today. No sensible decision can be made
+any longer without taking into account not only the world as it is, but the world as it will be
+[Isaac Asimov, Asimov on Science Fiction, 1981 [1]]
+The history of humankind is a history of coevolution: between humans and other species; between humans and industrial machines;
+between humans and digital technologies; and, today, between humans and Artificial Intelligence (AI) [2,3]. Human-AI coevolution
+is a perpetual, iterative process wherein both humans and learning algorithms evolve in tandem, each influencing the evolution of
+the other over time. This generates complex effects on human-AI ecosystems and, therefore, on society [3–6].
+In this context, recommendation systems and assistants (in short, recommenders) – AI-based algorithms that suggest items or
+content based on users’ preferences or specific requests [7–9]– play a prominent role. Recommenders on online platforms cater for a
+large audience of users, and therefore can be considered as “mainstream recommenders”. Mainstream recommenders1are of collective
+importance because they feed “very large online platforms” (VLOPs, as defined by the Digital Services Act) that are widely considered
+as highly impactful for society. Mainstream recommenders instantly shape the decisions and interactions of large segments of the
+population at the same time. Personalised suggestions on social media guide our content consumption and social connections, online
+retail recommenders propose products for consumption, navigation services suggest routes to reach our destinations, and generative
+AI creates content in response to users’ wishes. Other types of AI-powered assistants, such as medical diagnosis tools, self-driving cars,
+and educational tutors, are mainly designed for one-to-one interaction with individual users and do not have yet the same widespread
+influence as those on public online platforms. However, these systems can scale up and exhibit feedback loop effects. Our definition
+of recommender is general enough to encompass these prospective ecosystems. In this paper, we focus for the sake of concreteness on
+today’s VLOPs’ recommenders because they constitute a vantage point to analyse the coevolution between humans and AI machines.
+Since recommenders are based on AI, and machine learning in particular, their interactions with users always give rise to a feedback
+loop[10–13], which is the core of human-AI coevolution. One could describe the feedback loop as a process: users’ choices determine
+the datasets on which recommenders are trained; the trained recommenders then exert an influence on users’ subsequent choices,
+which in turn affect the next round of training, initiating a potentially never-ending cycle (see Fig. 1). The human-AI feedback
+loop may also lead to “unintended” social consequences [14–17]. Personalised recommendations on social media help users deal
+with information overload, but may artificially amplify echo chambers, filter bubbles, and processes of radicalisation [14,15,18–20].
+Profiling and targeted advertising may increase inequality and monopolies, perpetuating and accruing biases, discriminations, and
+the “tragedy of the commons” [21–24]. Navigation services suggest directions that make sense from an individual perspective, but
+may create chaos if too many drivers are sent to the same roads [17,25–33]. Chatbots based on generative AI may deteriorate their
+quality as increasing synthetic data is used for retraining and fine-tuning [127–135].
+While coevolution between humans and technology is not new, the human-AI feedback loop imbues it with forms that are un-
+precedented. Throughout history, technology and society have constantly coevolved, e.g., as testified by the advent of the press, the
+radio and the TV [2,3]. Moreover, recommendations have always influenced human choices, whether it was the role of a librarian
+picking up a book, a friend’s advice on a music album to listen to, or the influence of TV advertisements on viewers. However, at least
+five fundamental aspects have been simultaneouslymagnified by AI-based recommenders: pervasiveness, persuasiveness, traceability,
+speed, and complexity.
+Recommenders are pervasive in all online platforms, from social media to online retail and mapping services. This integration,
+fuelled by sophisticated algorithms, abundant data, and widespread user adoption, has established recommenders as customary
+elements of online interactions. The large availability of data portraying individual choices empowers recommenders to deliver
+highly personalised suggestions. This increases accuracy in capturing users’ preferences, making recommenders highly persuasive.
+Unlike previous technology, human-AI ecosystems leave an indelible trace of recommenders’ suggestions and related human choices
+(what is commonly called big data). As a consequence, AI-based recommenders possess a comprehensive outlook of individual choices
+and an unprecedented capacity to shape human behaviour at scale. Within this context, human-machine coevolution is faster than
+ever before, given that AI can be re-trained with little or no human oversight and provide suggestions at an unparallelled speed.
+Human-AI ecosystems also foster an extraordinary volume of interactions between the huge spaces of users and products, escalating
+system complexity.
+The design of recommenders and the analysis of their impact are typically studied by two disciplines that gained prominence over
+the last two decades: artificial intelligence and complexity science. However, working in isolation, these disciplines cannot address
+the challenges of understanding human-AI coevolution.
+AI has achieved human-like performance in many challenging tasks [34–39]and is becoming increasingly explainable and human-
+centric [40–46]. However, it is still embedded in methodological individualism [47], where machines are studied as solitary agents
+and not from a coevolution perspective. We know little about the impact of the feedback loop on human-AI ecosystems; therefore,
+we need to disentangle whether recommenders amplify undesired collective outcomes or mitigate them.
+Complexity science has shown that networks of social interactions are heterogeneous, resulting in deeply connected hubs and
+modular structures [48–54]. This structural heterogeneity interacts with social effects like inequalities and segregation, impacting on
+network processes such as the spreading of epidemics, information and opinions [14,55,56]; the success of products, ideas, and people
+1 From now on, we use the term recommenders to signify mainstream recommenders.
+2
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+Fig.1.Users’choicesononlineplatformsgeneratedatausedtotrainrecommenders.Theserecommendersthenoffersuggestionstousers,influencingtheirchoices,
+whichinturngeneratemoredataforre-trainingrecommenders.Thisiterativeprocesscreatesapotentiallyendlessfeedbackloop.
+[57–59]; and urban dynamics [60–69]. The human-AI feedback loop affects these network processes differently than before the advent
+of AI. A coevolutionary approach may help unveil the laws governing the complex interplay between humans and recommenders[70–
+72], going beyond existing approaches[73–75]. We know little about the parameters that govern the network dynamics of human-AI
+coevolution and, therefore, how to make predictions for such complex systems.
+This paper introduces human-AI coevolution as the cornerstone for a new field of study at the intersection between AI and com-
+plexity science, and focuses on the theoretical, empirical, and mathematical investigation of the human-AI feedback loop. Following
+in the footsteps of the literary imagination of Isaac Asimov, “no sensible decision can be made any longer without taking into account
+not only the world as it is, but the world as it will be” [1]. A detailed understanding of human-AI coevolution should be achieved
+by developing new methodologies and analytical frameworks. The study of human-AI coevolution is key for understanding how
+feedback loop mechanisms might impact societal dynamics, as the interaction between humans and recommenders might amplify or
+mitigate social phenomena. This is salient because we are immersed in a political economy that mainly privileges individual utility
+over collective goods, and where the means of production and recommendation are concentrated in a few hands.
+The study of human-AI coevolution sits at the intersection of two prominent AI debates. First, it expands the debate on “ma-
+chine behaviour”, i.e., the study of behaviour exhibited by intelligent machines [76], illustrating that the feedback loop is the key
+process shaping human-AI coevolution. Second, it enriches current philosophical perspectives about AI, i.e., technology-centred AI,
+human-centred AI, and collective intelligence [77], with a new dimension that can be defined as society-centred AI. This perspec-
+tive departs from technology-centred AI because it considers that the impacts of the feedback loop cannot be managed solely with
+additional AI technology. Moreover, it embraces seminal insights from human-centred AI and collective intelligence. On the one
+hand, from a human-centred AI perspective, it hypothesises that the feedback loop might curtail human well-being. On the other,
+from a collective intelligence perspective, it theorises how human-recommender interactions can drive coevolution towards desir-
+able outcomes. Society-centred AI brings three additional elements to the debate (see Fig.2): (i)the feedback loop impacts human
+well-being not only at an individual, but also at the societal level; (ii)managing the feedback loop requires the development of new
+scientific approaches; and (iii) the issues related to human-AI coevolution cannot be solved without legal and political interven-
+tions.
+The remainder of the paper proceeds as follows. We review the methodologies employed in the literature to examine the interaction
+between humans and recommenders (Section2). We then illustrate the outcomes of this interaction in four key ecosystems, i.e., social
+media, online retail, urban mapping, and content generation ecosystems (Section3) and speculate on the social impact of human-AI
+coevolution (in Section 4). Finally, we outline open challenges in the study of human-AI coevolution, providing new avenues for
+future research (Section5).
+3
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+Fig.2.WeenrichcurrentphilosophicalperspectivesaboutAI,i.e.,technology-centredAI,human-centredAI,andcollectiveintelligence,withanewdimensionthat
+canbedefinedassociety-centredAI.Society-centredAIbringsthreeadditionalelementstothedebate.
+2. Methods for the study of human-AI coevolution
+This section provides a critical perspective on existing studies about the interaction between humans and recommenders and
+illustrates that only a few of them investigate the role of the human-AI feedback loop. In what follows, we analyse the pros and cons
+of each methodology employed and highlight shortcomings and potential ways for capturing feedback loop mechanisms.
+Empirical vs simulation studies
+Existing studies mostly employ either an empirical or a simulation approach. Empirical studies are based on data generated by users’
+behaviour on real platforms, which emerge from dynamic interactions between humans and recommenders. These studies provide
+evidence about specific phenomena and an empirical basis for their understanding. When based on large samples or diverse datasets,
+empirical studies also enable researchers to make generalisations about broader populations. Nonetheless, the possibility to draw
+general conclusions is limited by the specific time frames and conditions under which these studies are conducted. In addition, as
+data are primarily owned by big tech platforms and rarely made public, these studies are hardly reproducible.
+Simulation studies are based on data generated by mechanistic, AI-, or digital-twin-based models. Simulation studies provide
+a cost-effective alternative to empirical studies, especially when dealing with large-scale ecosystems or when data is not readily
+available. They can be reproduced with the same initial conditions, allowing for the verification and validation of results. Scholars
+can manipulate parameters to observe the effects on the human-AI ecosystem, helping the research community understand the
+intricate relationships between variables. However, as they are based on heavy assumptions, simulations do not necessarily reflect
+real-world dynamics and are, therefore, limited in unveiling unexpected or unintended outcomes. The settings of specific parameters
+may close the door to unforeseen results.
+Controlled vs observational studies
+Both empirical and simulation approaches can be either observational or controlled. Controlled studies, called experiments in social
+sciences [78,79], include quasi-experiments, randomised controlled trials and A/B tests. These studies split the sample into a control
+group and one or more experimental groups, each subjected to different recommendations [78]. The influence of recommendations
+is measured by comparing the outcomes obtained in the two (or more) groups. Controlled studies allow researchers to control for
+various factors and conditions, facilitating the isolation of the effect produced by a specific intervening variable. Their main advantage
+is to establish causal relationships and attribute observed effects to the recommendation. Moreover, sample randomization reduces
+selection biases, ensuring that participants in both groups have an equal chance of receiving the recommendation. However, controlled
+studies also have important shortcomings: the inclusion and exclusion criteria of the controlled settings might limit the generalisability
+of findings; and there is limited flexibility in adapting to changes intercurring during the experiments. Moreover, they are hard to
+design because they require direct access to platforms’ users and recommenders [80].
+Some examples of controlled studies can help clarify the characteristics of these methodologies. Huszár etal.[20]document an
+experiment that investigates the effect of Twitter personalised timeline on the diffusion of political content from different parties.
+The platform selected a group of users that were exposed to tweets in reverse-chronological order from accounts they followed, while
+a treatment group of users was exposed to the AI-based personalised recommender. The personalised recommendations resulted in a
+substantial amplification of political messages, with mainstream right-wing parties benefiting more from algorithmic personalisation
+than their left-wing counterparts. Cornacchia etal.[28]used a traffic simulator to estimate the impact of real-time navigation services
+4
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+on the urban environment. The study found that navigation services may increase travel time and CO2 emissions when the adoption
+rate crosses a threshold.
+Observational studies assume a single recommendation principle without any control [81]. Examples include the analysis of
+Facebook users’ behaviour [82], Google Maps’ suggestions to drivers [83], data gathered from browser loggers [84,85], platforms’
+APIs [82,86], bots that simulate human behaviour [87–89], and experiments that ask volunteers to behave in specific ways [90–93].
+A strength of observational studies (either based on empirical data or simulations) is that, when data is big and representative
+enough, they allow researchers to make generalisations about a broader population, enhancing the external validity of findings and
+highlighting potential biases towards different population segments. A significant limitation, however, is that establishing a causal
+relationship is challenging; additional evidence is required to support causal claims. Moreover, findings of observational studies may
+suffer from selection biases, measurement errors, or the presence of confounding variables; this may compromise their accuracy and
+reliability.
+To clarify the characteristics of observational studies, we rely on two examples. Cho etal.[93]analysed factors leading to political
+polarisation on YouTube, finding that a recommender can contribute to this polarisation, but mainly through the channel of a user’s
+preference. Fleder etal.[94]investigated the influence of recommenders on users’ purchases on a music streaming platform. They
+found that users exposed to recommendations purchase more items and are more similar to one another in the variety of what they
+buy.
+Modelling the feedback loop
+There is a handful of studies that move beyond the static investigation of the influence of recommenders on users’ behaviour, analysing
+feedback loop mechanisms theoretically and/or empirically [11–13,95,96]. Some of these works introduce mathematical models to
+provide insights on recommenders’ influence based on their parameters. Jiang etal.[11]theoretically investigated whether feedback
+loop mechanisms lead to a degeneration of users’ interest: an oracle recommender (with perfect accuracy) induces a quick degen-
+eration, while injecting randomness in users’ choices and enlarging the pool of items slows this process down. Therefore, this study
+provides insights and potential remedies against the degeneration of the feedback loop.
+There is also research that combines a theoretical and an empirical appraisal of the feedback loop. Ensign etal.[95]investigated
+the impact of a predictive policing recommender, based on historical crime data, on distributing police resources among urban
+districts. They simulated a scenario where the following feedback loop takes place: officers are deployed daily to districts with the
+highest predicted crime rate, crimes discovered by these officers are reported, and then data about these reported crimes are fed
+back into the recommender. The process continues iteratively. Given this feedback loop, the recommender repeatedly redirects police
+attention to districts where more crimes are reported. As more crimes are likely to be discovered in these districts due to the increased
+presence of officers, in the long run, the simulation leads to a distribution of crimes that is unrealistic if compared with observed
+historical crime data. The authors proposed a correction mechanism where the likelihood of police deployment to a district decreases
+as discovered crime data are incorporated into the recommender. Simple urn models were employed to model the feedback loop and
+the correction mechanism. One may interpret this evidence as suggesting that small changes in the recommender can make a real
+difference in the human-AI ecosystem.
+Although these seminal studies provide intriguing insights into feedback loop mechanisms, there are important avenues for further
+improvement in the analysis of human-AI coevolution. At the empirical level, data employed in these studies allow drawing only an
+incomplete picture of the interaction between humans and recommenders. Typically, they only describe users’ choices at time 𝑡 𝑖,
+without considering which recommendations are provided to influence users’ choices at 𝑡 𝑖−1. Moreover, we have no information
+about how often platforms re-train recommenders on users’ choices to update the knowledge of their preferences. For these reasons,
+existing studies employ available data only to validate theoretical approaches that model feedback loop mechanisms. To overcome
+this limitation, we need empirical studies based on longitudinal data describing, at each iteration of the feedback loop: (i) the
+recommendations provided to users; (ii)the reaction of users to these recommendations; and (iii)the process of re-training based on
+users’ choices influenced by previous recommendations. Studies of this kind would permit looking at causation bi-directionally and
+not only unidirectionally.
+3. Outcomes of human-AI coevolution
+An outcome can be defined as the by-product of the interaction between recommenders and users within each step of the feedback
+loop. Outcomes can be measured at different levels, i.e., individual, item, model, and systemic. Individual outcomes refer to the
+influence of recommenders on users, e.g., sellers and buyers in the online retail ecosystem, and drivers and passengers in the urban
+mapping ecosystem. Item outcomes refer to the influence of recommenders and users’ choices on the characteristics of specific objects;
+examples include posts on social media, products on online retail platforms, rides in urban services, and text or images on the content
+generation ecosystem. Model outcomes pertain to the influence of users’ choices on the characteristics of the recommender. This
+encompasses whether the recommender alters its behaviour and the nature of its recommendations in response to users’ choices.
+Systemic outcomes refer to the collective impact of the interaction between humans and recommenders.
+Reviewing the literature, we detect several systemic outcomes, such as polarization, echo chambers, inequality, concentration,
+and segregation. Polarization is a sharp separation of users or items into groups based on some attributes (opinions or beliefs) [14,
+19,88,93,97–110]. Echo chambers are environments in which opinions or item choices within a group are confirmed and reinforced
+[19,85,103,111]. Inequality indicates an uneven distribution of resources among members of a group, while concentration is a close
+gathering of users or items [86,112–116]. Concentration is typically identified as congestion in the urban context [17,28,31,32,68,
+5
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+83,117–121]. Segregation is a situation in which groups of users are set apart from each other [122,123]. Some outcomes emerge at
+the individual or model level only. Examples are filter bubbles (individual level), which is a conformation of contents with a user’s
+own beliefs [43,124–126], and model collapse (model level), i.e., a deterioration of the recommender’s performance as it continues
+to coevolve with users [127–135]. Finally, outcomes emerging at all levels are changes in volume (i.e., a quantity measuring some
+users’ or items’ attribute) and changes in diversity, which can be defined as the variety of items and users’ behaviours [136–144].
+All these outcomes emerge, often unintendedly, as the result of the human-AI coevolution. A notable example is the emergence of
+concentration, conformism and diversity loss. In what follows, we briefly discuss other examples gathered from four largely studied
+human-AI ecosystems, i.e., social media, online retail, urban mapping, and content generation ecosystems. For a more comprehensive
+discussion of outcomes in these four ecosystems, refer to [145].
+Social media.Recommenders have achieved considerable success in the realm of social media, where they are deployed to suggest
+new posts and users to follow. This coevolution between users and recommenders gives rise to two interconnected feedback loops.
+First, previous interactions between users and posts shape actual recommendations; these recommendations influence subsequent
+interactions between users and future posts. Second, the accounts a user follows shape actual user recommendations; these recom-
+mendations influence subsequent interactions between users and their followers. Given that social media disseminate opinions, this
+feedback loop can lead to various outcomes, at individual (filter bubble, homophily) and systemic levels (polarisation, fragmentation,
+echo chamber). While recommenders assist users in accessing content and connecting with like-minded individuals, the underlying
+algorithms may confine them within a filter bubble. This confinement can contribute to significant polarisation of opinions and users,
+fostering the potential for radicalization of ideas. For example, as previously discussed, personalised recommendations on Twitter
+overexpose users to certain political content [20].
+Online retail. Recommenders also play a pivotal role in the success of e-commerce and streaming giants like Amazon, eBay,
+and Netflix. The coevolution of these recommenders with consumers may give rise to intricate feedback loop mechanisms. The rec-
+ommended items (e.g., consumer goods, songs, movies) depend on previous purchases, which in turn were influenced by previous
+recommendations. A crucial distinction in this human-AI ecosystem lies between collaborative filtering and personalised recom-
+menders. Collaborative filtering operates on the principle of “who-buys-this-also-buys-that”, relying on collective user behaviour;
+while personalised recommendations tailor suggestions to individual user taste. For example, collaborative filtering may increase
+sales volume and individual consumption variety while, at the same time, may decrease overall aggregate consumption diversity,
+amplifying the success of popular products [146,147]. On the one hand, recommenders help users better navigate the large space of
+product choice, reducing effort and choice overload, allowing a rapid allocation of needed goods and boosting platform revenues. On
+the other, at the aggregate level, they might reduce the variety of purchased products (i.e., creating filter bubbles around the user)
+and increase concentration, favouring certain brands and reducing competition.
+Urban mapping.Navigation services recommend a route to a destination, considering changing traffic conditions and assisting
+users in exploring unfamiliar areas. Therefore, users with the same origin and destination receive similar recommendations. The
+impact of navigation services on the city is unclear: being designed to optimise individual travel times, they may also cause congestion
+and lead to longer travel times and higher CO2 emissions in the environment [17,25,26,28,31–33]. For example, in 2017, Google
+Maps, Waze and Apple Maps re-routed drivers from congested highways to the narrow and hilly streets of Leonia (a small town in New
+Jersey), creating such congestion that people could not get out of their driveways [17,25,27]. These issues are exacerbated by the
+coevolution between drivers and algorithmic updates, generating a feedback loop: travel times, which shape actual recommendations,
+also depend on drivers’ route choices that were influenced by previous recommendations. Drivers’ behaviour may change travel times
+in return, shaping subsequent recommendations. In this context, if too many drivers choose the same “eco-friendly” route, this route
+will cease to be eco-friendly.
+Content Generation.Recently emerging large language models (LLMs), deployed by big tech companies (e.g., Amazon, Baidu,
+Google, Meta, Microsoft, OpenAI) and/or open source projects (e.g., Bloom, Cerebras-GPT, Dolly, Falcon, Mistral, Zephyr), are rapidly
+permeating various domains, e.g., education, politics, work. It has been observed that LLMs may potentially compress diversity, thus
+standardising the use of language in generated text [127–135]. Recent studies show that when LLM-generated content is used to
+fine-tune LLMs themselves, a “regression to the mean” can take place with a loss of linguistic diversity in the form and substance of
+the generated text. This process of autophagy will be increasingly widespread as content on the web, which is the fuel that trains and
+fine-tunes LLMs will be more likely to be generated by machines rather than humans. At an analytical level, we need to understand this
+coevolution to develop recommenders that balance the feedback loop’s potential positive (standardisation of language) and negative
+impacts (compression of linguistic diversity).2
+4. Social impact of human-AI coevolution
+With our concept of human-AI coevolution, we do not simply propose a reflection on the interconnection between complex systems
+and AI, but also on their relationship with society. Some of the outcomes discussed above have a long history in social science. Notable
+examples are polarization (in political science [148,149]), inequality (in economics [150], in sociology [151]), and segregation (in
+economics [152], in urban studies [153]).
+2 Note that, in this ecosystem, feedback loops can occur at various levels of abstraction. For example, LLMs can be improved through human feedback within a
+ReinforcementLearningfromHumanFeedback(RLHF)framework.ThisapproachleverageshumaninsightstorefineAImodels,ensuringtheyevolveinwaysthat
+alignwithhumanneedsandethicalstandards.Asaresult,LLMswillbefrequentlyandcontinuouslymodifiedbasedonhumanfeedback.Thiscreatesadistinct
+feedbackloop,differentfromautophagy,wherehumaninputshapesthenextgenerationofLLMs,whichinturninfluencesfuturehumanfeedback.
+6
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+The fact that recommenders have substantial and often “unintended” consequences on these social phenomena is central to
+human-AI coevolution, as they might amplify trends already in motion in society. Studies in different social science fields (e.g.,
+political science, sociology, political economy, economics and psychology) have shown that the increase of individualism [154]and
+inequalities [155,156]and the retrenchment of public and social policies [157–162]are tangible realities across several countries.
+In this respect, human-AI coevolution as a field of study should also integrate insights from social sciences to evaluate potential
+societal consequences of feedback loop mechanisms. For reasons of brevity, we will put the spotlight on three examples of such an
+intersection, but our considerations extend well beyond: (i) individual utility vs common goods; (ii) ownership of “the means of
+recommendation”; and (iii)phenomena of inequality and concentration.
+Research on recommenders is mostly designed for the maximisation of individual utility and profit for companies (e.g., [122,163]
+for the urban mapping ecosystem, [24,137,140,164,165]for the online retail ecosystem), and this generates a lack of consideration
+for common goods. A good starting point to understand the classical limitations of this approach is the debate on rational choice
+theory and methodological individualism [166,167]. Rational choice theory is grounded in the idea that individual agents act in
+society by following rational reasoning, and therefore maximising their utility. Methodological individualism is a sort of corollary
+and explains societal outcomes as the sum of the relational behaviours of all agents within society. Recommenders designed on the
+basis of methodological individualism might not take into account collective utility.
+History offers plenty of examples of societal damage generated by the prevalence of individualistic over collective behaviours.
+One could go back to Thomas More and “the drama of enclosures” to conceptualise the potential paradoxes that the coevolution
+between humans and recommenders might generate. The enclosures were a vast movement, which privatised land that had been used
+collectively. Similarly, employing individual utility as the main driver to set up recommenders can reduce the potential collective
+utility provided by the development of AI, and therefore, reinforce polarisation mechanisms already existent in society.
+Human-AI coevolution is connected to the functioning of capitalism: the dramatic technological developments related to rec-
+ommenders and AI are taking place in a period dominated by rational choice theory, methodological individualism and ultimately
+neoliberal economics [168]. Our reflection extends Kean Birch’s notion of “automated neoliberalism” [169], which posits that digital
+platforms shape markets, personal data accumulation transforms individual lives, and algorithms have the potential to automate
+social relations.
+The potential for improving collective utility might be reduced because the coevolution between AI and society takes place in a
+context where there is no balance between those who own mainstream recommenders and those who use them uncritically. The old
+question about who owns the means of production strikingly applies today and takes a new form in an environment of human-AI
+coevolution. In this respect, owning the platforms that generate the largest number of interactions through mainstream recommenders
+– what we call “means of recommendations” – might be a game changer in economics and society. Readapting Marx’s reasoning [170],
+who owns the means of recommendations? How do these recommendations affect subsequent interactions between humans and AI?
+How could this reinforce outcomes such as inequalities and polarisation?
+It is not the scope of this perspective article to delineate a political economy of human-AI coevolution [171], intended as a
+systematic analysis of the interconnection between asset ownership and the influence of recommenders. However, this aspect is a
+fundamental contextual element to discuss, at least theoretically, the potential unintended consequences of the coevolution between
+humans and recommenders. If recommenders have a powerful influence in shaping individual choices, and these individual choices
+shape collective outcomes, we have to reflect on how these choices are taken. Moreover, the impact of coevolution can further
+strengthen outcomes and increasingly harm collective utility. The opposite reasoning is also valid, and a different socio-economic
+context, where recommenders are geared towards shared collective objectives, can foster positive societal outcomes through coevo-
+lution. This point underlines that mere techno-solutionism [172], the idea that technology is the answer to any challenge we face,
+is a risky intellectual posture, and we need more studies on human-AI coevolution to steer positive outcomes. A review of recent
+research shows that AI tendentially increases the social divide, especially for historically marginalised groups (e.g., research about
+the US points to racial and gender effects) [173]. These patterns are even stronger in low/middle income countries [174]. One could
+reasonably hypothesise that the uneven impacts of AI are underestimated or overestimated because we miss research measuring
+human-AI coevolution and feedback loop mechanisms.
+Human-AI coevolution might, therefore, foster inequality and concentration across different ecosystems. Within the social media
+ecosystem, recommenders may intensify exposure inequalities at the individual level, exacerbating the rich-get-richer effect regardless
+of user attributes or network characteristics [114]. Concerning the online retail ecosystem, purchase-based collaborative filtering
+might increase the number of items purchased and the variety of products considered. However, this might also push users to buy the
+same products, contributing to concentration at the systemic level [165]. In the urban mapping ecosystem, ride-hailing recommenders
+(like Uber and Lyft) may mislead low ridership in poor and black neighbourhoods as a reflection of low users’ demand, reinforcing
+in this way existing racial and socio-economic inequalities [175,176]. The autophagy process in a content generation ecosystem may
+lead to diversity loss in the generated content [127].
+5. Open challenges of human-AI coevolution
+The study of human-AI coevolution presents important challenges for the future that can be conceptualised at increasing levels of
+abstraction, i.e., scientific, legal and socio-political (see Fig.3).
+From a scientific perspective, we need a method to continually measure the impact of the feedback loop on the behaviour of
+humans and recommenders. Such a method could be developed by tracking step-wise how the measured outcomes change every time
+the recommender is re-trained. For example, one can measure the variety of products purchased by users at time 𝑡 , assessing the
+0
+7
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+Fig.3.Human-AIcoevolutionpresentsimportantchallengesforthefuture,thatcanbeconceptualisedatincreasinglevelsofabstraction:scientific,legalandsocio-
+political.
+extent to which feedback loop mechanisms might amplify or reduce this variety with successive steps, e.g., 𝑡 1, 𝑡 2, … , 𝑡 𝑛. How many
+successive feedback loop iterations might be required to alter this variety of purchases? In a similar fashion, we could track how the
+recommender changes after subsequent re-training rounds: how long it takes a generative AI model to collapse and lose linguistic
+diversity?
+An important technical aspect of studying human-AI coevolution is the occurrence of biases at different stages of the feedback loop
+[177]: data collection from users may introduce biases such as user-selection and exposure biases; learning of recommenders from
+collected data can result in inductive bias; and returning recommendation results to users can lead to popularity bias and unfairness.
+These biases as well as other issues like data contamination, can shape feedback loop mechanisms and individual, item, model, and
+systemic outcomes. The interactions among biases at the different stages of the feedback loop are not sufficiently measured in the
+current literature.
+The conformism/diversity balance is yet another fundamental aspect related to the feedback loop that deserves more attention.
+At a general level, we also need a conscious effort in mathematical modelling to capture feedback loop mechanisms and their impact
+on human-AI ecosystems. At the epistemological level, understanding the causal interplay between humans and recommenders is
+key; however, much of the existing literature overlooks coevolution. Some steps could be undertaken to mitigate this issue, such as
+the development of controlled studies accounting for feedback loop mechanisms. Moreover, we must move beyond a unidirectional
+view of causality and explore it bi-directionally: humans and recommenders exert continuous influence on each other, necessitating
+a holistic study of their coevolutionary dynamics.
+Beyond scientific challenges, other barriers can prevent our capacity to study the emerging phenomenon of human-AI coevolution,
+e.g., the limited access to data for researchers that are external to platforms and the lack of transparency on how recommenders are
+designed and employed within different platforms [15,80]. This severely impairs the reproducibility and replicability of potential
+studies about human-AI coevolution. Initiatives like EU’s Digital Services Act might mitigate this barrier, but it remains unclear how
+vetted researchers will be allowed to access privately-owned platforms. Besides a new legal transparency framework, an intriguing
+way to overtake these barriers might involve the development of specialized APIs. APIs can allow external researchers to interact
+with platforms, and conduct empirical controlled experiments by changing recommenders’ parameters or building experimental and
+control groups of users. Governments should foster a culture of impact evaluation of feedback loop mechanisms among platforms.
+This might follow the model already in place to reduce and compensate for other forms of negative externalities, e.g., pollution and
+drug undesired effects.
+Increasing transparency also requires dealing with other fundamental challenges at the socio-political level. The concentration of
+what we defined as “the means of recommendations” is crucial in this perspective. In a context where big tech companies enjoy a
+8
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+situation of oligopoly, recommenders are calibrated to generate high profits for the few. In this respect, a socially desirable develop-
+ment of human-AI coevolution as a field of study might be hindered by the lack of political intervention to redistribute the means of
+recommendation across markets with many smaller players and, more broadly, society. Such a configuration could be conducive to
+developing more transparent rules in data access and a fairer distribution of the means of recommendation. In the long term, small
+changes in the functioning of recommenders or humans’ behaviour might lead to a significant impact on social outcomes, be they
+positive or negative. This could create a sort of “butterfly effect” of the feedback loop [178]that we have to study and understand.
+The discussed challenges will persist even in the case of potential deep transformations in future online platforms, such as the
+emergence of decentralised platform architectures, user ownership of data and AI agents, and novel models for platform oversight
+and governance. These challenges not only concern scholars and their capacity to do research, but also go well beyond and bear upon
+the social and political realm. Only by accurately measuring and understanding the influence of recommenders on human behaviour
+we will be able to inform policymakers on how to make sensible decisions “taking into account not only the world as it is, but the
+world as it will be” [1]. This understanding will be key to designing adequate policies to avoid the potential negative externalities of
+an uncontrolled coevolution between humans and recommenders. We aim at a future society-centric AI that is part of the solution to
+long-standing societal problems, instead of being part of the problem.
+CRediT authorship contribution statement
+Dino Pedreschi:Writing – review & editing, Writing – original draft, Validation, Conceptualization.Luca Pappalardo:Writing –
+review & editing, Writing – original draft, Validation, Supervision, Project administration, Conceptualization.Emanuele Ferragina:
+Writing – review & editing, Validation, Supervision, Conceptualization.Ricardo Baeza-Yates:Validation.Albert-László Barabási:
+Validation.Frank Dignum:Validation.Virginia Dignum:Validation.Tina Eliassi-Rad:Writing – original draft, Validation.Fosca
+Giannotti:Validation, Funding acquisition.János Kertész:Writing – review & editing, Writing – original draft, Validation.Alistair
+Knott:Writing – review & editing, Writing – original draft, Validation.Yannis Ioannidis:Validation.Paul Lukowicz:Validation,
+Funding acquisition.Andrea Passarella:Validation.AlexSandy Pentland:Validation.John Shawe-Taylor:Validation.Alessandro
+Vespignani:Validation.
+Declaration of competing interest
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Acknowledgements
+This work has been partially supported by:
+• PNRR -M4C2 -Investimento 1.3, Partenariato Esteso (grant No. PE00000013) -“FAIR -Future Artificial Intelligence Research”
+-Spoke 1 “Human-centered AI”, funded by the European Commission under the Next Generation EU programme;
+• EU H2020 projects HumaneAI-net G.A. 952026 and SoBigData++ G.A. 871042;
+• European Research Council ERC-2018-ADG 834756 “XAI: Science and technology for the eXplanation of AI decision making”;
+• CHIST-ERA grant CHIST-ERA-19-XAI-010, by MUR (grant No. not available), FWF (grant No. I 5205), EPSRC (grant No.
+EP/V055712/1), NCN (grant No. 2020/02/Y/ST6/00064), ETAg (grant No. SLTAT21096), BNSF (grant No. KΠ-06-AOO2/5);
+• PNRR (Piano Nazionale di Ripresa e Resilienza) in the context of the research program 20224CZ5X4_PE6_PRIN 2022 “URBAI –
+Urban Artificial Intelligence” (CUP B53D23012770006), funded by European Union – Next Generation EU;
+• Emanuele Ferragina has been partially supported by a public grant overseen by the French National Research Agency (ANR) as
+part of the ‘Investissements d’Avenir’ program LIEPP (ANR-11-LABX-0091, ANR-11-IDEX-0005-02) and the Université de Paris
+IdEx (ANR-18-IDEX-0001).
+We thank Vincenzo Vivarini for the inspiration about the importance of the feedback loop in complex social systems. There is always
+a human agent beyond any tactical system. We also thank Daniele Fadda for the support on making the figures. Finally, we thank all
+members of KDD-Lab for insightful discussions about human-AI coevolution.
+Data availability
+No data was used for the research described in the article.
+References
+[1]I.Asimov,AsimovonScienceFiction,Doubleday,NewYorkCity,US,1981.
+[2]E.Russell,Coevolutionaryhistory,Am.Hist.Rev.119(5)(2014)1514–1528.
+[3]E.A.Lee,TheCoevolution:TheEntwinedFuturesofHumansandMachines,MITPress,Cambridge,US,2020.
+[4]F.Geels,Co-evolutionoftechnologyandsociety:thetransitioninwatersupplyandpersonalhygieneintheNetherlands(1850–1930)—acasestudyinmulti-level
+perspective,Technol.Soc.27(3)(2005)363–397.
+9
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+[5]J.Mokyr,TheFourthDiscontinuity:TheCo-EvolutionofHumansandMachines,1995,JSTOR.
+[6]A.Santosuosso,Aboutcoevolutionofhumansandintelligentmachines:preliminarynotes,BioLawJ.(RivistadiBioDiritto)1S(2021)445–454.
+[7]F.Ricci,L.Rokach,B.Shapira,RecommenderSystems:IntroductionandChallenges,RecommenderSystemsHandbook,2015,pp.1–34.
+[8]Y.Li,K.Liu,R.Satapathy,S.Wang,E.Cambria,Recentdevelopmentsinrecommendersystems:asurvey,arXiv:2306.12680,2023.
+[9]J.Lu,D.Wu,M.Mao,W.Wang,G.Zhang,Recommendersystemapplicationdevelopments:asurvey,Decis.SupportSyst.74(2015)12–32.
+[10]C.Wagner,M.Strohmaier,A.Olteanu,E.Kıcıman,N.Contractor,T.Eliassi-Rad,Measuringalgorithmicallyinfusedsocieties,Nature595(7866)(2021)197–204.
+[11]R.Jiang,S.Chiappa,T.Lattimore,A.György,P.Kohli,Degeneratefeedbackloopsinrecommendersystems,in:Proceedingsofthe2019AAAI/ACMConference
+onAI,Ethics,andSociety,AIES’19,AssociationforComputingMachinery,NewYork,NY,USA,2019,pp.383–390.
+[12]W.Sun,S.Khenissi,O.Nasraoui,P.Shafto,Debiasingthehuman-recommendersystemfeedbackloopincollaborativefiltering,in:CompanionProceedingsof
+the2019WorldWideWebConference,WWW’19,AssociationforComputingMachinery,NewYork,NY,USA,2019,pp.645–651.
+[13]M.Mansoury,H.Abdollahpouri,M.Pechenizkiy,B.Mobasher,R.Burke,Feedbackloopandbiasamplificationinrecommendersystems,in:Proceedingsofthe
+29thACMInternationalConferenceonInformation&KnowledgeManagement,CIKM’20,AssociationforComputingMachinery,NewYork,NY,USA,2020,
+pp.2145–2148.
+[14]A.Sîrbu,D.Pedreschi,F.Giannotti,J.Kertész,Algorithmicbiasamplifiesopinionfragmentationandpolarization:aboundedconfidencemodel,PLoSONE
+14(3)(2019)0213246.
+[15]AlistairKnott,KateHannah,DinoPedreschi,TapabrataChakraborti,SanjanaHattotuwa,AndrewTrotman,RicardoBaeza-Yates,RituparnaRoy,DavidEyers,
+VirginiaMorini,ValentinaPansanella,ResponsibleAIforsocialmediaguidance:aproposedcollaborativemethodforstudyingtheeffectsofsocialmedia
+recommendersystemsonusers,Technicalreport,GlobalPartnershiponAI(GPAI),2021.
+[16]F.O.Isinkaye,Y.O.Folajimi,B.A.Ojokoh,Recommendationsystems:principles,methodsandevaluation,Egypt.Inform.J.16(3)(2015)261–273.
+[17]B.Kulynych,R.Overdorf,C.Troncoso,S.Gürses,Pots:protectiveoptimizationtechnologies,in:Proceedingsofthe2020ConferenceonFairness,Accountability,
+andTransparency,FAT*’20,AssociationforComputingMachinery,NewYork,NY,USA,2020,pp.177–188.
+[18]M.DelVicario,G.Vivaldo,A.Bessi,F.Zollo,A.Scala,G.Caldarelli,W.Quattrociocchi,Echochambers:emotionalcontagionandgrouppolarizationonFacebook,
+Sci.Rep.6(2016)37825.
+[19]N.Perra,L.E.C.Rocha,Modellingopiniondynamicsintheageofalgorithmicpersonalisation,Sci.Rep.9(1)(2019)7261.
+[20]F.Huszár,S.I.Ktena,C.O’Brien,L.Belli,A.Schlaikjer,M.Hardt,AlgorithmicamplificationofpoliticsonTwitter,Proc.Natl.Acad.Sci.119(1)(2022).
+[21]D.Pedreschi,S.Ruggieri,F.Turini,Discrimination-awaredatamining,in:Proceedingsofthe14thACMSIGKDDInternationalConferenceonKnowledge
+DiscoveryandDataMining-KDD08,2008,pp.560–568.
+[22]J.Kleinberg,J.Ludwig,S.Mullainathan,C.R.Sunstein,Algorithmsasdiscriminationdetectors,Proc.Natl.Acad.Sci.117(48)(2020)30096–30100.
+[23]N.Mehrabi,F.Morstatter,N.Saxena,K.Lerman,A.Galstyan,Asurveyonbiasandfairnessinmachinelearning,ACMComput.Surv.54(6)(2021)1–35.
+[24]K.Hosanagar,D.Fleder,D.Lee,A.Buja,Willtheglobalvillagefractureintotribes?Recommendersystemsandtheireffectsonconsumerfragmentation,Manag.
+Sci.60(4)(2014)805–823.
+[25]J.Macfarlane,Yournavigationappismakingtrafficunmanageable,IEEESpectr.(2019)22–27.
+[26]S.Siuhi,J.Mwakalonge,Opportunitiesandchallengesofsmartmobileapplicationsintransportation,J.TrafficTransp.Eng.3(6)(2016)582–592.
+[27]L.W.Foderaro,NavigationAppsAreTurningQuietNeighborhoodsintoTrafficNightmares,TheNewYorkTimes,2017.
+[28]G.Cornacchia,M.Böhm,G.Mauro,M.Nanni,D.Pedreschi,L.Pappalardo,Howroutingstrategiesimpacturbanemissions,in:Proceedingsofthe30th
+InternationalConferenceonAdvancesinGeographicInformationSystems,AssociationforComputingMachinery,NewYork,NY,USA,2022,pp.1–4.
+[29]A.Lima,R.Stanojevic,D.Papagiannaki,P.Rodriguez,M.C.González,Understandingindividualroutingbehaviour,J.R.Soc.Interface13(116)(2016).
+[30]S.Çolak,A.Lima,M.C.González,Understandingcongestedtravelinurbanareas,Nat.Commun.7(1)(2016)1–8.
+[31]G.Cornacchia,M.Nanni,L.Pappalardo,One-shottrafficassignmentwithforward-lookingpenalization,in:Proceedingsofthe31stACMInternationalConference
+onAdvancesinGeographicInformationSystems,AssociationforComputingMachinery,NewYork,NY,USA,2023,pp.1–10.
+[32]G.Cornacchia,M.Nanni,D.Pedreschi,L.Pappalardo,Navigationservicesandurbansustainability,Fluct.NoiseLett.2450016(2023).
+[33]G.Cornacchia,M.Nanni,D.Pedreschi,L.Pappalardo,Navigationservicesamplifyconcentrationoftrafficandemissionsinourcities,https://arxiv.org/abs/
+2407.20004,2024.
+[34]T.J.Sejnowski,TheDeepLearningRevolution,MITPress,Cambridge,US,2018.
+[35]Y.LeCun,Y.Bengio,G.Hinton,Deeplearning,Nature521(7553)(2015)436–444.
+[36]D.Silver,A.Huang,C.J.Maddison,A.Guez,L.Sifre,G.Driessche,J.Schrittwieser,I.Antonoglou,V.Panneershelvam,M.Lanctot,S.Dieleman,D.Grewe,J.
+Nham,N.Kalchbrenner,I.Sutskever,T.Lillicrap,M.Leach,K.Kavukcuoglu,T.Graepel,D.Hassabis,Masteringthegameofgowithdeepneuralnetworksand
+treesearch,Nature529(7587)(2016)484–489.
+[37]J.J.Titano,M.Badgeley,J.Schefflein,M.Pain,A.Su,M.Cai,N.Swinburne,J.Zech,J.Kim,J.Bederson,J.Mocco,B.Drayer,J.Lehar,S.Cho,A.Costa,E.K.
+Oermann,Automateddeep-neural-networksurveillanceofcranialimagesforacuteneurologicevents,Nat.Med.24(9)(2018)1337–1341.
+[38]A.Krizhevsky,I.Sutskever,G.E.Hinton,ImageNetclassificationwithdeepconvolutionalneuralnetworks,Commun.ACM60(6)(2017)84–90.
+[39]Y.Wu,M.Schuster,Z.Chen,Q.V.Le,M.Norouzi,W.Macherey,M.Krikun,Y.Cao,Q.Gao,K.Macherey,J.Klingner,A.Shah,M.Johnson,X.Liu,Ł.Kaiser,S.
+Gouws,Y.Kato,T.Kudo,H.Kazawa,K.Stevens,G.Kurian,N.Patil,W.Wang,C.Young,J.Smith,J.Riesa,A.Rudnick,O.Vinyals,G.Corrado,M.Hughes,J.
+Dean,Google’sneuralmachinetranslationsystem:bridgingthegapbetweenhumanandmachinetranslation,arXiv:1609.08144[cs.CL],2016.
+[40]R.Guidotti,A.Monreale,S.Ruggieri,F.Turini,F.Giannotti,D.Pedreschi,Asurveyofmethodsforexplainingblackboxmodels,ACMComput.Surv.51(5)
+(2019)1–42.
+[41]N.Burkart,M.F.Huber,Asurveyontheexplainabilityofsupervisedmachinelearning,J.Artif.Intell.Res.70(2021)245–317.
+[42]J.M.Hofman,D.J.Watts,S.Athey,F.Garip,T.L.Griffiths,J.Kleinberg,H.Margetts,S.Mullainathan,M.J.Salganik,S.Vazire,A.Vespignani,T.Yarkoni,
+Integratingexplanationandpredictionincomputationalsocialscience,Nature595(7866)(2021)181–188.
+[43]A.Abdul,J.Vermeulen,D.Wang,B.Y.Lim,M.Kankanhalli,Trendsandtrajectoriesforexplainable,accountableandintelligiblesystems,in:Proceedingsof
+the2018CHIConferenceonHumanFactorsinComputingSystems,2018,pp.1–18.
+[44]P.Lukowicz,ThechallengeofhumancentricAI,Digit.Welt3(4)(2019)9–10.
+[45]D.Horvatić,T.Lipic,Human-centricAI:thesymbiosisofhumanandartificialintelligence,Entropy23(3)(2021).
+[46]B.Lepri,N.Oliver,A.Pentland,Ethicalmachines:thehuman-centricuseofartificialintelligence,iScience24(3)(2021)102249.
+[47]V.Dignum,Relationalartificialintelligence,arXiv:2202.07446[cs.CY],2022.
+[48]D.J.Watts,S.H.Strogatz,Collectivedynamicsof‘small-world’networks,Nature393(6684)(1998)440–442.
+[49]A.-L.Barabási,R.Albert,Emergenceofscalinginrandomnetworks,Science286(5439)(1999)509–512.
+[50]J.M.Kleinberg,Navigationinasmallworld,Nature406(6798)(2000)845.
+[51]R.Z.Albert,Statisticalmechanicsofcomplexnetworks,Rev.Mod.Phys.74(87)(2002).
+[52]J.-P.Onnela,J.Saramäki,J.Hyvönen,G.Szabó,D.Lazer,K.Kaski,J.Kertész,A.-L.Barabási,Structureandtiestrengthsinmobilecommunicationnetworks,
+Proc.Natl.Acad.Sci.104(18)(2007)7332–7336.
+[53]M.Newman,Networks:AnIntroduction,OxfordUniversityPress,Oxford,UK,2018.
+[54]A.-L.Barabási,NetworkScience,CambridgeUniversityPress,Cambridge,UK,2016.
+[55]R.Pastor-Satorras,C.Castellano,P.VanMieghem,A.Vespignani,Epidemicprocessesincomplexnetworks,Rev.Mod.Phys.87(3)(2015)925–979.
+10
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+[56]V.Colizza,A.Barrat,M.Barthelemy,A.-J.Valleron,A.Vespignani,Modelingtheworldwidespreadofpandemicinfluenza:baselinecaseandcontainment
+interventions,PLoSMed.4(1)(2007)13.
+[57]X.Wang,B.Yucesoy,O.Varol,T.Eliassi-Rad,A.-L.Barabási,Successinbooks:predictingbooksalesbeforepublication,EPJDataSci.8(1)(2019).
+[58]S.P.Fraiberger,R.Sinatra,M.Resch,C.Riedl,A.-L.Barabási,Quantifyingreputationandsuccessinart,Science362(6416)(2018)825–829.
+[59]L.Pappalardo,P.Cintia,Quantifyingtherelationbetweenperformanceandsuccessinsoccer,Adv.ComplexSyst.21(03n04)(2018)1750014.
+[60]D.Brockmann,L.Hufnagel,T.Geisel,Thescalinglawsofhumantravel,Nature439(7075)(2006)462–465.
+[61]M.C.González,C.A.Hidalgo,A.-L.Barabási,Understandingindividualhumanmobilitypatterns,Nature458(7235)(2008)779–782.
+[62]L.Pappalardo,F.Simini,S.Rinzivillo,D.Pedreschi,F.Giannotti,A.-L.Barabási,Returnersandexplorersdichotomyinhumanmobility,Nat.Commun.6(2015)
+8166.
+[63]L.Alessandretti,U.Aslak,S.Lehmann,Thescalesofhumanmobility,Nature587(7834)(2020)402–407.
+[64]M.Böhm,M.Nanni,L.Pappalardo,Grosspollutersandvehicleemissionsreduction,Nat.Sustain.(2022)1–9.
+[65]M.Luca,G.Barlacchi,B.Lepri,L.Pappalardo,Asurveyondeeplearningforhumanmobility,ACMComput.Surv.55(1)(2021)1–44.
+[66]H.Barbosa,M.Barthelemy,G.Ghoshal,C.R.James,M.Lenormand,T.Louail,R.Menezes,J.J.Ramasco,F.Simini,M.Tomasini,Humanmobility:modelsand
+applications,Phys.Rep.734(2018)1–74.
+[67]F.Simini,G.Barlacchi,M.Luca,L.Pappalardo,Adeepgravitymodelformobilityflowsgeneration,Nat.Commun.12(1)(2021)6576.
+[68]R.Hanna,G.Kreindler,B.A.Olken,Citywideeffectsofhigh-occupancyvehiclerestrictions:evidencefrom“three-in-one”inJakarta,Science357(6346)(2017)
+89–93.
+[69]L.Pappalardo,E.Manley,V.Sekara,L.Alessandretti,Futuredirectionsinhumanmobilityscience,Nat.Comput.Sci.3(7)(2023)588–600.
+[70]Q.Yang,A.Steinfeld,C.Rosé,J.Zimmerman,Re-examiningwhether,why,andhowhuman-AIinteractionisuniquelydifficulttodesign,in:CHI’20:Proceedings
+ofthe2020CHIConferenceonHumanFactorsinComputingSystems2020,2020,pp.1–13.
+[71]S.Thurner,R.Hanel,P.Klimek,IntroductiontotheTheoryofComplexSystems,OxfordUniversityPress,Oxford,UK,2018.
+[72]M.W.Eysenck,C.Eysenck,AIVsHumans,Routlage,London,UK,2021.
+[73]W.F.Lawless,D.A.Sofge,D.Lofaro,R.Mittu,Editorial:interdisciplinaryapproachestothestructureandperformanceofinterdependentautonomoushuman
+machineteamsandsystems,Front.Phys.11(2023)1.
+[74]J.Piao,J.Liu,F.Zhang,J.Su,Y.Li,Human–AIadaptivedynamicsdrivestheemergenceofinformationcocoons,Nat.Mach.Intell.5(2023)1214–1224.
+[75]P.Contucci,J.Kertész,G.Osabutey,Human-AIecosystemwithabruptchangesasafunctionofthecomposition,PLoSONE17(5)(2022)0267310.
+[76]I.Rahwan,M.Cebrian,N.Obradovich,J.Bongard,J.-F.Bonnefon,C.Breazeal,J.W.Crandall,N.A.Christakis,I.D.Couzin,M.O.Jackson,etal.,Machine
+behaviour,Nature568(7753)(2019)477–486.
+[77]M.M.Peeters,J.Diggelen,K.VanDenBosch,A.Bronkhorst,M.A.Neerincx,J.M.Schraagen,S.Raaijmakers,Hybridcollectiveintelligenceinahuman–AI
+society,AISoc.36(2021)217–238.
+[78]A.Deaton,N.Cartwright,Understandingandmisunderstandingrandomizedcontrolledtrials,Soc.Sci.Med.210(2018)2–21.
+[79]E.Hariton,J.J.Locascio,Randomisedcontrolledtrials-thegoldstandardforeffectivenessresearch,BJOG125(13)(2018)1716.
+[80]AlistairKnott,DinoPedreschi,Transparencymechanismsforsocialmediarecommenderalgorithms:fromproposalstoaction,Technicalreport,GlobalPart-
+nershiponAI(GPAI),2022.
+[81]A.Pera,G.d.F.Morales,L.M.Aiello,Measuringbehaviorchangewithobservationalstudies:areview,arXiv:2310.19951,2023.
+[82]E.Bakshy,S.Messing,L.A.Adamic,ExposuretoideologicallydiversenewsandopiniononFacebook,Science348(6239)(2015)1130–1132.
+[83]N.Arora,T.Cabannes,S.Ganapathy,Y.Li,P.McAfee,M.Nunkesser,C.Osorio,A.Tomkins,I.Tsogsuren,QuantifyingthesustainabilityimpactofGooglemaps:
+acasestudyofSaltLakeCity,arXiv:2111.03426[physics.soc-ph],2021.
+[84]S.Flaxman,S.Goel,J.M.Rao,Filterbubbles,echochambers,andonlinenewsconsumption,PublicOpin.Q.80(S1)(2016)298–320.
+[85]H.Hosseinmardi,A.Ghasemian,A.Clauset,etal.,Evaluatingthescale,growth,andoriginsofright-wingechochambersonYouTube,arXiv:2111.03426,2020.
+[86]M.Ledwich,A.Zaitsev,Algorithmicextremism:examiningYouTube’srabbitholeofradicalization,arXivpreprint,arXiv:1912.11211,2019.
+[87]J.Whittaker,S.Looney,A.Reed,F.Votta,Recommendersystemsandtheamplificationofextremistcontent,Int.PolicyRev.10(2)(2021).
+[88]M.H.Ribeiro,R.Ottoni,R.West,V.A.F.Almeida,W.Meira,AuditingradicalizationpathwaysonYouTube,in:Proceedingsofthe2020ConferenceonFairness,
+Accountability,andTransparency,2020,pp.131–141.
+[89]K.Papadamou,S.Zannettou,J.Blackburn,E.DeCristofaro,G.Stringhini,M.Sirivianos,“Howoverisit?”UnderstandingtheincelcommunityonYouTube,in:
+ProceedingsoftheACMonHuman-ComputerInteraction,vol.5,AssociationforComputingMachinery,NewYorkCity,USA,2021,pp.1–25.
+[90]H.Allcott,M.Gentzkow,C.Yu,Trendsinthediffusionofmisinformationonsocialmedia,Res.Polit.6(2)(2019).
+[91]N.Asimovic,J.Nagler,R.Bonneau,J.A.Tucker,TestingtheeffectsofFacebookusageinanethnicallypolarizedsetting,Proc.Natl.Acad.Sci. 118(25)(2021).
+[92]R.Levy,Socialmedia,newsconsumption,andpolarization:evidencefromafieldexperiment,Am.Econ.Rev.111(3)(2021)831–870.
+[93]J.Cho,S.Ahmed,M.Hilbert,B.Liu,J.Luu,Dosearchalgorithmsendangerdemocracy?Anexperimentalinvestigationofalgorithmeffectsonpolitical
+polarization,J.Broadcast.Electron.Media64(2)(2020)150–172.
+[94]D.Fleder,K.Hosanagar,A.Buja,Recommendersystemsandtheireffectsonconsumers,in:MediterraneanConferenceonInformationSystems(MCIS),2011.
+[95]D.Ensign,S.A.Friedler,S.Neville,C.Scheidegger,S.Venkatasubramanian,Runawayfeedbackloopsinpredictivepolicing,in:ConferenceonFairness,Ac-
+countabilityandTransparency,PMLR,2018,pp.160–171.
+[96]T.T.Nguyen,P.-M.Hui,F.M.Harper,L.Terveen,J.A.Konstan,Exploringthefilterbubble:theeffectofusingrecommendersystemsoncontentdiversity,in:
+Proceedingsofthe23rdInternationalConferenceonWorldWideWeb,2014,pp.677–686.
+[97]C.M.Valensise,M.Cinelli,W.Quattrociocchi,Thedriversofonlinepolarization:fittingmodelstodata,Inf.Sci.642(2023)119152.
+[98]V.Pansanella,G.Rossetti,L.Milli,Frommean-fieldtocomplextopologies:networkeffectsonthealgorithmicbiasmodel,in:R.M.Benito,C.Cherifi,H.Cherifi,
+E.Moro,L.M.Rocha,M.Sales-Pardo(Eds.),ComplexNetworks&TheirApplicationsX,Springer,Cham,2022,pp.329–340.
+[99]A.F.Peralta,M.Neri,J.Kertész,G.Iñiguez,Effectofalgorithmicbiasandnetworkstructureoncoexistence,consensus,andpolarizationofopinions,Phys.Rev.
+E104(4–1)(2021)044312.
+[100] A.F.Peralta,J.Kertész,G.Iñiguez,Opinionformationonsocialnetworkswithalgorithmicbias:dynamicsandbiasimbalance,J.Phys.Complex.2(4)(2021).
+[101] V.Pansanella,A.Sîrbu,J.Kertesz,G.Rossetti,Massmediaimpactonopinionevolutioninbiaseddigitalenvironments:aboundedconfidencemodel,Sci.Rep.
+13(1)(2023)14600.
+[102] N.Liu,M.A.Baum,A.J.Berinsky,A.J.Chaney,J.Benedictis-Kessner,A.Guess,D.Knox,C.Lucas,R.Mariman,B.M.Stewart,Algorithmicrecommendations
+havelimitedeffectsonpolarization:anaturalisticexperimentonYouTube,Technicalreport,HarvardKennedySchool,2023.
+[103] U.Chitra,C.Musco,Analyzingtheimpactoffilterbubblesonsocialnetworkpolarization,in:Proceedingsofthe13thInternationalConferenceonWebSearch
+andDataMining,2020,pp.115–123.
+[104] M.Haroon,M.Wojcieszak,A.Chhabra,X.Liu,P.Mohapatra,Z.Shafiq,AuditingYouTube’srecommendationsystemforideologicallycongenial,extreme,and
+problematicrecommendations,Proc.Natl.Acad.Sci. 120(50)(2023)2213020120.
+[105] P.Bouchaud,D.Chavalarias,M.Panahi,CrowdsourcedauditofTwitter’srecommendersystems,Sci.Rep.13(1)(2023)16815.
+[106] A.M.Guess,N.Malhotra,J.Pan,P.Barberá,H.Allcott,T.Brown,A.Crespo-Tenorio,D.Dimmery,D.Freelon,M.Gentzkow,etal.,Howdosocialmediafeed
+algorithmsaffectattitudesandbehaviorinanelectioncampaign?,Science381(6656)(2023)398–404.
+[107] M.S.Alvim,B.Amorim,S.Knight,S.Quintero,F.Valencia,Aformalmodelforpolarizationunderconfirmationbiasinsocialnetworks,Log.MethodsComput.
+Sci.19(2023).
+11
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+[108] I.Rahaman,P.Hosein,Amodelforoptimizingarticlerecommendationforreducingpolarization,in:Proceedingsofthe2021IEEE/ACMInternationalConference
+onAdvancesinSocialNetworksAnalysisandMining,ASONAM’21,AssociationforComputingMachinery,NewYork,NY,USA,2022,pp.107–110.
+[109] C.Yang,X.Xu,B.P.Nunes,S.W.M.Siqueira,Bubblesbursting:investigatingandmeasuringthepersonalisationofsocialmediasearches,Telemat.Inform.82
+(2023)101999.
+[110] V.Pansanella,G.Rossetti,L.Milli,Modelingalgorithmicbias:simplicialcomplexesandevolvingnetworktopologies,Appl.Netw.Sci.7(1)(2022)57.
+[111] F.Cinus,M.Minici,C.Monti,F.Bonchi,Theeffectofpeoplerecommendersonechochambersandpolarization,in:ProceedingsoftheInternationalAAAI
+ConferenceonWebandSocialMedia,vol.16,AssociationfortheAdvancementofArtificialIntelligence,Washington,DCUSA,2022,pp.90–101.
+[112] M.Boeker,A.Urman,AnempiricalinvestigationofpersonalizationfactorsonTikTok,in:ProceedingsoftheACMWebConference2022,2022,pp.2298–2309.
+[113] N.Bartley,A.Abeliuk,E.Ferrara,K.Lerman,AuditingalgorithmicbiasonTwitter,in:Proceedingsofthe13thACMWebScienceConference2021,2021,
+pp.65–73.
+[114] F.Fabbri,M.L.Croci,F.Bonchi,C.Castillo,Exposureinequalityinpeoplerecommendersystems:thelong-termeffects,in:ProceedingsoftheInternational
+AAAIConferenceonWebandSocialMedia,vol.16,AssociationfortheAdvancementofArtificialIntelligence,Washington,DCUSA,2022,pp.194–204.
+[115] B.Kirdemir,J.Kready,E.Mead,M.N.Hussain,N.Agarwal,D.Adjeroh,AssessingbiasinYouTube’svideorecommendationalgorithminacross-lingualand
+cross-topicalcontext,in:Social,Cultural,andBehavioralModeling:14thInternationalConference,SBP-BRiMS2021,2021,VirtualEvent,July6–9,2021,in:
+Proceedings,vol.14,Springer,2021,pp.71–80.
+[116] Y.M.M.Ng,K.HoffmannPham,M.Luengo-Oroz,ExploringYouTube’srecommendationsysteminthecontextofCovid-19vaccines:computationalandcom-
+parativeanalysisofvideotrajectories,J.Med.InternetRes.25(2023)49061.
+[117] G.D.Erhardt,S.Roy,D.Cooper,B.Sana,M.Chen,J.Castiglione,Dotransportationnetworkcompaniesdecreaseorincreasecongestion?,Sci.Adv.5(5)(2019)
+2670.
+[118] A.M.Falek,A.Gallais,C.Pelsser,S.Julien,F.Theoleyre,Tore-route,ornottore-route:impactofreal-timere-routinginurbanroadnetworks,J.Intell.Transp.
+Syst.26(2)(2022)198–212.
+[119] P.Santi,G.Resta,M.Szell,S.Sobolevsky,S.H.Strogatz,C.Ratti,Quantifyingthebenefitsofvehiclepoolingwithshareabilitynetworks,Proc.Natl.Acad.Sci.
+111(37)(2014)13290–13294.
+[120] D.J.Fagnant,K.M.Kockelman,Dynamicride-sharingandfleetsizingforasystemofsharedautonomousvehiclesinAustin,Texas,Transportation45(2018)
+143–158.
+[121] R.Jalali,S.Koohi-Fayegh,K.El-Khatib,D.Hoornweg,H.Li,Investigatingthepotentialofridesharingtoreducevehicleemissions,UrbanPlann.2(2)(2017)
+26–40.
+[122] S.Zhang,N.Mehta,P.V.Singh,K.Srinivasan,Frontiers:cananartificialintelligencealgorithmmitigateracialeconomicinequality?Ananalysisinthecontext
+ofAirbnb,Mark.Sci.40(5)(2021)813–820.
+[123] V.Koh,W.Li,G.Livan,L.Capra,Offlinebiasesinonlineplatforms:astudyofdiversityandhomophilyinAirbnb,EPJDataSci.8(1)(2019)11.
+[124] I.Srba,R.Moro,M.Tomlein,B.Pecher,J.Simko,E.Stefancova,M.Kompan,A.Hrckova,J.Podrouzek,A.Gavornik,etal.,AuditingYouTube’srecommendation
+algorithmformisinformationfilterbubbles,ACMTrans.Recommend.Syst.1(1)(2023)1–33.
+[125] M.Tomlein,B.Pecher,J.Simko,I.Srba,R.Moro,E.Stefancova,M.Kompan,A.Hrckova,J.Podrouzek,M.Bielikova,Anauditofmisinformationfilterbubbles
+onYouTube:bubbleburstingandrecentbehaviorchanges,in:Proceedingsofthe15thACMConferenceonRecommenderSystems,2021,pp.1–11.
+[126] Q.Grossetti,C.DuMouza,N.Travers,Community-basedrecommendationsonTwitter:avoidingthefilterbubble,in:WebInformationSystemsEngineering–
+WISE2019:20thInternationalConference,HongKong,China,January19–22,2020,in:Proceedings,vol.20,Springer,2019,pp.212–227.
+[127] I.Shumailov,Z.Shumaylov,Y.Zhao,N.Papernot,R.Anderson,Y.Gal,AImodelscollapsewhentrainedonrecursivelygenerateddata,Nature631(8022)
+(2024)755–759.
+[128] Y.Guo,G.Shang,M.Vazirgiannis,C.Clavel,Thecuriousdeclineoflinguisticdiversity:traininglanguagemodelsonsynthetictext,arXiv:2311.09807,2023.
+[129] M.Briesch,D.Sobania,F.Rothlauf,Largelanguagemodelssufferfromtheirownoutput:ananalysisoftheself-consumingtrainingloop,arXiv:2311.16822,
+2023.
+[130] E.Dohmatob,Y.Feng,P.Yang,F.Charton,J.Kempe,Ataleoftails:modelcollapseasachangeofscalinglaws,arXiv:2402.07043,2024.
+[131] S.Alemohammad,J.Casco-Rodriguez,L.Luzi,A.I.Humayun,H.Babaei,D.LeJeune,A.Siahkoohi,R.G.Baraniuk,Self-consuminggenerativemodelsgomad,
+arXiv:2307.01850,2023.
+[132] G.Martínez,L.Watson,P.Reviriego,J.A.Hernández,M.Juarez,R.Sarkar,Towardsunderstandingtheinterplayofgenerativeartificialintelligenceandthe
+Internet,arXiv:2306.06130,2023.
+[133] E.Dohmatob,Y.Feng,J.Kempe,Modelcollapsedemystified:thecaseofregression,arXiv:2402.07712,2024.
+[134] M.Bohacek,H.Farid,Nepotisticallytrainedgenerative-AImodelscollapse,arXiv:2311.12202,2023.
+[135] R.Hataya,H.Bao,H.Arai,Willlarge-scalegenerativemodelscorruptfuturedatasets?,in:ProceedingsoftheIEEE/CVFInternationalConferenceonComputer
+Vision,2023,pp.20555–20565.
+[136] B.Pathak,R.Garfinkel,R.D.Gopal,R.Venkatesan,F.Yin,Empiricalanalysisoftheimpactofrecommendersystemsonsales,J.Manag.Inf.Syst.27(2)(2010)
+159–188.
+[137] P.-Y.Chen,S.-y.Wu,J.Yoon,Theimpactofonlinerecommendationsandconsumerfeedbackonsales,in:InternationalConferenceonInformationSystems
+(ICIS),2004.
+[138] R.Donnelly,A.Kanodia,I.Morozov,Thelongtaileffectofpersonalizedrankings,AvailableatSSRN3649342,2021.
+[139] S.Chen,H.Qiu,S.Zhao,Y.Han,W.He,M.Siponen,J.Mou,H.Xiao,Whenmoreisless:theothersideofartificialintelligencerecommendation,J.Manag.
+Sci.Eng.7(2)(2022)213–232.
+[140] S.Yi,D.Kim,J.Ju,Recommendationtechnologiesandconsumptiondiversity:anexperimentalstudyonproductrecommendations,consumersearch,andsales
+diversity,Technol.Forecast.Soc.Change178(2022)121486.
+[141] C.Matt,T.Hess,C.Weiß,Thedifferencesbetweenrecommendertechnologiesintheirimpactonsalesdiversity,in:InternationalConferenceonInteraction
+Sciences,2013.
+[142] G.Alves,D.Jannach,R.F.Souza,D.Damian,M.G.Manzato,Digitallynudginguserstoexploreoff-profilerecommendations:herebedragons,UserModel.
+User-Adapt.Interact.(2023)1–41.
+[143] E.Noordeh,R.Levin,R.Jiang,H.Shadmany,Echochambersincollaborativefilteringbasedrecommendationsystems,arXiv:2011.03890,2020.
+[144] G.Aridor,D.Goncalves,S.Sikdar,Deconstructingthefilterbubble:userdecision-makingandrecommendersystems,in:Proceedingsofthe14thACMConference
+onRecommenderSystems,2020,pp.82–91.
+[145] L.Pappalardo,E.Ferragina,S.Citraro,G.Cornacchia,M.Nanni,G.Rossetti,G.Gezici,F.Giannotti,M.Lalli,D.Gambetta,G.Mauro,V.Morini,V.Pansanella,
+D.Pedreschi,AsurveyontheimpactofAI-basedrecommendersonhumanbehaviours:methodologies,outcomesandfuturedirections,https://arxiv.org/abs/
+2407.01630,2024.
+[146] D.Fleder,K.Hosanagar,Blockbusterculture’snextriseorfall:theimpactofrecommendersystemsonsalesdiversity,Manag.Sci.55(5)(2009)697–712.
+[147] D.Lee,K.Hosanagar,Howdorecommendersystemsaffectsalesdiversity?Across-categoryinvestigationviarandomizedfieldexperiment,Inf.Syst.Res.30(1)
+(2019)239–259.
+[148] M.J.Hetherington,Puttingpolarizationinperspective,Br.J.Polit.Sci.39(2)(2009)413–448.
+[149] A.I.Abramowitz,K.L.Saunders,Ispolarizationamyth?,J.Polit.70(2)(2008)542–555.
+12
+
+D.Pedreschi,L.Pappalardo,E.Ferraginaetal. ArtificialIntelligence339(2025)104244
+[150] A.B.Atkinson,etal.,Onthemeasurementofinequality,J.Econ.Theory2(3)(1970)244–263.
+[151] U.Beck,Beyondclassandnation:reframingsocialinequalitiesinaglobalizingworld1,Br.J.Sociol.58(4)(2007)679–705.
+[152] T.C.Schelling,Modelsofsegregation,Am.Econ.Rev.59(2)(1969)488–493.
+[153] J.Jacobs,TheDeathandLifeofGreatAmericanCities,RandomHouse,NewYork,1961.
+[154] H.C.Santos,M.E.Varnum,I.Grossmann,Globalincreasesinindividualism,Psychol.Sci.28(9)(2017)1228–1239.
+[155] B.Milanovic,GlobalInequality:ANewApproachfortheAgeofGlobalization,HarvardUniversityPress,Cambridge,USA,2016.
+[156] T.Piketty,CapitalintheTwenty-FirstCentury,HarvardUniversityPress,Cambridge,USA,2014.
+[157] E.Ferragina,Welfarestatechangeasadoublemovement:fourdecadesofretrenchmentandexpansionincompensatoryandemployment-orientedpolicies
+across21high-incomecountries,Soc.PolicyAdm.56(5)(2022)705–725.
+[158] E.Ferragina,Thepoliticaleconomyoffamilypolicyexpansion:fosteringneoliberalcapitalismorpromotinggenderequalitysupportingsocialreproduction?,
+Rev.Int.Polit.Econ.26(6)(2019)1238–1265.
+[159] E.Ferragina,The‘twolives’ofEsping-Andersenandtherevivalofaresearchprogramme:genderequality,employmentandredistributionincontemporary
+socialpolicy,Soc.PolicyAdm.(2024)1–19.
+[160] E.Ferragina,A.Arrigoni,T.F.Spreckelsen,Therisinginvisiblemajority:bringingsocietybackintointernationalpoliticaleconomy,Rev.Int.Polit.Econ.29(1)
+(2022)114–151.
+[161] E.Ferragina,A.Arrigoni,Selectiveneoliberalism:howItalywentfromdualizationtoliberalisationinlabourmarketandpensionreforms,NewPolit.Econ.
+26(6)(2021)964–984.
+[162] E.Ferragina,F.D.Filetti,Labourmarketprotectionacrossspaceandtime:arevisedtypologyandataxonomyofcountries’trajectoriesofchange,J.Eur.Soc.
+Policy32(2)(2022)148–165.
+[163] M.-À.Garcia-López,J.Jofre-Monseny,R.Martínez-Mazza,M.Segú,Doshort-termrentalplatformsaffecthousingmarkets?EvidencefromAirbnbinBarcelona,
+J.UrbanEcon.119(2020)103278.
+[164] M.B.Dias,D.Locher,M.Li,W.El-Deredy,P.J.Lisboa,Thevalueofpersonalisedrecommendersystemstoe-business:acasestudy,in:Proceedingsofthe2008
+ACMConferenceonRecommenderSystems,2008,pp.291–294.
+[165] D.Lee,K.Hosanagar,Impactofrecommendersystemsonsalesvolumeanddiversity,in:InternationalConferenceonInteractionSciences,2014.
+[166] J.A.Oppenheimer,Rationalchoicetheory,in:EncyclopediaofPoliticalTheory,vol.3,2008,pp.1150–1159.
+[167] D.J.Kjosavik,Methodologicalindividualismandrationalchoiceinneoclassicaleconomics:areviewofinstitutionalistcritique,in:ForumforDevelopment
+Studies,vol.30,Taylor&Francis,2003,pp.205–245.
+[168] D.Harvey,ABriefHistoryofNeoliberalism,OxfordUniversityPress,Oxford,UK,2007.
+[169] K.Birch,Automatedneoliberalism?Thedigitalorganisationofmarketsintechnoscientificcapitalism,NewForm.100(100–101)(2020)10–27.
+[170] K.Marx,Capital,VolumeI,ACritiqueofPoliticalEconomy,vol.1,CourierCorporation,NorthChelmsford,MA,USA,2011.
+[171] M.Trajtenberg,AIasthenextGPT:apolitical-economyperspective,Technicalreport,NationalBureauofEconomicResearch,2018.
+[172] E.Morozov,ToSaveEverything,ClickHere:TheFollyofTechnologicalSolutionism,PublicAffairs,NewYorkCity,USA,2013.
+[173] L.Sartori,A.Theodorou,AsociotechnicalperspectiveforthefutureofAI:narratives,inequalities,andhumancontrol,EthicsInf.Technol.24(1)(2022)4.
+[174] A.Hagerty,I.Rubinov,GlobalAIethics:areviewofthesocialimpactsandethicalimplicationsofartificialintelligence,arXiv:1907.07892,2019.
+[175] Y.Ge,C.R.Knittel,D.MacKenzie,S.Zoepf,Racialdiscriminationintransportationnetworkcompanies,J.PublicEcon.190(2020)104205.
+[176] A.Yan,B.Howe,Fairness-awaredemandpredictionfornewmobility,in:ProceedingsoftheAAAIConferenceonArtificialIntelligence,vol.34,Associationfor
+theAdvancementofArtificialIntelligence,Washington,DCUSA,2020,pp.1079–1087.
+[177] J.Chen,H.Dong,X.Wang,F.Feng,M.Wang,X.He,Biasanddebiasinrecommendersystem:asurveyandfuturedirections,ACMTrans.Inf.Syst.41(3)
+(2023)1–39.
+[178] R.Bradbury,Asoundofthunder,in:ScienceFictionandPhilosophy:FromTimeTraveltoSuperintelligence,2016,pp.331–342.
+13
+

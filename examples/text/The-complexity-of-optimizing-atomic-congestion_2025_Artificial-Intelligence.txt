@@ -1,0 +1,902 @@
+ArtificialIntelligence338(2025)104241
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+✩
+The complexity of optimizing atomic congestion
+Cornelius Branda, Robert Ganianb, Subrahmanyam Kalyanasundaramc,
+Inerneyb,∗,1
+Fionn Mc
+aAlgorithms & Complexity Theory Group, Regensburg University, Germany
+bAlgorithms and Complexity Group, TU Wien, Austria
+cDepartment of Computer Science and Engineering, IIT Hyderabad, India
+A R T I C L E I N F O A B S T R A C T
+Keywords: Atomic congestion games are a classic topic in network design, routing, and algorithmic game
+Atomic congestion games theory, and are capable of modeling congestion and flow optimization tasks in various application
+System optimum areas. While both the price of anarchy for such games as well as the computational complexity
+Routing
+of computing their Nash equilibria are by now well-understood, the computational complexity of
+Para meterize dcomplexity
+computing a system-optimalset of strategies—that is, a centrally planned routing that minimizes the
+Slimtreecutwidth
+average cost of agents—is severely understudied in the literature. We close this gap by identifying
+the exact boundaries of tractability for the problem through the lens of the parameterized
+complexity paradigm. After showing that the problem remains highly intractable even on
+extremely simple networks, we obtain a set of results which demonstrate that the structural
+parameters which control the computational (in)tractability of the problem are not vertex-
+separator based in nature (such as, e.g., treewidth), but rather based on edge separators. We
+conclude by extending our analysis towards the (even more challenging) min-max variant of the
+problem.
+1. Introduction
+Congestion games are a by-now classic and widely studied model of network resource sharing. Introduced by Rosenthal [54],
+congestion games and their innumerable variants and extensions have been the focus of a vast body of literature, spanning fields from
+algorithmic game theory[13]over routing[44]and network design[3], to diverse contexts within artificial intelligence[4,36,45,47],
+both applied and theoretical.
+The basic setup of congestion games comprises a network (modeled as a directed graph) and a set of agents that each have an
+origin and a destination.2The agents need to decide which routes to take in order to reach their destination in a way that minimizes
+the cost of their route, where the cost can capture, e.g., the amount of time or resources required. The eponymous congestionenters
+the scene as follows: the cost accrued by a single agent when traversing a link in the network depends on the number of agents using
+that link, as described by the link’s latency function. In essence, the latency function captures how the cost of using each link changes
+✩ An extended abstract of this paper appeared in the proceedings of AAAI 2024 [9].
+* Correspondingauthor.
+E-mailaddress:fmcinern@gmail.com(F.McInerney).
+1 Postal address: Technische Universität Wien, Favoritenstrasse 9-11, E192-01, 1040 Vienna, Austria.
+2 The setting where there is an infinite number of agents and single agents are infinitesimally small is called non-atomic; we focus on the classic, atomiccase, where
+agentsareindividualentities.
+https://doi.org/10.1016/j.artint.2024.104241
+Received 19 February 2024; Received in revised form 16 October 2024; Accepted 18 October 2024
+Availableonline22October2024
+0004-3702/© 2024 The Author(s). Published by Elsevier B.V. This is an open access article under the CC BY license
+(http://creativecommons.org/licenses/by/4.0/).
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+depending on the number of agents using it; depending on the context, more agents using a link could lead to each of them paying
+a greater cost (e.g., when dealing with traffic congestion) or a lower cost (e.g., when dealing with logistical supply chains), up to a
+maximum capacity for that link.
+It is well-known that selfish strategies in congestion games may not lead to optimal outcomes for all agents, let alone a system-
+optimaloutcome3 (that is, one achieving the minimum average cost)[58]. In fact, the existence of Nash equilibria for these games
+was the seminal question investigated by Rosenthal[54], and is still of interest in economics and game theory today. Notably, the
+price of anarchyfor these games has by now been determined[5,12]. The price of anarchy in this context is defined as the ratio
+cost(𝑆)
+sup𝑆 ), (PoA)
+cost(𝑆
+sys
+where the supremum ranges over all Nash equilibria, cost(𝑆)is the cost of a set of strategies 𝑆 for the agents, and 𝑆 is a system
+sys
+optimum, minimizing the average cost over all agents. In addition, the computational complexity of computing Nash equilibria is
+equally well-studied[2,21]; see also the many recent works on the problem[36,61].
+While the price of anarchy defined in(PoA)as well as the cost of Nash equilibria cost(𝑆)(i.e.,the numerator in(PoA)) has been
+extensively treated in the literature on congestion games, it may come as a surprise that, to the best of our knowledge, almost nothing
+is known about the computational complexity of computing the denominatorcost(𝑆 )of(PoA), that is, determining a system-optimal
+sys
+set of strategiesfor the players. Far from just an intellectual curiosity, applications, e.g., in road or internet traffic routing and planning,
+make this a pressing question, especially given the rapid developments in autonomous driving systems and the widely adopted political
+strategy of emphasizing public transportation for its lower environmental impact, which is usually centrally planned and routed, as
+opposed to individual transport[11,39,57,59,60].
+One possible reason for this gap may lie in the fact that even the most restricted instances of centrally routing a set of agents across
+a network in a socially optimal manner become hopelessly hard from the perspective of classical computational complexity theory.
+To illustrate the severity of this phenomenon, several of these basic classes of intractable instances are described in Section3. Another
+explanation for this blind spot in the literature can possibly be found in the fact that, as far as the price of anarchy is concerned,
+the network structure itself does not appear to play a significant role, whereas this changes drastically when it comes to actually
+computing a system-optimal set of strategies.
+A particular approach that has proven immensely useful for computationally intractable problems lies in employing the rich toolset
+offered by parameterized complexity theory[14,17]in order to obtain a rigorous, more fine-grained and detailed description of the
+computational complexity of a problem. The central aim of such an endeavoris to identify the structural properties of the input—
+captured via numerical parameters—which give rise to fixed-parameter algorithms for the problem (see Section2). Some examples
+where the parameterized complexity toolset has been successfully applied in the context of Artificial Intelligence research include
+the series of works on Hedonic Games[7,8,24], Integer Programming[10,18,19,30], Data Completion[15,25,26,41], and Bayesian
+Network Learning[28,34,35,50].
+Our contributions As mentioned above, the problem of computing system-optimal strategies in atomic congestion games (SOAC)
+is extremely hard in terms of classical complexity theory. The core approach of parameterized complexity analysis is to identify
+those structural properties that a problem instance should have that, even though exceedingly hard in the general case, give rise
+to its fixed-parameter tractability. Since the network is modeled as a graph, a natural first choice would be to parameterize by the
+well-established treewidth(of the underlying undirected graph) [53]. Unfortunately, as our first result, we show that the problem
+remains 𝖭𝖯-hard not only on networks which have treewidth 2, but even on networks consisting of a star plus an additional vertex
+(Theorem1). This result rules out not only the use of treewidth, but also of virtually all other reasonable graph measures, as a single
+parameter to solve the problem in full generality.
+The above lower bound essentially means that, in order to achieve progress, one needs to combine structural parameters with
+some auxiliary parameterization of the problem instances. In the context of congestion games, it would seem tempting to consider
+the number of agents as such an auxiliary parameter, however that would severely restrict any obtained algorithms: while one could
+reasonably expect that networks of interest may be well-structured, the number of agents in relevant instances of congestion games
+is typically large, and hence, does not constitute a well-applicable parameter. Instead, here we consider the maximum capacity 𝚌 𝚖𝚊𝚡
+of a link in the network as an auxiliary parameter—a value which is never larger, but could be much lower, than the total number of
+agents in the whole network.
+It is important to note thatSOACremains extremely challenging even when parameterized by 𝚌 𝚖𝚊𝚡. In fact, even if 𝚌 𝚖𝚊𝚡is fixed to a
+small constant, the problem is 𝖭𝖯-hard when restricted to networks of constant treewidth (Theorem2); the same reduction also rules
+out the use of other network parameters based on decompositions along small vertex separators(such as treedepth[48]). However, as
+we show in our main algorithmic result (Theorem5),SOACis fixed-parameter tractable when parameterized by 𝚌 𝚖𝚊𝚡plus a suitable
+measure that guarantees the network’s decomposability along small edge cuts.
+Basic examples of such measures include the treewidth plus the maximum degree of the network [33,50], or the feedback edge
+number(i.e., the edge deletion distance to acyclic networks)[23,42]. In our contribution, we build on the recently introduced spanning
+treedecompositions[28,29]to provide a significantly more general result—in particular, we develop a highly non-trivial dynamic
+programming algorithm to establish fixed-parameter tractability with respect to the recently introduced slim variant of treecut width.
+3 In the literature, such outcomes are sometimes called the (socialor collective) optimum.
+2
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+Task
+Routeall𝑚agents Route𝑚−𝛼agents
+unbounded 𝚌 𝚌 𝚖𝚊𝚡+𝛼 unbounded
+𝚖𝚊𝚡
+𝖭𝖯-hard 𝖭𝖯-hard
+for 𝐾 2,𝑁 for 𝐾 2,𝑁
+(Theorem1), bounded bounded (Theorem1),
+tw,deg≤3 tw,deg≤3
+(Theorem4) (Theorem4)
+network network
+parameter parameter
+𝖭𝖯-hard vertex-sep. tw+deg tw
+for td≤15 based 𝖥𝖯𝖳(The- 𝖭𝖯-hard for
+(Theorem2) orem7) tw=1 [20]
+edge-cutbased network
+parameter
+stcw
+𝖭𝖯 -hard directed (alsotw 𝖥𝖯+ 𝖳de (Tg) he- tcw 𝖶[1]-hard
+forDAGs
+orem5) (Theorem6)
+(Theorem3)
+Fig.1.Amindmapofourresultsoncomputingsystem-optimalstrategiesincongestiongames.Theformalproblemdefinitionaswellasadiscussionoftheconsidered
+parametersisprovidedinSection2;here,twstandsfortreewidth,degstandsformaximumdegree,tdstandsfortreedepth,(s)tcwstandsfor(slim)treecutwidth,and
+DAGsstandsfordirectedacyclicgraphs.
+We complement Theorem5with lower bounds (Theorems3, 4, and 6) that show the result to be an essentially tight delimitation of
+the exact boundaries of tractability forSOAC.
+In the final section of this article, we focus on a more general variant ofSOAC, where instead of requiring all agents to be routed
+to their destinations, we ask to minimize the system optimum while routing as many agents as possible (or, equivalently, when at
+most 𝛼agents may be left unrouted). This problem, motivated in part by similar lines of investigation conducted for, e.g., multi-agent
+path finding[37]and vehicle routing[1,51], can be seen as a “min-max” variant ofSOAC, and hence, we denote itmSOAC. Crucially,
+mSOACis even more challenging thanSOAC: it remains 𝖭𝖯-hard on bidirected trees even for 𝚌 𝚖𝚊𝚡=1[20], and, perhaps even more
+surprisingly, is left open on very simple network structures, such as bounded-capacity star networks, when parameterized by 𝛼. Be
+that as it may, as our final result, we show that on bounded-degree networks, the spanning-tree based algorithm obtained forSOAC
+can be lifted to also solvemSOACvia a fixed-parameter algorithm when parameterized by the treewidth of the network, along with
+𝛼and 𝚌 𝚖𝚊𝚡.
+A mind-map of our results is provided in Fig.1.
+2. Preliminaries
+For a positive integer 𝑖 ∈ℕ, we let [𝑖] ={1, 2, … , 𝑖}. We refer to the book by Diestel[16]for standard graph terminology. While
+the networks are modeled as directed graphs (i.e., digraphs), many of our results use the skeletons (i.e., the underlying undirected
+graphs) of these digraphs. The skeleton𝐺of a directed graph 𝐺is the simple undirected graph obtained by replacing each arc in 𝐺
+by an undirected edge. The graph class 𝐾 𝑖,𝑁={𝐾 𝑖,𝑗 |𝑗∈ℕ}is the class of all complete bipartite graphs where one side has size 𝑖.
+Formal problem definition Given a digraph 𝐺=(𝑉, 𝐸), let  be the set of all directed paths in 𝐺. Given a set 𝐴 ={𝑎 1, … , 𝑎 𝑚}of
+agents where each agent 𝑎 𝑖is associated with a tuple (𝑠 𝑖, 𝑡 𝑖) ∈𝑉2, a flow assignment𝐹 is a mapping from 𝐴to such that each agent
+𝑎 𝑖 is mapped to a directed path from 𝑠 𝑖 to 𝑡 𝑖. For an arc 𝑒 ∈𝐸, let 𝑓 𝐹(𝑒) =|{𝑎|𝑎 ∈𝐴 ∧𝑒 ∈𝐹(𝑎)}|be the number of agents whose
+flow passes through 𝑒; when 𝐹 is clear from the context, we omit it and simply use 𝑓(𝑒)instead.
+Intuitively, our primary problem of interest asks to compute a flow assignment of all the agents that minimizes the total cost.
+However, in order to formalize the algorithmic lower bounds obtained for the problem, we follow the standard practice of formulating
+the problem as an equivalent decision problem (see below). To avoid any doubts, we remark that all our algorithmic results are
+constructive and can also immediately output the minimum cost of a flow assignment with the required properties.
+SystemOptimumAtomicCongestion(SOAC)
+Input: A digraph 𝐺=(𝑉, 𝐸), a positive integer 𝜆, a set 𝐴 ={𝑎 1, … , 𝑎 𝑚}of agents where each agent 𝑎 𝑖is associated with a tuple
+(𝑠 𝑖, 𝑡 𝑖) ∈𝑉2, and for each arc 𝑒 ∈𝐸, a latency function 𝓁 𝑒∶∑[𝑚] →ℝ ≥0∪{∞}.
+Question: Does there exist a flow assignment 𝐹 such that 𝑒∈𝐸𝑓 𝐹(𝑒) ⋅𝓁 𝑒(𝑓 𝐹(𝑒)) ≤𝜆?
+3
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+treewidth Intractable
+directedparameters
+treedepth treecutwidth
+slimtreecutwidth Fixed-parameter
+tractable
+treewidth+maxdegree feedbackedgenumber
+Fig.2.A pictorial view of the tractability ofSOACwhen capacities are bounded. An arc from a parameter 𝑥to a parameter 𝑦indicates that 𝑥is dominated by 𝑦, i.e.,
+a bound on 𝑥implies a bound on 𝑦but the opposite does not hold.
+In specific settings studied in the literature, the latency function is sometimes required to satisfy certain additional conditions,
+such as being non-decreasing. As illustrative examples, observe that when agents represent individual vehicles in a traffic network,
+the latency function will typically be increasing (the cost of 100 agents using a single link is greater than 100 times the cost of that
+link when it is used by a single agent), but if agents represent individual parcels or shipments in a logistics network, one would expect
+it to be decreasing (the cost of 100 agents using a single link would be lower than 100 times the cost of that link when it is used
+by a single agent). In order to capture as wide a range of scenarios as possible—including, e.g.,buffered or batch-wise processing at
+network nodes leading to decreasing or even oscillating latencies, respectively—our study targets the problem with arbitrary latency
+functions.
+Given a latency function 𝓁 𝑒∶[𝑚] →ℝ ≥0∪{∞}for an arc 𝑒, let the capacity 𝑐 𝑒of 𝑒be defined as the maximum admissible value
+of the latency function, i.e.,max{𝑧|𝓁 𝑒(𝑧) ≠∞}. Let the maximum capacityof a network be defined as 𝚌 𝚖𝚊𝚡∶=max𝑒∈𝐸𝑐(𝑒). Crucially,
+while the maximum capacity can never exceed the number 𝑚 of agents in the network, one can reasonably expect it to be much
+smaller than 𝑚in more complex networks.
+Parameterized complexity theory In parameterized complexity[14,17,49], the running-time of an algorithm is studied with respect
+to a parameter 𝑘 ∈ℕand input size𝑛. The basic idea is to find a parameter that describes the structure of the instance such that the
+combinatorial explosion can be confined to this parameter. In this respect, the most favorable complexity class is 𝖥𝖯𝖳(fixed-parameter
+tractable), which contains all problems that can be decided by an algorithm running in time 𝑓(𝑘) ⋅𝑛(1), where 𝑓 is a computable
+function. Algorithms with this running-time are called fixed-parameter algorithms. A basic way of excluding fixed-parameter tractability
+for a parameterized problem is to show that it remains 𝖭𝖯-hard even when the parameter 𝑘is bounded by a constant. However, this is
+not always possible: some problems can be solved in non-uniform polynomial time for each fixed value of the parameter. In these cases,
+establishing hardness for the complexity class 𝖶[1]via a parameterized reductionrules out the existence of a fixed-parameter algorithm
+under the well-established assumption that 𝖶[1] ≠𝖥𝖯𝖳. A parameterized reduction can be thought of as a classical polynomial-time
+reduction, but with the distinction that it (1) can run in fixed-parameter time instead of polynomial time, and (2) must bound the
+parameter of the output instance by a function of the parameter of the initial instance.
+A natural and typical direction in parameterized complexity is to consider parameters tied to the structural properties of the
+instance. In many cases, it turns out that achieving fixed-parameter tractability is only possible if one parameterizes by multiple
+properties of the instances simultaneously; formally, this is simply reflected by setting the parameter to be the sum of both values.
+As a basic example, the classicalIndependent Setproblem on graphs is not fixed-parameter tractable w.r.t. the size 𝓁of the sought
+set nor the maximum degree 𝑑of the graph, but is well-known to admit a fixed-parameter algorithm w.r.t. 𝓁+𝑑[14].
+Structural parameters In this work, we identify the exact boundaries of tractability forSOACin the context of fundamental graph
+parameters, as depicted in Fig.2. For two of these parameters—notably treewidth[53]and treedepth[48]—we do not need to provide
+explicit definitions since the respective lower bounds we obtain forSOACconstruct instances whose skeletons are well-known to have
+bounded treewidth and treedepth. The feedback edge number[23,42]is simply the minimum number of edges that need to be removed
+from an undirected graph in order to obtain a forest. The term “directed graph parameters” here broadly refers to all parameters that
+achieve constant values on directed acyclic graphs; this includes directed treewidth[40], Kelly-width[38], and DAG-width[6], to
+name a few.
+The proofs of our main results forSOAC(Theorem5) andmSOAC(Theorem7), as well as the lower bound in Theorem6, will
+require a more in-depth introduction of treecut width and its slim variant. A treecut decompositionof 𝐺is a pair (𝑇, )which consists
+of a rooted tree 𝑇 and a near-partition ={𝑋 𝑡⊆𝑉(𝐺) ∶𝑡 ∈𝑉(𝑇)}of 𝑉(𝐺), where a near-partition is a partitioning of a set which
+can also contain the empty set. A set in the family  is called a bagof the treecut decomposition.
+For any node 𝑡of 𝑇 other than the root 𝑟, let 𝑒(𝑡) =𝑢𝑡be the unique edge incide⋃nt to 𝑡on t⋃he path to 𝑟. Let 𝑇𝑢 and 𝑇𝑡 be the two
+connected components in 𝑇 −𝑒(𝑡)which contain 𝑢and 𝑡, respectively. Note that ( 𝑞∈𝑇𝑢𝑋 𝑞, 𝑞∈𝑇𝑡𝑋 𝑞)is a near-partition of 𝑉(𝐺),
+and we use 𝐜𝐮𝐭(𝑡)to denote the set of edges with one endpoint in each part. We define the adhesionof 𝑡(𝐚𝐝𝐡 𝑇(𝑡)or 𝐚𝐝𝐡(𝑡)in brief)
+as |𝐜𝐮𝐭(𝑡)|; if 𝑡is the root, we set 𝐚𝐝𝐡 𝑇(𝑡) =0and 𝐜𝐮𝐭(𝑡) =∅.
+The torsoof a treecut decomposition (𝑇, )at a node 𝑡, written as 𝐻 𝑡, is the graph obtained from 𝐺as follows. If 𝑇 consists of a
+single node 𝑡, then the torso of (𝑇, )at 𝑡is 𝐺. Otherwise, let 𝑇 1, … , 𝑇 𝓁 be the connected components of 𝑇−𝑡. For each 𝑖 =1, … , 𝓁,
+4
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+⋃
+the vertex set 𝑍 𝑖⊆𝑉(𝐺)is defined as the set 𝑏∈𝑉(𝑇𝑖)𝑋 𝑏. The torso 𝐻 𝑡 at 𝑡is obtained from 𝐺by consolidatingeach vertex set 𝑍 𝑖
+into a single vertex 𝑧 𝑖 (this is also called shrinkingin the literature). Here, the operation of consolidating a vertex set 𝑍 into 𝑧is to
+substitute 𝑍 by 𝑧in 𝐺, and for each edge 𝑒between 𝑍 and 𝑣 ∈𝑉(𝐺) ⧵𝑍, adding an edge 𝑧𝑣in the new graph. We note that this
+may create parallel edges.
+The operation of suppressing a vertex 𝑣of degree at most 2consists of deleting𝑣, and when the degree is two, adding an edge
+between the neighbors of 𝑣. Given a connected graph 𝐺and 𝑋⊆𝑉(𝐺), let the 3-centerof (𝐺, 𝑋)be the unique graph obtained from
+𝐺by exhaustively suppressing vertices in 𝑉(𝐺) ⧵𝑋 of degree at most two. Finally, for a node 𝑡of 𝑇, we denote by 𝐻̃ 𝑡 the 3-center
+of (𝐻 𝑡, 𝑋 𝑡), where 𝐻 𝑡is the torso of (𝑇, )at 𝑡. Let the torso-size𝐭𝐨𝐫(𝑡)denote |𝐻̃ 𝑡|.
+Definition 1. The width of a treecut decomposition (𝑇, )of 𝐺is defined as max𝑡∈𝑉(𝑇){𝐚𝐝𝐡(𝑡), 𝐭𝐨𝐫(𝑡)}. The treecut width of 𝐺, or
+𝐭𝐜𝐰(𝐺)in short, is the minimum width of (𝑇, )over all treecut decompositions (𝑇, )of 𝐺.
+The graph parameter slim treecut width can be defined analogously to treecut width, but with the distinction that suppress-
+ing only occurs for vertices of degree at most 1. Yet, for our algorithmic applications, it will be more useful to use a different
+characterization of the parameter—one based on spanning trees and much better suited to the design of dynamic programming
+algorithms.
+For a graph 𝐺 and a tree 𝑇 over 𝑉(𝐺), let the local feedback edge number at 𝑣 ∈ 𝑉(𝐺) be 𝐸𝐺,𝑇 (𝑣) = {𝑢𝑤 ∈ 𝐸(𝐺) ⧵
+loc
+𝐸(𝑇)|thepathbetween𝑢and𝑤in𝑇 contains𝑣}. The edge-cut widthof the pair (𝐺, 𝑇)is 𝐞𝐜𝐰(𝐺, 𝑇) =1 +max𝑣∈𝑉 |𝐸 l𝐺 oc,𝑇 (𝑣)|.
+Lemma 1 (Prop. 27 and Thm. 30, [29]). Every graph 𝐺with slim treecut width 𝑘admits a spanning tree 𝑇 over some supergraph 𝐺′of 𝐺
+such that (𝐺′, 𝑇)has edge-cut width at most 3(𝑘 +1)2. Moreover, such a pair (𝐺′, 𝑇)can be computed in time 2𝑘(1)⋅|𝑉(𝐺)|4.
+Lemma 2 (Prop. 22, Prop. 26, and Thm. 30,[29]). Every graph 𝐺 with maximum degree 𝑑 and treewidth 𝑤admits a spanning tree 𝑇
+over some supergraph 𝐺′ of 𝐺such that both the edge-cut width of (𝐺′, 𝑇)and the maximum degree of 𝑇 are upper-bounded by (𝑑2𝑤2).
+Moreover, such a pair (𝐺′, 𝑇)can be computed in time 2(𝑑𝑤)(1)⋅|𝑉(𝐺)|4.
+We refer to the work that introduced the notion[29]for a broader discussion of slim treecut width, as well as illustrative figures.
+3. The surprising difficulty of solving atomic congestion games
+Before initializing our more fine-grained parameterized analysis ofSOAC, we first consider the computational complexity of the
+problem from the classical point of view, that is, with respect to 𝖭𝖯-hardness. In fact, we show that even surprisingly simple input
+instances turn out to be intractable.
+To begin, we show thatSOACis 𝖭𝖯-hard even when the underlying undirected graph of the input digraph is restricted to the class
+𝐾 2,𝑁. We prove this result (as well as Theorem4later on) via a reduction from the following variant of the classicalSubset Sum
+problem over 𝑑-dimensional vectors:
+MultidimensionalUniform0/1Knapsack(MUKS)
+Input: A set 𝑆={𝑣⃗ 1, … , 𝑣⃗ 𝑛} ⊆ℕ𝑑 of 𝑑-dimensional vectors containing natural numbers, a positive integer 𝑘, and a target vector
+𝑇⃗ ∈ℕ𝑑
+. ∑
+Question: Is there a subset 𝑆′⊆𝑆 of at least 𝑘vectors such that 𝑠⃗∈𝑆′𝑠⃗≤𝑇⃗ ?
+Lemma 3. MUKSis 𝖭𝖯-hard and also 𝖶[1]-hard parameterized by 𝑑, even if all numbers are encoded in unary.
+Proof. The reduction proceeds from a problem calledMultidimensional Relaxed Subset Sum(MRSS), which is 𝖭𝖯-hard even
+if the inputs are encoded in unary[32]. In its definition, it subtly differs from MUKS above. Namely, the direction of the inequal-
+ities is swapped,∑ that is, one seeks a subset of at most 𝑘 vectors that sums up to at least 𝑇⃗ . Now, given an instance (𝑆, 𝑇⃗, 𝑘) of
+MRSS, let Σ⃗ ∶= 𝑠∈𝑆𝑠 be the total sum over all vectors. The instance of MUKS then consists of (𝑆, Σ⃗ −𝑇⃗, 𝑛 −𝑘). We claim that
+the MUKS instance h∑as a solution of size at least 𝑛 −∑𝑘 if and only if the original MRSS-instance has a solution of ∑size at most 𝑘.
+Indeed, for 𝑆′⊆𝑆, 𝑠∈𝑆′𝑠 ≥𝑇⃗ is equivalent to Σ⃗ − 𝑠∈𝑆′𝑠 ≤Σ⃗ −𝑇⃗ , and, by definition, the left-hand side equals 𝑠∈𝑆′′𝑠, where
+𝑆′′=𝑆−𝑆′ is a set of at least 𝑛 −𝑘 vectors. This proves the correctness of the reduction, and hence, the 𝖭𝖯-hardness on unary
+inputs.
+As for the 𝖶[1]-hardness of the problem, we note that MRSS is also known to be 𝖶[1]-hard when parameterized by 𝑑 [32]. Our
+polynomial-time reduction does not change the value of 𝑑, and hence, it immediately also establishes the 𝖶[1]-hardness of MUKS
+w.r.t. 𝑑. □
+Before proceeding to the reduction, let us briefly remark on the significance of the result in the context of this article. Essentially,
+establishing 𝖭𝖯-hardness on 𝐾 2,𝑁 rules out not only fixed-parameter tractability under almost all commonly considered graph pa-
+rameterizations (including not only the classical treewidth[53], but also the treedepth[48], the vertex cover number[43], and the more
+5
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+recently introduced edge-cut variants of treewidth like the treecut width [46]), but even polynomial-time algorithms for instances
+where such parameters are bounded by a constant.
+Theorem 1. SOACis 𝖭𝖯-hard even when restricted to networks whose skeletons belong to the class 𝐾 2,𝑁.
+Proof. We provide a polynomial-time reduction from MUKS where numbers are encoded in unary toSOAC. Recall that MUKS is
+𝖭𝖯-hard by Lemma3. The reduction is as follows. For every input 𝑣⃗ 𝑖∈𝑆 in the MUKS instance, there is a source vertex 𝑠 𝑖. For each
+of the 𝑑 entries 𝑇 1, … , 𝑇 𝑑 in the target vector 𝑇⃗ , there is a target vertex 𝑡 𝑗. There are also two vertices ℎ 0 and ℎ 1. Each of the 𝑛
+s 𝓁o 𝑠u 𝑖,ℎr 1c (e 𝑥 v ) e =rt 1ic ∕e 𝑥s f𝑠 o𝑖 r i as llc o an rcn se (c 𝑠t 𝑖e , d ℎ 1b )y . Bo ou tt hg o ℎi 0n ag n a dr c ℎs 1 t ho a b vo et oh u ℎ tg0 oa inn gd aℎ r1 c. s T toh e a ll la tt he en c taie rs g ea tr ve ed re tifi cn ese d 𝑡 𝑗 .a Fs o𝓁 r𝑠 a𝑖,ℎ rc0 s= (ℎ0 0,f o 𝑡 𝑗r ) ,a 𝓁ll ℎ a 0r ,𝑡c 𝑗s (𝑥 ( )𝑠 =𝑖, ℎ 00 i) f, 𝑥a n ≤d 𝑇 a 𝑗s ,
+and otherwise, 𝓁 ℎ 0,𝑡𝑗(𝑥) =∞. That is, the capacity of the arc (ℎ 0, 𝑡 𝑗)is equal to 𝑇 𝑗, for each 𝑗∈[𝑑]. For arcs (ℎ 1, 𝑡 𝑗), 𝓁 ℎ 1,𝑡𝑗(𝑥) =0.
+For the 𝑖-th input vector 𝑣⃗ 𝑖, let 𝑣 𝑖,𝑗 be its 𝑗-th entry. For all 𝑖 ∈[𝑛]and 𝑗∈[𝑑], we want to route 𝑣 𝑖,𝑗 agents from 𝑠 𝑖to 𝑡 𝑗. That is,
+there are 𝑣 𝑖,𝑗 copies of the pair (𝑠 𝑖, 𝑡 𝑗)for all 𝑖 ∈[𝑛]and 𝑗∈[𝑑].
+We claim that there is a solution of cost at most 𝑛 −𝑘if and only if the original instance ofMUKShas a solution comprised of at
+least 𝑘vectors. First, any solution 𝑆′⊂𝑆forMUKStranslates immediately into a solution of cost at most 𝑛 −𝑘: the choice of latency
+𝓁 𝑒(𝑥) =1∕𝑥ensures that 𝑓(𝑒)𝓁 𝑒(𝑓(𝑒)) =𝑥 ⋅1∕𝑥 =1, where 𝑓(𝑒) =𝑥. Hence, the cost of a solution is just 𝑛 −𝑔, where 𝑔is the number
+of distinct originsfrom which allagents are routed over ℎ (since every origin for which at least one agent is routed via ℎ adds 1to
+0 1
+the cost). Therefore, by construction, routing all agents from every 𝑠 𝑖 via ℎ 0 whenever 𝑣⃗ 𝑖∈𝑆′ transforms 𝑆′ into a solution of cost
+at most 𝑛 −𝑘; in particular, the capacities of the edges from ℎ are respected.
+0
+On the other hand, suppose we are given a set of strategies of total cost at most 𝑛 −𝑘. This means that there are precisely 𝑣 𝑖,𝑗
+agents routed from 𝑠 𝑖 to 𝑡 𝑗 for all 𝑖 ∈[𝑛]and 𝑗∈[𝑑]. Again, by the property of the latency function 1∕𝑥, there is a solution to the
+instance of SOACof equal cost such that either none or all of the agents from a single origin are routed via ℎ . For, suppose no
+1
+agents are routed via ℎ , then there is nothing to show. Otherwise, if at least one agent is routed via ℎ , then the cost added by this
+1 1
+is already 1, and routing all the remaining agents that originate in the same origin via ℎ will not add costs (and can only ever relax
+1
+the capacity constraints). Hence, we can assume that all the agents from the same origin travel along the same vertex ℎ 𝑖for 𝑖 ∈{0, 1}
+to their respective destinations in the solution. But, this means that there are at least 𝑘distinct origins that can be routed via ℎ and
+0
+respect the capacity constraints, and hence, form a valid solution for theMUKSinstance.
+To complete the proof, note that the skeleton of the digraph in the constructed instance ofSOACabove is 𝐾 2,𝑑+𝑛. □
+Since Theorem 1 essentially rules out fixed-parameter algorithms based on structural network parameters alone, we turn our
+attention to parameterizing by the maximum capacity 𝚌 𝚖𝚊𝚡. As our first result in this direction, we show thatSOACremains 𝖭𝖯-hard
+on networks of constant treewidth, even if the maximum capacity of a link is just 1. This is done via a reduction from the following
+classical graph problem.
+Edge-DisjointPaths(EDP)
+Input: A graph 𝐺and a set 𝑃 of terminal pairs, that is, a set of subsets of 𝑉(𝐺)of size two.
+Question: Is there a set of pairwise edge-disjoint paths connecting each set of terminal pairs in 𝑃?
+Theorem 2. SOACis 𝖭𝖯-hard even when restricted to networks with 𝚌 𝚖𝚊𝚡=1and whose skeletons have treewidth or treedepth at most 15.
+Proof. It is known thatEDPis 𝖭𝖯-hard when restricted to the class 𝐾 3,𝑁 [22]. The reduction takes an instance  of EDPon 𝐾 3,𝑁
+and replaces each edge 𝑢𝑣in the 𝐾 3,𝑛from with the gadget depicted in Fig.3(left), obtaining a digraph 𝐺′. We now complete the
+construction of the instance ′obtained from . First, the latency functions are set so that the capacity of each arc in 𝐺′is set to one,
+and a flow of at most one costs nothing, that is, for each 𝑒 ∈𝐸(𝐺′)and 𝑥 ∈ℕ,
+{
+0if𝑥≤1
+𝓁 𝑒(𝑥)=
+∞otherwise.
+Then, for each terminal pair (𝑠, 𝑡)in 𝑃 in , we want to route 1agent from 𝑠to 𝑡in 𝐺′. This completes the construction of ′. By
+construction, given two vertices 𝑢, 𝑣 ∈𝑉(𝐺′)connected by an arc gadget, it is only possible to route at most one agent from 𝑢to 𝑣or
+from 𝑣to 𝑢via this arc gadget. Due to the capacity of each arc in 𝐺′ being 1, we then obtain the desired equivalence. That is, there
+is a solution to if and only if there is a solution of cost 0for ′.
+To complete the proof, we observe that the obtained network contains a bounded-sized set 𝑋 of vertices (in our case, the part
+of size 3in the 𝐾 3,𝑛) such that deleting 𝑋 decomposes the rest of the network into connected components each containing at most
+𝑦vertices (in our case 𝑦 =13, as each such component consists of a vertex connected to 3copies of the gadget depicted in Fig.3
+(left). It is well-known (and also easy to see from their formal definitions[14,48,53]) that such graphs have treewidth and treedepth
+upper-bounded by |𝑋| +𝑦 −1(i.e., 15). □
+6
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+𝑐
+𝑥 1
+1
+.
+. .
+. .
+.
+𝑢 𝑣 𝑥𝑖 𝑐𝑗
+.
+. .
+. .
+.
+𝑥𝑛
+𝑐𝑚
+Fig.3.The arc gadget replacing each undirected edge 𝑢𝑣in the reductions from the proofs of Theorems2and6(left), and the digraph constructed in the proof of
+Theorem3(right).
+Theorem2rules out using classic vertex-separator based parameters like treewidth, pathwidth or treedepth to solve SOAC, even
+when 𝚌 𝚖𝚊𝚡=1. All of these parameters are tied to the skeleton of the network and do not account for the orientations of the arcs.
+One could wonder whether structural parameters introduced specifically for directed graphs would be better suited for the task.
+The unifying feature of the most widely studied of these parameters[6,38,40]is that they achieve constant values—typically 1—on
+directed acyclic graphs (DAGs). Below, we show that bounded-capacitySOACis 𝖭𝖯-hard even on simple DAGs, ruling out the use of
+these directed network parameters.
+Theorem 3. SOACis 𝖭𝖯-hard even when restricted to networks which are DAGs, have 𝚌 𝚖𝚊𝚡=3, and whose skeletons have maximum degree4.
+Proof. We reduce from a variant of SAT known as monotone cubic exact 1-in-3 SAT, which is known to be 𝖭𝖯-hard[52,55]. Here,
+clauses have size three and must be satisfied by a single literal, each variable appears in three clauses, and all literals are positive.
+Suppose we are given such an 𝑛-variate 𝑚-clause positive cubic 3-CNF formula 𝜑. The instance ofSOACis constructed as follows.
+It contains the sets of vertices 𝑋={𝑥 1, … , 𝑥 𝑛}and 𝐶={𝑐 1, … , 𝑐 𝑚}that are identified with the variables and clauses appearing in 𝜑,
+respectively. We also add two more copies of 𝑋, namely 𝑋𝑇 ={𝑥𝑇 1, … , 𝑥𝑇 𝑛}and 𝑋𝐹 ={𝑥𝐹 1, … , 𝑥𝐹 𝑛}, and, similarly, two more copies
+𝐶𝑇 and 𝐶𝐹 of 𝐶. Now, 𝑥 𝑖has an arc to 𝑥𝑇 𝑖 and one to 𝑥𝐹 𝑖 , both with latency 𝓁(1) =𝓁(2) =1and 𝓁(3) =0, and capacity 3. Whenever
+𝑥 𝑖 appears in the 𝑗-th clause of 𝜑, then 𝑥𝑇 𝑖 has an arc to 𝑐 𝑗𝑇 and 𝑥𝐹 𝑖 has an arc to 𝑐 𝑗𝐹 , both of latency 0. Further, 𝑐 𝑖𝑇 has an arc to 𝑐 𝑖
+of capacity 1and 𝑐 𝑖𝐹 has an arc to 𝑐 𝑖of capacity 2, for all 𝑖 ∈[𝑚], and latency 0otherwise. If 𝑥 𝑖appears in the 𝑗-th clause of 𝜑, then
+there is an agent with origin 𝑥 𝑖and destination 𝑐 𝑗. An illustration of the construction is provided in Fig.3(right).
+We claim that this instance ofSOAChas a solution of cost 0if and only if 𝜑is 1-in-3-satisfiable. Any satisfying 1-in-3 assignment
+of 𝜑induces a routing of agents of cost 0by construction. On the other hand, take any solution of cost 0toSOAC. This means, first,
+that all agents with origin 𝑥 𝑖are routed via the same choice of 𝑥𝑇 𝑖 or 𝑥𝐹 𝑖 by the respective latency functions of these arcs. In particular,
+we can derive an assignment 𝜋 to the variables from this information, and we claim that it is in fact a satisfying 1-in-3 assignment.
+Towards showing that 𝜋 is satisfying, observe that, by the capacity constraints on the arc from 𝑐 𝑗𝐹 to 𝑐 𝑗, for every clause, at most 2
+variables can use the incoming arcs into 𝑐 𝑗𝐹 from vertices 𝑥𝐹 𝑖 . Further, by the capacity constraints on the arc from 𝑐 𝑗𝑇 to 𝑐 𝑗, for every
+clause, at most 1variable can use the incoming arcs into 𝑐 𝑗𝑇 from vertices 𝑥𝑇 𝑖 . Hence, exactly one of the agents must be routed via
+𝑐 𝑗𝑇 , coming from a vertex 𝑥𝑇 𝑖 . Thus, every clause is satisfied by 𝜋and 𝜋is also a 1-in-3 assignment of 𝜑.
+Note that the produced instance has the desired properties from the statement of the theorem by the fact that 𝜑was assumed to
+be cubic. □
+In fact, we can also show that our problem of interest remains intractable even on extremely simple networks which are DAGs
+(complementing Theorem1).
+Theorem 4. SOACis 𝖭𝖯-hard even when restricted to DAGs whose skeletons are planar graphs with treewidth and maximum degree both
+upper-bounded by 3.
+Proof. To prove the statement of the theorem, we present a reduction fromMUKStoSOAC. Starting with an instance  of MUKS
+encoded in unary, we construct an instance ′ofSOACas follows.
+For each 𝑣⃗ 𝑖∈𝑆(𝑖 ∈[𝑛]) in , there is a source vertex 𝑠 𝑖in ′. For each entry 𝑇 𝑗∈𝑇⃗ (𝑗∈[𝑑]) in the target vector in , there is a
+terminal vertex 𝑡 𝑗 in ′. The rest of ′is constructed as follows. There are two vertices ℎ 𝑖and ℎ′ 𝑖for each 𝑖 ∈[𝑛 +1]. For each 𝑖 ∈[𝑛],
+there are the arcs (ℎ 𝑖, ℎ 𝑖+1), (ℎ′ 𝑖, ℎ′ 𝑖+1), (𝑠 𝑖, ℎ 𝑖), and (𝑠 𝑖, ℎ′ 𝑖). There is a directed almost complete binary tree (the level with the leaves
+may not be completely filled) whose arcs go from the root to the leaves with ℎ 𝑛+1(ℎ′ 𝑛+1, respectively) as the root and 𝑡 1, … , 𝑡 𝑑 as the
+leaves. The two directed almost complete binary trees are symmetric with respect to the leaves.
+For each 𝑖 ∈[𝑛] and 𝑥 ∈ℕ, let 𝓁 (𝑠𝑖,ℎ′ 𝑖)(𝑥) =1∕𝑥. For each 𝑗∈[𝑑], let 𝑒 𝑗 be the arc incoming into 𝑡 𝑗 from the directed almost
+complete binary tree with ℎ 𝑛+1as the root, and, for each 𝑥 ∈ℕ, let
+{
+𝓁 𝑒𝑗(𝑥)= ∞0if o𝑥 th≤ er𝑇 w𝑗
+ise.
+7
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+Fig.4.ThedigraphconstructedintheproofofTheorem4.
+In other words, for each 𝑗∈[𝑑], the capacity of the arc 𝑒 𝑗 is equal to 𝑇 𝑗. For each remaining arc 𝑒for which a latency function has
+not yet been defined, let 𝓁 𝑒(𝑥) =0for each 𝑥 ∈ℕ.
+For each 𝑣⃗ 𝑖∈𝑆 (𝑖 ∈[𝑛]) and 𝑗∈[𝑑], we want to route 𝑣 𝑖,𝑗 agents from 𝑠 𝑖 to 𝑡 𝑗, where 𝑣 𝑖,𝑗 is the 𝑗-th entry of 𝑣⃗ 𝑖. That is, there
+are 𝑣 𝑖,𝑗 copies of the tuple (𝑠 𝑖, 𝑡 𝑗) for each 𝑖 ∈[𝑛] and 𝑗∈[𝑑]. This completes the construction of ′, which is clearly achieved in
+polynomial time. See Fig.4for an illustration.
+We now show that there is a solution comprised of at least 𝑘vectors for  if and only if there is a solution of cost at most 𝑛 −𝑘
+for ′. First, assume there is a solution comprised of at least 𝑘 vectors for . For each of the vertices 𝑠 𝑖 corresponding to one of
+these at least 𝑘vectors in the solution for , route each of the agents at 𝑠 𝑖to their corresponding destination 𝑡 𝑗 via the directed path
+that contains ℎ 𝑖. Since these vectors are in the solution for , for each 𝑗∈[𝑑], the capacity of the arc 𝑒 𝑗 has not been surpassed,
+and thus, so far, the cost of routing these agents is 0 by the construction. The remaining agents are all routed to the 𝑡 𝑗’s via the
+directed path that contains ℎ′ 𝑛+1. Since, for each 𝑖 ∈[𝑛]and 𝑥 ∈ℕ, we have that 𝓁 𝑒(𝑥) =1∕𝑥for any arc 𝑒of the form (𝑠 𝑖, ℎ′ 𝑖), then
+𝑓(𝑒)𝓁 𝑒(𝑓(𝑒)) =𝑥 ⋅1∕𝑥 =1, where 𝑓(𝑒) =𝑥. Hence, the cost of a solution for ′is at most 𝑛 −𝑘since there are at most 𝑛 −𝑘such 𝑠 𝑖’s
+where agents are routed to their destinations via ℎ′ , and the only arcs on these directed paths that have non-zero latency are the
+𝑛+1
+ones of the form (𝑠 𝑖, ℎ′ 𝑖).
+Now, suppose we are given a solution for ′of total cost at most 𝑛 −𝑘. By the property of the latency function 1∕𝑥for any arc of
+the form (𝑠 𝑖, ℎ′ 𝑖), this means that there at most 𝑛 −𝑘vertices in {ℎ′ 1, … , ℎ′ 𝑛}that had agents routed to them through their incoming
+arc from 𝑠 𝑖. Hence, for at least 𝑘of the vertices in 𝑠 1, … , 𝑠 𝑛, all of their agents must have been routed to the 𝑡 𝑗’s via the 𝑒 𝑗’s. Since
+the total cost of the solution for ′is at most 𝑛 −𝑘(not ∞), then, for each 𝑗∈[𝑑], the capacity 𝑇 𝑗 of the arc 𝑒 𝑗 was not surpassed by
+this routing. Hence, the sum of the vectors corresponding to these at least 𝑘vertices in 𝑠 1, … , 𝑠 𝑛must be at most 𝑇⃗ .
+It now remains to show that the digraph in ′ has the desired properties from the theorem statement. It is trivial to see that the
+digraph in ′is a planar DAG, and that its skeleton has maximum degree3. To show that the treewidth of its skeleton is at most3, we
+give a strategy for four cops to capture the robber in the equivalent cops and robbers definition of treewidth: a graph 𝐺has treewidth
+𝑘if and only if the minimum number of cops that can ensure capturing the robber in 𝐺is 𝑘 +1[56].
+The four cops first occupy ℎ 𝑛+1, ℎ′ 𝑛+1, 𝑠 𝑛, and ℎ 𝑛, respectively. If the robber occupies an 𝑠 𝑖, ℎ 𝑖 or ℎ′ 𝑖 vertex, then it is easy to see
+that the cops can capture the robber. Thus, assume that the robber territory is restricted to the two almost complete binary trees that
+are joined at the leaves minus their roots. The first and second cops occupy ℎ 𝑛+1 and ℎ′ 𝑛+1, respectively. The third and fourth cops
+move to a child of the first and second cops, respectively. Let the first and third cop be one team of cops, and let the second and
+fourth cops be the other team of cops. From this point on, the teams of cops play in an alternating fashion. The first and third (the
+second and fourth, respectively) cops then apply the following well-known winning strategy for two cops in their respective tree[56]:
+at each point of time the two cops will occupy two pairwise adjacent vertices in the tree, and in each round the cop occupying the
+vertex closer to the root will move to a child of the other cop in the direction of the robber if the robber is located in their tree. If the
+robber is located in the other tree, the strategy is the same but we attempt to catch the “shadow” of the robber in their subtree, where
+the robber’s shadow is simply the vertex corresponding to the robber’s position in the mirroring almost complete binary tree. □
+4. A fixed-parameter algorithm forSOAC
+Recapitulating the results so far, in view of Theorem1, we are focusing our efforts on identifying structural properties of networks
+which would allow us to solveSOACon bounded-capacity networks. Theorem2rules out tractability via standard vertex-separator
+based graph parameters, while Theorem3excludes the use of commonly studied directed variants of network parameters. A notable
+class of structural measures that has not been addressed yet by the obtained lower bounds are parameters that are tied to the existence
+of edge cutsas opposed to vertex separators.
+8
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+Two “baseline” graph measures which allow for a structural decomposition along bounded-sized edge cuts are the feedback edge
+number (𝚏𝚎𝚗)[23,42], and the combined parameter of treewidth plus maximum degree (𝚝𝚠𝚍)[33,50]. Unfortunately, both of these
+measures place very strong restrictions on the network: the former is only small on networks whose skeletons are trees plus a small
+number of arcs, while the latter cannot be used on networks with high-degree nodes.
+As our main algorithmic contribution, we establish fixed-parameter tractability of bounded-capacity SOAC with respect to a
+recently introduced edge-cut based parameter called slim treecut width(𝚜𝚝𝚌𝚠)[29]. Crucially, this result immediately implies and
+generalizes fixed-parameter tractability with respect to either 𝚏𝚎𝚗 or 𝚝𝚠𝚍, while also circumventing both of the aforementioned
+shortcomings: networks with skeletons of bounded slim treecut width can have high degree as well as be significantly more complex
+than just a tree.
+Theorem 5. SOACis fixed-parameter tractable when parameterized by the slim treecut width of the skeleton 𝐺of the input digraph 𝐺plus
+the maximum capacity 𝚌 𝚖𝚊𝚡.
+Proof. We begin by invoking Lemma1to compute a pair (𝐻, 𝑇)such that 𝐻 is a supergraph of 𝐺and (𝐻, 𝑇)has edge-cut width
+𝑘 ≤3 ⋅(𝜅+1)2, where 𝜅 is the slim treecut width of 𝐺. Our algorithm is based on a leaf-to-root dynamic programming procedure
+that traverses 𝑇 while storing certain (carefully defined and bounded-sized) records about the part of 𝑇 that has been processed so
+far. To this end, it will be useful to assume that 𝑇 is rooted, and thus, we mark an arbitrary leaf of 𝑇 as the root and denote it𝑟.
+Before we define the records used in the dynamic program, we will need some terminology. For a vertex 𝑣 ∈𝑉(𝐻)with a child
+𝑤 ∈𝑉(𝐻), we say that 𝑤is a simplechild of 𝑣if 𝑣and 𝑤belong to different connected components of 𝐻−𝑣𝑤; otherwise, we say
+that 𝑤 is a complexchild of 𝑣. Observe that, while the number of simple children of 𝑣 is not bounded by 𝑘(none of the subtrees
+rooted at simple children contain any edges in 𝐸𝐻,𝑇 (𝑣)), the number of complex children of 𝑣is upper-bounded by 2𝑘(each subtree
+loc
+rooted at a complex child contains an endpoint of at least one edge in 𝐸 l𝐻 oc,𝑇 (𝑣)). Furthermore, we use  𝑣 to denote the sub-digraph
+of 𝐺induced on the vertices that are descendants of 𝑣(including 𝑣itself), and 𝜕 𝑣to denote those arcs of 𝐺which have precisely one
+endpoint in  𝑣; recall that |𝜕 𝑣| ≤2(𝑘 +1). An agent 𝑎 𝑖is outgoingfor 𝑣if 𝑠 𝑖∈ 𝑣and, at the same time, 𝑡 𝑖∉ 𝑣. Similarly, an agent 𝑎 𝑖
+is incomingfor 𝑣if 𝑠 𝑖∉ 𝑣and, at the same time, 𝑡 𝑖∈ 𝑣.
+We are now ready to formalize the dynamic programming records used in our algorithm. A snapshotat a vertex 𝑣is a tuple of the
+form ( ,  , , ), where:
+out in
+•  outis a mapping from the set of all outgoing agents for 𝑣to arcs in 𝜕 𝑣which are outgoing from  𝑣;
+•  inis a mapping from the set of all incoming agents for 𝑣to arcs in 𝜕 𝑣which are incoming to  𝑣;
+• is a multiset of pairs (𝑒, 𝑓)such that 𝑒is an incoming arc into  𝑣, 𝑓 is an outgoing arc from  𝑣, and 𝑒𝑓 is not a 2-cycle;
+• is a multiset of pairs (𝑒, 𝑓)such that 𝑒is an outgoing arc from  𝑣, 𝑓 is an incoming arc into  𝑣, and 𝑒𝑓 is not a 2-cycle;
+• each arc in 𝜕 𝑣may only appear in at most 𝚌 𝚖𝚊𝚡tuples over all of the entries in  out,  in, , .
+Before proceeding, it will be useful to obtain an upper-bound on the total number of possible snapshots for an arbitrary vertex
+𝑣. First, we observe that if the number of outgoing agents for 𝑣exceeds 𝚌 𝚖𝚊𝚡⋅(𝑘 +1), then every flow assignment in the considered
+instance must necessarily exceed the capacity 𝚌 𝚖𝚊𝚡 for at least one arc in 𝐺; in other words, such an instance can be immediately
+recognized as a NO-instance. The same also holds for the number of incoming agents for 𝑣. Hence, we can restrict our attention to
+the case where these simple checks do not fail, and use this to obtain a bound on the total number of snapshots at 𝑣. In particular,
+there are at most (2𝑘 +2)𝚌𝚖𝚊𝚡⋅(𝑘+1)possible choices for each of  outand  in(there are at most 2𝑘 +2choices of which element of 𝜕 𝑣to
+map each of the at most 𝚌 𝚖𝚊𝚡⋅(𝑘 +1)many agents to), and also at most (𝚌 𝚖𝚊𝚡+1)4(𝑘+1)2 possible choices for and each (for each
+of the at most 4(𝑘 +1)2possible unordered pairs of arcs from 𝜕 𝑣, there are (𝚌 𝚖𝚊𝚡+1)possible choices of how many times it occurs in
+and ). We conclude that the number of snapshots at 𝑣can be upper-bounded by (𝚌 𝚖𝚊𝚡+𝑘)(𝚌𝚖𝚊𝚡𝑘2), and let Snap(𝑣)denote the
+set of all possible snapshots at 𝑣.
+We can now formalize the syntax of the record at 𝑣, denoted Record(𝑣), as a mapping from Snap(𝑣) to ℝ ≥0∪{∞}. As for the
+semantics, Record(𝑣)will capture the minimum cost required to (1) route the outgoing and incoming agents to the designated arcs
+in  outand  in, while assuming that (2) some (unidentified and arbitrary) agents will use arcs of 𝜕 𝑣 to enter and then exit  𝑣via the
+arcs designated in , and that (3) some (unidentified and arbitrary) agents will use arcs of 𝜕 𝑣 to exit and then return to  𝑣 via the
+arcs designated in. Formally, Record(𝑣)maps each snapshot Υ =( ,  , , )to the minimum cost of a flow assignment 𝐹 in
+out in
+the subinstance  Υinduced on the vertices of  𝑣plus the arcs4of 𝜕 𝑣with the following properties:
+1. for each pair (𝑎𝑏, 𝑐𝑑)of arcs in the multiset such that 𝑏, 𝑐∈ 𝑣, we add a new marker agent into 𝐼 Υwhich starts at 𝑎and ends
+at 𝑑;
+2. for each pair (𝑎𝑏, 𝑐𝑑)of arcs in the multiset such that 𝑎, 𝑑∈ 𝑣, we add a new arc 𝑏𝑐 into  and set 𝓁 𝑏𝑐∶={1 ↦0} ∪{𝑖 ↦
+Υ
+∞|𝑖 >1}.
+3. for each outgoing agent 𝑎 𝑖, 𝐹 contains a path from 𝑠 𝑖into the arc  out(𝑎 𝑖);
+4. for each incoming agent 𝑎 𝑖, 𝐹 contains a path from (and including) the arc  in(𝑎 𝑖)to 𝑡 𝑖.
+4 We remark that since only one of the endpoints of 𝜕 𝑣lies in  𝑣, these are not formally arcs in  𝑣.
+9
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+If no flow with these properties exists, we simply set Record(𝑣)(Υ) ∶=∞. This completes the formal definition of the records
+Record(𝑣). Observe that, since  𝑟=𝐺and 𝜕 𝑟=∅, the only snapshot at 𝑟is Υ𝑟=({∅}, {∅}, ∅, ∅)and  is precisely the input instance
+Υ𝑟
+to our problem. Hence, if we successfully compute the record Record(𝑟)for the root vertex 𝑟, then Record(𝑟)(Υ𝑟)must be equal to
+the minimum cost of a flow assignment 𝐹 in the input instance. Thus, to conclude the proof it remains to show how to compute the
+records at each vertex in a leaf-to-root fashion.
+Towards this task, let us first consider the computation of Record(𝑣)for a leaf 𝑣in 𝑇. Here, we observe that each of the constructed
+instances  Υ consists of the at most 2𝑘 +2arcs in 𝜕 𝑣, and the at most (𝑘 +1) ⋅𝚌 𝚖𝚊𝚡 arcs obtained from . The number of paths in
+such an instance is upper-bounded by 2(𝑘⋅𝚌𝚖𝚊𝚡), and hence, the minimum cost of a flow assignment 𝐹 in  can be computed by
+Υ
+enumerating all flow assignments in time at most 𝚌 𝚖𝚊𝚡2(𝑘⋅𝚌𝚖𝚊𝚡) .
+The core of the dynamic program lies in the computation of Record(𝑣) for a non-leaf vertex 𝑣. We do so by considering each
+snapshot Υ =( ,  , , )at 𝑣independently, and computing the minimum cost of a flow assignment 𝐹 in the subinstance  as
+out in Υ
+f ao lll l oo uw ts g. F ino gr e aa gc eh ts si m fop rl e ch ai nld 𝑤 𝑤of 𝑣 a, pw se o llb is ne crv oe t ih na gt at gh ee nre i s oo rn 𝑤ly ta s tin hg el e s sn pa ep cs tih vo et uΨ n𝑤 iq= ue(  ao𝑤 ru ct s,  ini𝑤 n 𝜕, { 𝑤∅ } T, { h∅ is} ) coo rf 𝑤 espw oh ne dr se t o𝑤 tu ht em fa ap cs
+o n 𝑤 d m a m ts f o re . r o t
+in
+that since a flow assignment is i∑nherently loopless, there is only a unique way it may pass through the arcs in 𝜕 𝑤. Let us define the
+base cost of 𝑣, denoted 𝑏(𝑣), as 𝑤isasimplechildofvRecord(𝑤)(Ψ𝑤); intuitively, 𝑏(𝑣)captures the minimum cost required by a flow
+assignment in all simple children of 𝑣.
+Next, we construct the instance  for which we need to compute the minimum cost of a flow assignment. Essentially, our aim
+Υ
+is to compute this cost via brute-forcing over all possible flow assignments, but at first glance this seems infeasible since the size of
+ is not bounded by our parameters. The core insight we use to overcome this is that even though  could be large, all but only
+Υ Υ
+a parameter-bounded number of interactions have already been taken into account in the records of the children of 𝑣. Formally, we
+make use of this by constructing a “kernelized” instance +as follows:
+Υ
+First, for each simple child 𝑤of 𝑣, delete the whole subtree rooted at 𝑤, whereas, for each outgoing agent 𝑎 𝑖at 𝑤, we place 𝑠 𝑖on
+𝑣, and, for each incoming agent 𝑎 𝑖at 𝑤, we place 𝑡 𝑖on 𝑣. Then, for each complex child 𝑤of 𝑣, we
+1. delete every vertex in  𝑤except for the endpoints of 𝜕 𝑤;
+2. for each pair of endpoints 𝑎, 𝑏 ∈𝑉( 𝑤)of distinct arcs in 𝜕 𝑤, add bi-directional “marker” arcs between 𝑎and 𝑏;
+3. create a vertex 𝑤 out, add a directed arc from 𝑤 out to every endpoint of an arc 𝜕 𝑤 in 𝑉( 𝑤), and for outgoing agent 𝑎 𝑖 at 𝑤we
+place 𝑠 𝑖on 𝑤 out;
+4. create a vertex 𝑤 in, add a directed arc from every endpoint of an arc 𝜕 𝑤in 𝑉( 𝑤)to 𝑤 in, and for an incoming agent 𝑎 𝑖at 𝑤we
+place 𝑡 𝑖on 𝑤 in.
+We remark that the newly created arcs are not associated with a latency function (or alternatively may be assumed to be associated
+with the degenerate latency function ℕ →{0}); these arcs are merely used as markers to point us to which of the snapshots should be
+used for each complex child of 𝑣. Crucially, the number of vertices in +is upper-bounded by (𝑘 ⋅2𝑘) +1 ≤(𝑘2). The number of paths
+Υ
+𝑘(𝑘2),
+in such an instance is upper-bounded by and hence, the total number of all possible flow assignments can be upper-bounded
+by 𝚌 𝚖𝚊𝚡𝑘(𝑘2) . We proceed by enumerating the set of all potential flow assignments, and, for each such potential flow assignment, we
+check whether it is indeed a flow assignment for the agents specified in +. If this check succeeds, we employ a further technical
+Υ
+check to ensure that each path in 𝑃 only contains a marker arc 𝑒in a complex child 𝑤if 𝑒is immediately preceded and also succeeded
+by an arc in𝜕 𝑤.
+For each flow assignment in +that passes the above checks and, for each complex child 𝑤of 𝑣, we observe that 𝐹 restricted to
+Υ
+the arcs with at most one endpoint in 𝑤fully determines (1) the first arc in 𝜕 𝑤 used by an outgoing agent for 𝑤, (2) the last arc in
+𝜕 𝑤used by an incoming agent for 𝑤, (3) which pairs of arcs in 𝜕 𝑤 are used by paths to leave and subsequently re-enter  𝑤, and (4)
+which pairs of arcs in 𝜕 𝑤are used by paths to∑ enter and subsequently leave  𝑤. This information hence identifies a unique snapshot
+Ψ𝑤 of 𝑤. We define the cost of 𝐹 as 𝑏(𝑣) + 𝑤isacomplexchildof𝑣Record(𝑤)(Ψ𝑤 𝐹). Finally, we set Record(𝑣)(Υ)to be the minimum
+𝐹
+cost of a flow 𝐹 in +which satisfies the conditions stipulated in this paragraph; this concludes the description of the algorithm.
+Υ
+Apart from the time required to compute (𝐻, 𝑇), which is upper-bounded by 2𝜅(1) ⋅𝑛4, the running time of the algorithm can
+be upper-bounded by the number of vertices in the input digraph times the cost of processing each vertex. The latter is dominated
+by 𝚌 𝚖𝚊𝚡𝑘(𝑘2) , i.e., 𝚌 𝚖𝚊𝚡𝜅(𝜅4) . We remark that as with essentially all width-based dynamic programming routines, the algorithm can
+be made constructive by performing a subsequent top-to-bottom computation in order to compute a specific flow assignment with
+the claimed flow as a witness. To argue correctness, it hence remains to argue that if the input instance admits a flow assignment
+𝑄of minimum cost, say 𝑝, then the algorithm will compute a flow assignment with the same cost 𝑝. Towards this goal, we observe
+that at each vertex 𝑣considered in the leaf-to-root pass made by the dynamic program, 𝑄will correspond to a unique snapshot Υof
+𝑣. At each leaf 𝑣of 𝑇, Record(𝑣)(Υ)must be equal to the cost incurred by 𝑄on the arcs in 𝜕 𝑣 due to the nature of our brute-force
+computation of the records for trees and the optimality of 𝑄. Moreover, for each non-leaf node 𝑣, it holds that as long as we have
+correctly computed the records for each of its children, the traversal of 𝑄via the arcs in 𝜕 𝑣 and 𝜕 𝑤 for each child of 𝑤identifies a
+u inn di eq eu de iv na cl uid afl o cw ta s os fi g 𝑏n (𝑣m e +nt∑ 𝐹 𝑤i isn  coΥ+ m, pa len xd ht ih ldis fi 𝑣n t eu cr on dd (e 𝑤fin )(e Ψs 𝐹a s on va ep rs h ao llt aΨ rc𝑤 if no r e Υa ,c ah c dh ei sld e𝑤 d.of □𝑣. In that case, however, 𝑄must
+𝐹
+r os ) R r 𝑤 ) s  s ir
+a c o
+We observe that the parameterization by 𝚌 𝚖𝚊𝚡 cannot be dropped from Theorem 5 in view of the lower bound in Theorem4;
+indeed, every network of bounded treewidth and maximum degree also has bounded slim treecut width (Lemma2). We conclude by
+10
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+turning our attention to whether Theorem5could be generalized to use the better-known treecut widthparameter instead of the slim
+variant used in that algorithm. Treecut width is a structural graph parameter that also guarantees the decomposability of instances
+via bounded-sized edge cuts, and has previously been used to establish tractability for several 𝖭𝖯-hard problems [27]. Crucially,
+it forms an intermediary between the slim treecut width (which suffices for fixed-parameter tractability) and treewidth (for which
+SOACremains intractable, even when restricted to bounded-capacity instances). We show that Theorem5is tight in the sense that
+fixed-parameter tractability cannot be lifted to treecut width.
+Theorem 6. SOAC is 𝖶[1]-hard when parameterized by the treecut width of the skeleton of the input network, even when restricted to
+networks with 𝚌 𝚖𝚊𝚡=1.
+Proof. EDPis known to be 𝖶[1]-hard parameterized by the treecut width of the graph, even when restricted to the class 𝐾 3,𝑁 [31].
+To establish the theorem, we use the same reduction as in the proof of Theorem2, and prove that the resulting instances also have
+bounded treecut width. Let us consider an output network 𝐺′obtained from that reduction.
+Since the input graph 𝐺has bounded treecut width, it suffices to show that replacing each of the edges in 𝐺 by the arc gadget
+depicted in Fig. 3(left) does not increase the treecut width by too much. We actually prove that 𝐭𝐜𝐰(𝐺′) ≤𝐭𝐜𝐰(𝐺) since we can
+assume that 𝐭𝐜𝐰(𝐺)can be assumed to be at least 5in the reduction from to ′.
+Consider a treecut decomposition (𝑇, )of 𝐺of width 𝐭𝐜𝐰(𝐺) ≥5. From (𝑇, ), we will construct a treecut decomposition (𝑇′, ′)
+of 𝐺′of width at most 𝐭𝐜𝐰(𝐺). Initially, set 𝑇′=𝑇 and ′=. Consider any edge 𝑢𝑣 ∈𝐸(𝐺)and let 𝑈⊂𝑉(𝐺′)be the four vertices
+in the arc gadget connecting 𝑢and 𝑣in 𝐺′. If 𝑢and 𝑣are in 𝑋 𝑡 for some node 𝑡of 𝑇, then, in 𝑇′, we add a child 𝑡′ of 𝑡such that
+𝑋 th𝑡 e′ = de𝑈 pt. I f 𝑢 𝑡a 2n id 𝑣 𝑇a ,r te i en ,𝑋 i𝑡 n1 𝑇an ′,d 𝑋 e𝑡 2 adfo dr at w cho d ldiff 𝑡′er oe fn 𝑡t n so ud ce hs t𝑡 h1 aa n 𝑋d 𝑡′𝑡 2 =o 𝑈f 𝑇 I, na n bd o, hw cit ah so eu s,t lo ′ss o uf pg de an te er da l ait cy c, t rh de nd ge lp yt .h of 𝑡 1is at least
+h o f n h n w i t . t is o i
+1
+Let (𝑇′, ′)be the treecut decomposition of 𝐺′obtained from (𝑇, )by applying the above procedure for each edge in 𝐸(𝐺). For
+each child 𝑡′ added to 𝑇 in the process of obtaining 𝑇′, there are exactly four vertices in 𝑋 𝑡′ and, in 𝐺′, they are only adjacent to
+each other and two vertices 𝑢, 𝑣 ∈𝑋 𝑡 (𝑢 ∈𝑋 𝑡 and 𝑣 ∈𝑋 𝑡 , respectively) in the first (second, respectively) case. Thus, 𝐭𝐨𝐫(𝑡′) ≤5,
+𝐚𝐝𝐡(𝑡′) ≤2, and the torso-size of any other no1 de in 𝑇′−𝑡′2 in (𝑇′, ′)is the same as in (𝑇, ). Indeed, this may only not be obvious
+in the case of the torso-size of 𝑡in 𝑇′, but the vertex 𝑧, resulting from consolidating each vertex of 𝑋 𝑡′ into a single vertex, only has
+degree2in 𝐺′, and thus, 𝑧will be suppressed and an edge will be added between 𝑢and 𝑣(which already exists in 𝐺) when forming
+the 3-center of (𝐻 𝑡, ′), where 𝐻 𝑡 is the torso of (𝑇′, ′). Note that the depth of 𝑡′ is always strictly greater than the depth of 𝑡(𝑡 1
+and 𝑡 , respectively) in the first (second, respectively) case. Thus, the adhesion of any other node in 𝑇′−𝑡′in (𝑇′, ′)is the same as
+2
+in (𝑇, ). Hence, 𝐭𝐜𝐰(𝐺′) ≤𝐭𝐜𝐰(𝐺). □
+5. The min-max atomic congestion problem
+In this section, we turn our attention to the more general setting where instead of requiring all agents to be routed to their
+destinations, we allow for some agents to remain unrouted. In essence, this asks for a flow assignment that counterbalances the
+number of agents that reach their destinations with the total cost. As is usual in complexity-theoretic analysis, we state this task as a
+decision problem where we consider specific bounds on both the cost and the number of agents which need not be routed. For the
+purposes of this section, we formally extend the notion of flow assignment(defined in Section2) to a mapping from a subset of agents
+to paths.
+Min-MaxSystemOpt.AtomicCongestion(mSOAC)
+Input: A digraph 𝐺=(𝑉, 𝐸), positive integers 𝜆and 𝛼, a set 𝐴 ={𝑎 1, … , 𝑎 𝑚}of agents where each agent 𝑎 𝑖 is associated with
+a tuple (𝑠 𝑖, 𝑡 𝑖) ∈𝑉2, and for each arc 𝑒 ∈𝐸, a latency function 𝓁 𝑒∶[𝑚] →ℝ ≥0∪∑{∞}.
+Question: Is there a flow assignment 𝐹 routing at least 𝑚 −𝛼agents such that 𝑒∈𝐸𝑓 𝐹(𝑒) ⋅𝓁 𝑒(𝑓 𝐹(𝑒)) ≤𝜆?
+We begin by noting that, in spite of the seemingly minor difference between the two problems,mSOACis much more challenging
+thanSOACfrom a structural point of view. Indeed, on one hand, if we set 𝛼=0, the min-max variant becomes equivalent toSOAC.
+On the other hand, without this restriction, it can be observed thatmSOACremains 𝖭𝖯-hard even on networks with a maximum
+capacity of 1whose skeletons are trees. This follows by an immediate reduction from theMaximum Arc Disjoint Pathsproblem,
+which has been shown to be 𝖭𝖯-hard in precisely this setting[20]; the reduction simply replaces each path with an agent and sets
+the latency function for each arc in the same way as in the proof of Theorem2.
+As the final contribution of this article, we show thatmSOACis fixed-parameter tractable when parameterized simultaneously by
+𝚌 𝚖𝚊𝚡, 𝛼, and the combined parameter of treewidth and maximum degree.
+Theorem 7. mSOACis fixed-parameter tractable when parameterized by the treewidth and maximum degree of the skeleton 𝐺of the input
+digraph 𝐺plus the maximum capacity 𝚌 𝚖𝚊𝚡and 𝛼.
+Proof. On a high level, the algorithm follows the same overall approach as the one employed in the proof of Theorem5; however,
+the dynamic programming steps and records required here are different (and more complicated). We begin by invoking Lemma2to
+compute a spanning tree 𝑇 over a supergraph 𝐻 of 𝐺such that there is an integer 𝑘 ∈(𝑑2𝑤2)which is an upper-bound for both
+11
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+the edge-cut width of (𝐻, 𝑇)and the maximum degree of 𝑇. As in the proof of Theorem5, we mark an arbitrary leaf of 𝑇 as the root
+and denote it𝑟.
+Recalling the notions of outgoing and incoming agents for a node 𝑣from Theorem5, it will be useful to observe that if 𝑇 contains
+a node 𝑣such that the number of outgoing or incoming agents in  𝑣exceeds 𝛼+𝚌 𝚖𝚊𝚡⋅(𝑘 +1), then we can immediately recognize the
+input as a NO-instance; this is because at most 𝚌 𝚖𝚊𝚡⋅(𝑘 +1)paths can traverse the edges forming the cut between  𝑣 and the rest of
+the network. Hence, we hereinafter assume that the number of incoming and outgoing agents are both bounded by 𝛼+𝚌 𝚖𝚊𝚡⋅(𝑘 +1),
+and proceed to formalizing the dynamic programming records used in our algorithm. We define a similar notion of a snapshot at a
+vertex 𝑣 ∈𝑉(𝐻), albeit here snapshots are tuples of the form ( ,  , 𝛼′,  ,  , , )where:
+out in out in
+•  is a subset of the set of all outgoing agents for 𝑣;
+out
+•  is a subset of the set of all incoming agents for 𝑣;
+in
+• 𝛼′≤𝛼is a non-negative integer;
+•  outis a mapping from  outto arcs in 𝜕 𝑣which are outgoing from  𝑣;
+•  inis a mapping from  into arcs in 𝜕 𝑣which are incoming to  𝑣;
+• is a multiset of pairs (𝑒, 𝑓)such that 𝑒is an incoming arc into  𝑣, 𝑓 is an outgoing arc from  𝑣, and 𝑒𝑓 is not a 2-cycle;
+• is a multiset of pairs (𝑒, 𝑓)such that 𝑒is an outgoing arc from  𝑣, 𝑓 is an incoming arc into  𝑣, and 𝑒𝑓 is not a 2-cycle;
+• each arc in 𝜕 𝑣may only appear in at most 𝚌 𝚖𝚊𝚡tuples over all of the entries in  out,  in, , .
+Comparing the snapshots defined above with those used in the proof of Theorem5, the only difference is that we (1) use 𝛼′ to
+keep track of how many agents have been left unrouted in  𝑣, and (2) we use  outand  into keep track of the identities of outgoing
+and incoming agents which are not being routed. Hence, we can upper-bound the total number of possible snapshots for an arbitrary
+vertex 𝑣as a product of the number of possible snapshots in the proof of Theorem5(i.e., (𝚌 𝚖𝚊𝚡+𝑘)(𝚌𝚖𝚊𝚡𝑘2)) times the number of
+choices for 𝛼′ (i.e., 𝛼) times the number of choices for  and  (i.e., 2(𝛼+𝚌𝚖𝚊𝚡⋅𝑘)). Altogether, this yields an upper-bound of
+in out
+(𝚌 𝚖𝚊𝚡+𝑘)(𝛼⋅𝚌𝚖𝚊𝚡⋅𝑘2).
+The syntax of the record at 𝑣, denoted Record(𝑣) is a mapping from Snap(𝑣) to ℝ ≥0∪{∞}. For the semantics, Record(𝑣) will
+capture the minimum cost required to (1) route the outgoing and incoming agents specified in  and  to the designated arcs in
+out in
+ and  while leaving the remaining outgoing and incoming agents unrouted, under the following three assumptions: (2) some
+out in
+(unidentified and arbitrary) agents will use arcs of 𝜕 𝑣 to enter and then exit  𝑣 precisely via the arcs designated in , (3) some
+(unidentified and arbitrary) agents will use arcs of 𝜕 𝑣 to exit and then return to  𝑣via the arcs designated in , and (4) precisely 𝛼′
+many agents with at least one endpoint in  𝑣 are not routed to their destinations.
+Formalizing the above, Record(𝑣) maps each snapshot Υ to the minimum cost of a flow assignment 𝐹 in the subinstance 
+Υ
+induced on the vertices of  𝑣plus the arcs5of 𝜕 𝑣with the following properties:
+1. for each pair (𝑎𝑏, 𝑐𝑑)of arcs in the multiset such that 𝑏, 𝑐∈ 𝑣, we add a new marker agent into 𝐼 Υwhich starts at 𝑎and ends
+at 𝑑;
+2. for each pair (𝑎𝑏, 𝑐𝑑)of arcs in the multiset such that 𝑎, 𝑑∈ 𝑣, we add a new arc 𝑏𝑐 into  and set 𝓁 𝑏𝑐∶={1 ↦0} ∪{𝑖 ↦
+Υ
+∞|𝑖 >1}.
+3. for each outgoing agent 𝑎 𝑖in  out, 𝐹 contains a path from 𝑠 𝑖into the arc  out(𝑎 𝑖);
+4. for each incoming agent 𝑎 𝑖in  in, 𝐹 contains a path from (and including) the arc  in(𝑎 𝑖)to 𝑡 𝑖;
+5. 𝐹 routes all agents with at least one endpoint in 𝐹 except for 𝛼′many. Moreover, each outgoing (incoming, respectively) agent
+that is not in  ( , respectively) is not routed by 𝐹.
+out in
+We remark that if no flow with these properties exists, we simply set Record(𝑣)(Υ) ∶=∞. This completes the formal definition of
+the records Record(𝑣). Observe that since  𝑟=𝐺and 𝜕 𝑟=∅, the only snapshots at 𝑟are of the form  𝛼′=(∅, ∅, 𝛼′, {∅}, {∅}, ∅, ∅), and
+each of these snapshots is mapped by Record(𝑟)to the minimum cost of a flow assignment in the input network which routes all but
+precisely 𝛼′ agents to their destinations. Hence, min𝛼′∈[𝛼]Record(𝑟)( 𝛼′)is the minimum cost of a flow assignment 𝐹 which routes
+at least 𝑚 −𝛼agents, and thus, to conclude the proof it remains to show how to compute the records at each vertex in a leaf-to-root
+fashion.
+Towards this task, let us first consider the computation of Record(𝑣)for a leaf 𝑣in 𝑇. This step is based on exhaustive branching
+and is entirely analogous to the one employed in the proof of Theorem5, but with the distinction that we also branch on  and
+in
+ (it is worth noting that, for leaves, each choice of  and  fully determines the value of 𝛼′). More precisely, we observe
+out in out
+that each of the constructed instances  Υconsists of the at most 2𝑘 +2arcs in 𝜕 𝑣, the at most (𝑘 +1) ⋅𝚌 𝚖𝚊𝚡arcs obtained from , and
+the at most (2𝑘 +2) ⋅𝚌 𝚖𝚊𝚡agents that are in  inor  outfor 𝑣. The number of paths in such an instance is upper-bounded by 2(𝑘⋅𝚌𝚖𝚊𝚡).
+Hence, the minimum cost of a flow assignment 𝐹 in  that routes all the agents in  and  can be computed by enumerating
+Υ in out
+all flow assignments in time at most 𝚌 𝚖𝚊𝚡2(𝑘⋅𝚌𝚖𝚊𝚡) .
+The core of the dynamic program lies in the computation of Record(𝑣) for a non-leaf vertex 𝑣. We do so by considering each
+snapshot Υ =( ,  , 𝛼′,  ,  , , ) at 𝑣 independently, and computing the minimum cost of a flow assignment 𝐹 in the
+out in out in
+subinstance  as follows. Unlike in Theorem5, we directly construct the instance  for which we need to compute the minimum
+Υ Υ
+5 As before, only one of the endpoints of 𝜕 𝑣lies in  𝑣, and hence, these are not formally arcs in  𝑣.
+12
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+cost of a flow assignment, as here we do not distinguish between “simple” and “complex” children, followed by a construction of the
+same “kernelized” instance + as earlier (whereas this time, we treat everychild of 𝑣as complex). In particular, for each child 𝑤of
+Υ
+𝑣, we
+1. delete every vertex in  𝑤except for the endpoints of 𝜕 𝑤;
+2. for each pair of endpoints 𝑎, 𝑏 ∈𝑉( 𝑤)of distinct arcs in 𝜕 𝑤, add bi-directional “marker” arcs between 𝑎and 𝑏;
+3. create a vertex 𝑤 out, add a directed arc from 𝑤 out to every endpoint of an arc 𝜕 𝑤 in 𝑉( 𝑤), and for outgoing agent 𝑎 𝑖 at 𝑤we
+place 𝑠 𝑖on 𝑤 out;
+4. create a vertex 𝑤 in, add a directed arc from every endpoint of an arc 𝜕 𝑤in 𝑉( 𝑤)to 𝑤 in, and for an incoming agent 𝑎 𝑖at 𝑤we
+place 𝑡 𝑖on 𝑤 in.
+As before, the newly created arcs are not associated with a latency function (or alternatively may be assumed to be associated with
+the degenerate latency function ℕ →{0}), and we observe that the number of vertices in +is upper-bounded by (𝑘 ⋅2𝑘) +1 ≤(𝑘2).
+Υ
+𝑘(𝑘2),
+The number of paths in such an instance is upper-bounded by and hence, the total number of all possible flow assignments
+(regardless of the subset of routed agents) can be upper-bounded by 𝚌 𝚖𝚊𝚡𝑘(𝑘2) . We proceed by branching over each choice of a
+potential flow assignment 𝐹 from this set of all potential flow assignments.
+Next, we deal with the fact that 𝐹 need not be a flow assignment of all agents by performing an additional bounded branching
+step to determine which of the outgoing and incoming agents from each child of 𝑣is actually routed by 𝐹. To this end, let an agent
+be importantfor 𝑣if it is an incoming or outgoing agent for at least one child of 𝑣, but is neither an incoming nor outgoing agent for
+𝑣; in other words, important agents are those which are explicitly tracked by the snapshots of the children of 𝑣, but are no longer
+tracked by snapshots of 𝑣itself. The number of important agents is upper-bounded by 𝑘 ⋅(𝛼+𝚌 𝚖𝚊𝚡⋅𝑘), and we branch over each
+subset of important children for 𝑣. Finally, we branch over all mappings 𝛽 from the children of 𝑣to [𝛼].
+For each fixed 𝐹, , and 𝛽, we check that 𝐹 routes the agents in to their final destinations and the agents in  and  to
+in out
+their assigned arcs as per  and  , respectively. As previously in the proof of Theorem5, we also perform a further technical
+in out
+check to ensure that each path in 𝑃 only contains a marker arc 𝑒in a child 𝑤if 𝑒is immediately preceded and also succeeded by an
+arc in 𝜕 𝑤. If these checks succeed, we view 𝐹 as a “projection” of a flow assignment in  Υonto  Υ+. In particular, 𝐹 restricted to the
+arcs with at most one endpoint in a child 𝑤of 𝑣fully determines (1) the first arc in 𝜕 𝑤used by an outgoing agent for 𝑤, (2) the last
+arc in 𝜕 𝑤 used by an incoming agent for 𝑤, (3) which pairs of arcs in 𝜕 𝑤 are used by paths to leave and subsequently re-enter  𝑤,
+and (4) which pairs of arcs in 𝜕 𝑤are used by paths to enter and subsequently leave  𝑤. This information, combined with information
+about which outgoing and incoming agents for 𝑤are actually routed by the flow (specified in ) and information about how many
+total agents with an endpoint in  ∑𝑤are not routed by the flow (specified in 𝛽(𝑤)), hence fully identifies a unique snapshot Ψ𝑤 of 𝑤.
+𝐹
+We define the cost of 𝐹 as 𝑏(𝑣) + 𝑤isachildof𝑣Record(𝑤)(Ψ𝑤 𝐹). Finally, we set Record(𝑣)(Υ)to be the minimum cost of a flow 𝐹 in
++which satisfies the conditions stipulated above; this concludes the description of the algorithm.
+Υ
+The running time of the algorithm can be upper-bounded by the number of vertices in the input digraph times the cost of processing
+each vertex, whereas the latter is dominated by 𝚌 𝚖𝚊𝚡(𝑑𝑤)(𝑑4𝑤4)⋅2𝑑2𝑤2⋅(𝛼+𝚌𝚖𝚊𝚡⋅𝑑2𝑤2)⋅𝛼𝑤2𝑑2 , i.e., by 2(𝑑⋅𝑤⋅𝛼⋅𝚌𝚖𝚊𝚡)(𝑑4𝑤4) . The algorithm can
+be made constructive in the same way as in Theorem5. For correctness, we argue that if the input instance admits a flow assignment 𝑄
+of at most 𝛼agents with some minimum cost, say 𝑝, then the algorithm will compute a flow assignment with the same cost 𝑝. Towards
+this goal, we observe that at each vertex 𝑣considered in the leaf-to-root pass made by the dynamic program, 𝑄will correspond to a
+unique snapshot Υof 𝑣. At each leaf 𝑣of 𝑇, Record(𝑣)(Υ)must be equal to the cost incurred by 𝑄on the arcs in 𝜕 𝑣due to the nature
+of our brute-force computation of the records for trees and the optimality of 𝑄. Moreover, for each non-leaf node 𝑣it holds that as
+long as we have correctly computed the records for each of its children, the traversal of 𝑄via the arcs in 𝜕 𝑣and 𝜕 𝑤for each child of
+𝑤identifies a unique valid flow assignment 𝐹 in +. Moreover, from 𝑄we can also recover a unique set of important agents for
+Υ
+𝑣as well as a unique mapping 𝛽 which specifies how many agents were not routed among those with at least one endpoint in each
+of the children∑ of 𝑣. These sets altogether define a snapshot Ψ𝑤 for each child 𝑤of 𝑣. In that case, however, 𝑄must indeed incur a
+𝐹
+cost of 𝑏(𝑣) + 𝑤isachildof𝑣Record(𝑤)(Ψ𝑤 𝐹)over all arcs in  Υ, as desired. □
+6. Concluding remarks
+Our results provide an essentially comprehensive complexity landscape for the problem of computing system-optimal flow as-
+signments in atomic congestion games, closing a gap in the literature that contrasts with the significant attention other aspects of
+congestion games have received to date. We remark that our tractability results only require the input network to have the necessary
+structural properties and do not impose any restrictions on the possible origins and destinations of the agents. Moreover, all of the
+obtained algorithms can also be used to compute Nash-equilibria in atomic congestion games as long as an upper-bound on the cost
+of the flow is provided in the input. Future work could also consider the recently proposed setting of having some agents follow a
+greedily computed route[58].
+Another interesting avenue for future work would be to resolve the complexity of the min-max variant of the problem (i.e.,mSOAC)
+on well-structured networks of unbounded degree. This problem is left open even on stars when parameterized by 𝚌 𝚖𝚊𝚡+𝛼, and we
+believe novel ideas will be required to breach this barrier; in particular, the techniques for solving the maximization variant of the
+relatedArc Disjoint Pathsproblem on stars[20]do not generalize tomSOAC. As a longer-term goal, one would be interested
+13
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+in settling whether Theorem7could be lifted towards an analog of Theorem5that relies on the same structural measures of the
+network.
+CRediT authorship contribution statement
+Cornelius Brand:Writing – review & editing, Writing – original draft, Visualization, Methodology, Investigation, Formal analysis,
+Conceptualization.Robert Ganian:Writing – review & editing, Writing – original draft, Visualization, Methodology, Investigation,
+Formal analysis, Conceptualization.Subrahmanyam Kalyanasundaram:Writing – review & editing, Writing – original draft, Visu-
+alization, Methodology, Investigation, Formal analysis, Conceptualization.Fionn McInerney:Writing – review & editing, Writing –
+original draft, Visualization, Methodology, Investigation, Formal analysis, Conceptualization.
+Declaration of competing interest
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Acknowledgements
+The first, second, and fourth authors were supported by the Austrian Science Fund (FWF, project Y1329). The third author was
+supported by SERB-DST via grants MTR/2020/000497 and CRG/2022/009400.
+Data availability
+No data was used for the research described in the article.
+References
+[1]AneesAbu-Monshar,AmmarAl-Bazi,Amulti-objectivecentralisedagent-basedoptimisationapproachforvehicleroutingproblemwithuniquevehicles,Appl.
+SoftComput.125(2022)109187.
+[2]HeinerAckermann,HeikoRöglin,BertholdVöcking,Ontheimpactofcombinatorialstructureoncongestiongames,in:47thAnnualIEEESymposiumon
+FoundationsofComputerScience(FOCS2006),IEEEComputerSociety,2006,pp.613–622.
+[3]E.Anshelevich,A.Dasgupta,J.Kleinberg,E.Tardos,T.Wexler,T.Roughgarden,Thepriceofstabilityfornetworkdesignwithfaircostallocation,in:45th
+AnnualIEEESymposiumonFoundationsofComputerScience,2004,pp.295–304.
+[4]ItaiAshlagi,DovMonderer,MosheTennenholtz,Learningequilibriuminresourceselectiongames,in:Proc.ofthe22ndAAAIConferenceonArtificialIntelligence,
+2007,pp.18–23.
+[5]BaruchAwerbuch,YossiAzar,AmirEpstein,Thepriceofroutingunsplittableflow,in:Proc.ofthe37thAnnualACMSymposiumonTheoryofComputing,2005,
+pp.57–66.
+[6]DietmarBerwanger,AnujDawar,PaulHunter,StephanKreutzer,JanObdrzálek,Thedag-widthofdirectedgraphs,J.Comb.Theory,Ser.B102(4)(2012)
+900–923.
+[7]NiclasBoehmer,EdithElkind,Individual-basedstabilityinhedonicdiversitygames,in:Proc.ofthe34thAAAIConferenceonArtificialIntelligence,2020,
+pp.1822–1829.
+[8]NiclasBoehmer,EdithElkind,Stableroommateproblemwithdiversitypreferences,in:Proc.ofthe29thInternationalJointConferenceonArtificialIntelligence,
+2020,pp.96–102.
+[9]CorneliusBrand,RobertGanian,SubrahmanyamKalyanasundaram,FionnMcInerney,Thecomplexityofoptimizingatomiccongestion,in:Proc.ofthe38th
+AAAIConferenceonArtificialIntelligence,2024,pp.20044–20052.
+[10] TimothyF.N.Chan,JacobW.Cooper,MartinKoutecký,DanielKrál,KristýnaPekárková,Matricesofoptimaltree-depthandarow-invariantparameterized
+algorithmforintegerprogramming,SIAMJ.Comput.51(3)(2022)664–700.
+[11] ZhibinChen,XiLin,YafengYin,MengLi,Pathcontrollingofautomatedvehiclesforsystemoptimumontransportationnetworkswithheterogeneoustraffic
+stream,Transp.Res.,PartC,Emerg.Technol.110(2020)312–329.
+[12] GeorgeChristodoulou,EliasKoutsoupias,Thepriceofanarchyoffinitecongestiongames,in:Proc.ofthe37thAnnualACMSymposiumonTheoryofComputing,
+2005,pp.67–73.
+[13] RobertoCominetti,MarcoScarsini,MarcSchröder,NicolásE.StierMoses,Priceofanarchyinstochasticatomiccongestiongameswithaffinecosts,in:Proc.of
+the2019ACMConferenceonEconomicsandComputation,2019,pp.579–580.
+[14] MarekCygan,FedorV.Fomin,LukaszKowalik,DanielLokshtanov,DánielMarx,MarcinPilipczuk,MichalPilipczuk,SaketSaurabh,ParameterizedAlgorithms,
+Springer,2015.
+[15] YogeshDahiya,FedorV.Fomin,FahadPanolan,KirillSimonov,Fixed-parameterandapproximationalgorithmsforPCAwithoutliers,in:Proc.ofthe38th
+InternationalConferenceonMachineLearning,ICML2021,in:Proc.ofMachineLearningResearch,vol.139,2021,pp.2341–2351.
+[16] ReinhardDiestel,GraphTheory,4thedition,GraduateTextsinMathematics,vol.173,Springer,2012.
+[17] RodneyG.Downey,MichaelR.Fellows,FundamentalsofParameterizedComplexity,TextsinComputerScience.,Springer,2013.
+[18] PavelDvorák,EduardEiben,RobertGanian,DusanKnop,SebastianOrdyniak,ThecomplexitylandscapeofdecompositionalparametersforILP:programswith
+fewglobalvariablesandconstraints,Artif.Intell.300(2021)103561.
+[19] EduardEiben,RobertGanian,DusanKnop,SebastianOrdyniak,Solvingintegerquadraticprogrammingviaexplicitandstructuralrestrictions,in:Proc.ofthe
+33rdAAAIConferenceonArtificialIntelligence,2019,pp.1477–1484.
+[20] ThomasErlebach,KlausJansen,Themaximumedge-disjointpathsprobleminbidirectedtrees,SIAMJ.DiscreteMath.14(3)(2001)326–355.
+[21] AlexFabrikant,ChristosH.Papadimitriou,KunalTalwar,ThecomplexityofpureNashequilibria,in:Proc.ofthe36thAnnualACMSymposiumonTheoryof
+Computing,2004,pp.604–612.
+[22] KrzysztofFleszar,MatthiasMnich,JoachimSpoerhase,Newalgorithmsformaximumdisjointpathsbasedontree-likeness,Math.Program.171(1–2)(2018)
+433–461.
+14
+
+C.Brand,R.Ganian,S.Kalyanasundarametal. ArtificialIntelligence338(2025)104241
+[23] EugenFüchsle,HendrikMolter,RolfNiedermeier,MalteRenken,Delay-robustroutesintemporalgraphs,in:39thInternationalSymposiumonTheoretical
+AspectsofComputerScience,STACS2022,in:LIPIcs,vol.219,SchlossDagstuhl-Leibniz-ZentrumfürInformatik,2022,pp.30:1–30:15.
+[24] RobertGanian,TheklaHamm,DusanKnop,SimonSchierreich,OndrejSuchý,Hedonicdiversitygames:acomplexitypicturewithmorethantwocolors,in:
+Proc.ofthe36thAAAIConferenceonArtificialIntelligence,2022,pp.5034–5042.
+[25] RobertGanian,TheklaHamm,ViktoriiaKorchemna,KarolinaOkrasa,KirillSimonov,Thecomplexityofk-meansclusteringwhenlittleisknown,in:International
+ConferenceonMachineLearning,ICML2022,in:Proc.ofMachineLearningResearch,vol.162,2022,pp.6960–6987.
+[26] RobertGanian,IyadA.Kanj,SebastianOrdyniak,StefanSzeider,Parameterizedalgorithmsforthematrixcompletionproblem,in:Proc.ofthe35thInternational
+ConferenceonMachineLearning,ICML2018,in:Proc.ofMachineLearningResearch,vol.80,2018,pp.1642–1651.
+[27] RobertGanian,EunJungKim,StefanSzeider,Algorithmicapplicationsoftree-cutwidth,SIAMJ.DiscreteMath.36(4)(2022)2635–2666.
+[28] RobertGanian,ViktoriiaKorchemna,ThecomplexityofBayesiannetworklearning:revisitingthesuperstructure,in:AdvancesinNeuralInformationProcessing
+Systems34:AnnualConferenceonNeuralInformationProcessingSystems2021,NeurIPS2021,2021,pp.430–442.
+[29] RobertGanian,ViktoriiaKorchemna,Slimtree-cutwidth,Algorithmica86(8)(2024)2714–2738.
+[30] RobertGanian,SebastianOrdyniak,ThecomplexitylandscapeofdecompositionalparametersforILP,Artif.Intell.257(2018)61–71.
+[31] RobertGanian,SebastianOrdyniak,Thepowerofcut-basedparametersforcomputingedge-disjointpaths,Algorithmica83(2)(2021)726–752.
+[32] RobertGanian,SebastianOrdyniak,RamanujanSridharan,Onstructuralparameterizationsoftheedgedisjointpathsproblem,in:28thInternationalSymposium
+onAlgorithmsandComputation,ISAAC2017,in:LIPIcs,vol.92,SchlossDagstuhl-Leibniz-ZentrumfürInformatik,2017,pp.36:1–36:13.
+[33] DidemGözüpek,SibelÖzkan,ChristophePaul,IgnasiSau,MordechaiShalom,ParameterizedcomplexityoftheMINCCAproblemongraphsofboundeddecom-
+posability,Theor.Comput.Sci.690(2017)91–103.
+[34] NielsGrüttemeier,ChristianKomusiewicz,LearningBayesiannetworksundersparsityconstraints:aparameterizedcomplexityanalysis,J.Artif.Intell.Res.74
+(2022)1225–1267.
+[35] NielsGrüttemeier,ChristianKomusiewicz,NilsMorawietz,Ontheparameterizedcomplexityofpolytreelearning,in:Proc.ofthe30thInternationalJoint
+ConferenceonArtificialIntelligence,2021,pp.4221–4227.
+[36] TobiasHarks,MonaHenle,MaxKlimm,JannikMatuschke,AnjaSchedel,Multi-leadercongestiongameswithanadversary,in:Proc.ofthe36thAAAIConference
+onArtificialIntelligence,2022,pp.5068–5075.
+[37] TaoanHuang,JiaoyangLi,SvenKoenig,BistraDilkina,Anytimemulti-agentpathfindingviamachinelearning-guidedlargeneighborhoodsearch,in:Proc.of
+the36thAAAIConferenceonArtificialIntelligence,2022,pp.9368–9376.
+[38] PaulHunter,StephanKreutzer,Digraphmeasures:Kellydecompositions,games,andorderings,Theor.Comput.Sci.399(3)(2008)206–219.
+[39] DevanshJalota,KirilSolovey,MatthewTsao,StephenZoepf,MarcoPavone,Balancingfairnessandefficiencyintrafficroutingviainterpolatedtrafficassignment,
+Auton.AgentsMulti-AgentSyst.37(2)(2023)32.
+[40] ThorJohnson,NeilRobertson,PaulD.Seymour,RobinThomas,Directedtree-width,J.Comb.Theory,Ser.B82(1)(2001)138–154.
+[41] TomohiroKoana,VincentFroese,RolfNiedermeier,Thecomplexityofbinarymatrixcompletionunderdiameterconstraints,J.Comput.Syst.Sci.132(2023)
+45–67.
+[42] TomohiroKoana,ViatcheslavKorenwein,AndréNichterlein,RolfNiedermeier,PhilippZschoche,Datareductionformaximummatchingonreal-worldgraphs:
+theoryandexperiments,ACMJ.Exp.Algorithmics26(2021)1.3.
+[43] JanneH.Korhonen,PekkaParviainen,TractableBayesiannetworkstructurelearningwithboundedvertexcovernumber,in:AdvancesinNeuralInformation
+ProcessingSystems28:AnnualConferenceonNeuralInformationProcessingSystems2015,2015,pp.622–630.
+[44] S.Kunniyur,R.Srikant,End-to-endcongestioncontrolschemes:utilityfunctions,randomlossesandecnmarks,IEEE/ACMTrans.Netw.11(5)(2003)689–702.
+[45] AlbertoMarchesi,MatteoCastiglioni,NicolaGatti,Leadershipincongestiongames:multipleuserclassesandnon-singletonactions,in:Proc.ofthe28thInter-
+nationalJointConferenceonArtificialIntelligence,2019,pp.485–491.
+[46] DánielMarx,PaulWollan,Immersionsinhighlyedgeconnectedgraphs,SIAMJ.DiscreteMath.28(1)(2014)503–520.
+[47] ReshefMeir,MosheTennenholtz,YoramBachrach,PeterB.Key,Congestiongameswithagentfailures,in:Proc.ofthe26thAAAIConferenceonArtificial
+Intelligence,2012.
+[48] JaroslavNesetril,PatriceOssonadeMendez,Sparsity-Graphs,Structures,andAlgorithms,AlgorithmsandCombinatorics,vol.28,Springer,2012.
+[49] RolfNiedermeier,InvitationtoFixed-ParameterAlgorithms,OxfordLectureSeriesinMathematicsandItsApplications,OxfordUniversityPublishing,Oxford,
+2006.
+[50] SebastianOrdyniak,StefanSzeider,ParameterizedcomplexityresultsforexactBayesiannetworkstructurelearning,J.Artif.Intell.Res.46(2013)263–302.
+[51] QuangAnhPham,MinhHoàngHà,DuyManhVu,HuyHoangNguyen,Ahybridgeneticalgorithmforthevehicleroutingproblemwithroamingdelivery
+locations,in:Proc.ofthe32ndInternationalConferenceonAutomatedPlanningandScheduling,2022,pp.297–306.
+[52] StefanPorschen,TatjanaSchmidt,EwaldSpeckenmeyer,AndreasWotzlaw,XSATandNAE-SAToflinearCNFclasses,DiscreteAppl.Math.167(2014)1–14.
+[53] NeilRobertson,PaulD.Seymour,Graphminors.II.algorithmicaspectsoftree-width,J.Algorithms7(3)(1986)309–322.
+[54] RobertW.Rosenthal,Aclassofgamespossessingpure-strategyNashequilibria,Int.J.GameTheory(1973).
+[55] TatjanaSchmidt,ComputationalcomplexityofSAT,XSATandNAE-SATforlinearandmixedHornCNFformulas,PhDthesis,UniversityofCologne,2010.
+[56] P.D.Seymour,R.Thomas,Graphsearchingandamin-maxtheoremfortree-width,J.Comb.Theory,Ser.B58(1)(1993)22–33.
+[57] GuniSharon,Alleviatingroadtrafficcongestionwithartificialintelligence,in:IJCAI,2021,pp.4965–4969.
+[58] GuniSharon,MichaelAlbert,TarunRambha,StephenD.Boyles,PeterStone,Trafficoptimizationforamixtureofself-interestedandcompliantagents,in:Proc.
+ofthe32ndAAAIConferenceonArtificialIntelligence,2018,pp.1202–1209.
+[59] GuniSharon,JosiahP.Hanna,TarunRambha,MichaelW.Levin,MichaelAlbert,StephenD.Boyles,PeterStone,Real-timeadaptivetollingschemeforoptimized
+socialwelfareintrafficnetworks,in:Proc.ofthe16thInternationalConferenceonAutonomousAgentsandMultiagentSystems,2017.
+[60] GuniSharon,MichaelW.Levin,JosiahP.Hanna,TarunRambha,StephenD.Boyles,PeterStone,Network-wideadaptivetollingforconnectedandautomated
+vehicles,Transp.Res.,PartC,Emerg.Technol.84(2017)142–157.
+[61] KaiWang,LilyXu,AndrewPerrault,MichaelK.Reiter,MilindTambe,Coordinatingfollowerstoreachbetterequilibria:end-to-endgradientdescentforStack-
+elberggames,in:Proc.ofthe36thAAAIConferenceonArtificialIntelligence,2022,pp.5219–5227.
+15
+

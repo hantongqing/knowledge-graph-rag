@@ -1,0 +1,1476 @@
+ArtificialIntelligence338(2025)104236
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+Gödel–Dummett linear temporal logic
+Juan Pablo Aguileraa,b, Martín Diéguezc, David Fernández-Duquea,d,
+McLeana,∗
+Brett
+aDepartment of Mathematics WE16, Ghent University, Ghent, Belgium
+bInstitute of Discrete Mathematics and Geometry, Vienna University of Technology, Vienna, Austria
+cLERIA, University of Angers, Angers, France
+dDepartment of Philosophy, University of Barcelona, Barcelona, Spain
+A R T I C L E I N F O A B S T R A C T
+Keywords: We investigate a version of linear temporal logic whose propositional fragment is Gödel–Dummett
+Gödel–Dummett logic logic (which is well known both as a superintuitionistic logic and a t-norm fuzzy logic). We define
+Lineartemporallogic the logic using two natural semantics: first a real-valued semantics, where statements have a
+Automatedtemporalreasoning
+degree of truth in the real unit interval, and second a ‘bi-relational’ semantics. We then show that
+PSPACE-com plete
+these two semantics indeed define one and the same logic: the statements that are valid for the
+Hilbert-styledeductivecalculus
+real-valued semantics are the same as those that are valid for the bi-relational semantics. This
+Gödel temporal logic does not have any form of the finite model property for these two semantics:
+there are non-valid statements that can only be falsified on an infinite model. However, by using
+the technical notion of a quasimodel, we show that every falsifiable statement is falsifiable on
+a finite quasimodel, yielding an algorithm for deciding if a statement is valid or not. Later, we
+strengthen this decidability result by giving an algorithm that uses only a polynomial amount of
+memory, proving that Gödel temporal logic is PSPACE-complete. We also provide a deductive
+calculus for Gödel temporal logic, and show this calculus to be sound and complete for the
+above-mentioned semantics, so that all (and only) the valid statements can be proved with this
+calculus.
+1. Introduction
+The importance of temporal logics and, independently, of fuzzy logics in computing is well established [1,2]. The potential
+usefulness of their combination is clear: for instance, it would provide a natural framework, in symbolic artificial intelligence, for the
+specification and verification of systems dealing with vague or incomplete data[3].
+One of the most thoroughly studied fuzzy logics is Gödel logic(also called Gödel–Dummett logic) [4,5]. Gödel logic was introduced
+by Gödel [6]in his proof that intuitionistic logic is not finite-valued and later axiomatised by Dummett [7]. It is an extremely useful
+and natural framework because it is both a t-norm fuzzy logic and an extension of intuitionistic logic, thus capturing both the former’s
+approach to reasoning with vagueness as well as the latter’s approach to evidence-based reasoning. Gödel logic has been considered
+as a foundation for logic programming[8,9], answer set programming[10,11], and parallel λ-calculus[12,13].
+* Correspondingauthor.
+E-mailaddresses:aguilera@logic.at(J.P.Aguilera),martin.dieguezlodeiro@univ-angers.fr(M.Diéguez),fernandez-duque@ub.edu(D.Fernández-Duque),
+brett.mclean@ugent.be(B.McLean).
+https://doi.org/10.1016/j.artint.2024.104236
+Received 27 June 2023; Received in revised form 8 October 2024; Accepted 13 October 2024
+Availableonline18October2024
+0004-3702/©2024ElsevierB.V.Allrightsarereserved,includingthosefortextanddatamining,AItraining,andsimilartechnologies.
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Applications of fuzzy temporal reasoning in computer science, engineering, and artificial intelligence are numerous and include
+scheduling[14], robotics[15], quality control systems[16], and computer vision[17].
+One very high-profile and promising current focus of artificial intelligence research is autonomous driving, where fuzzy logic is often
+the underlying framework for the controllers used to operate vehicles[18,19]. The use of fuzzy logic allows for the specification of
+control rules in natural language that can be written and understood by non-specialists. Rules applied to autonomous vehicles include
+if–then rules that are triggered under certain preconditions. For instance, these rules could include the following:
+(a) If the vehicle ahead is closeand the car’s speed is high, then the car must decelerate.
+Usually the type of rules declared are reactive, i.e.the trigger depends only on the current state, and the action is implemented at
+the immediately following instant. Expressing rules whose evaluation implicates a possible infinite number of time instants is very
+complicated to do with existing approaches. Thus a more powerful framework is needed.
+Perhaps the best-known and most successful formalism for temporal reasoning is linear-time temporal logic(or propositional linear-
+temporal logic; 𝖫𝖳𝖫)[20]: the extension of propositional logic with a variety of temporal modalities such as ‘eventually’, ‘henceforth’,
+and ‘until’. Indeed the success of 𝖫𝖳𝖫 in program and systems verification resulted in the 1996 Turing Award being conferred on
+Pnueli.
+Several variants of 𝖫𝖳𝖫 lacking the classical, binary conception of truth have been investigated, with a variety of application
+domains. In logic programming and non-monotonic reasoning, equilibrium logic[11]was given an 𝖫𝖳𝖫extension in[21,22], based
+on the Gödel logic with three truth values 𝖦 (also known as the logic of here-and-there [23]). Such an 𝖫𝖳𝖫 extension of 𝖦 is
+3 3
+axiomatised in[24]. Combinations of 𝖫𝖳𝖫with intuitionistic propositional logic have been considered as a framework for reasoning
+about dynamical systems [25]. Combinations of fuzzy logic with 𝖫𝖳𝖫have been used to enable vague time references, for example
+in[26,27]. Those approaches have many fields of application: disaster management, robot control, or smart home systems; that is,
+to dynamic systems whose evolution depends on uncertain conditions[28].
+Motivated by the many applications of Gödel logic and its temporal extensions, particularly 𝖫𝖳𝖫 extensions, in this paper we
+provide a detailed investigation of a linear-temporal extension of the real-valued Gödel logic (where degrees of truth can take any
+value in the unit interval [0, 1]). Specifically, we investigate a temporal extension of propositional Gödel logic whose syntax can
+express all the familiar 𝖫𝖳𝖫futureand pastmodalities, ‘until’, ‘henceforth’, ‘since’, and so on. We call this logic 𝖦𝖳𝖫(short for Gödel
+temporal logic). This investigation extends that of [29,30], whose results apply to the language with only the unary, futuremodalities
+‘eventually’ and ‘henceforth’.
+This language allows us to express statements whose satisfaction may require arbitrarily large amounts of time. For instance, we
+can express rules like:
+(b) If the petrol tank is low, it will remain low untileither the tank is refilled or it becomes empty.
+(c) If rockfallis observed near Moûtiers, then henceforthdrive with caution in the vicinity of Moûtiers.
+Unlike example (a), expressing (b) and (c) requires a language with both a vague component and an elaborate temporal component
+capable of referring to actions potentially in the distant future.
+The need for reasoning over potentially unbounded periods of time arises in many other applications. Consider a fraud-detection
+system for credit card usage. Suspicious activity may prompt a system to automatically require the user to re-enter their PIN, with
+such activity potentially occurring over long periods of time. Whether a given event is suspicious involves a fuzzy component, as for
+example the card being used in a different continent is more suspicious than it being used in a different city. The level of alert also
+varies and may thus be regarded as fuzzy, prompting the PIN request once a certain level of alert is reached. A typical rule in such a
+scenario may be:
+(d) If suspicious activity has been observed since the PIN was last entered, raise the level of alert.
+In this setting we need a framework powerful enough to express the notion that a certain quantity is changing. This, as we will see,
+can be captured with the co-implication connective of bi-intuitionistic logic[56](see Example2.2).
+𝖦𝖳𝖫 possesses two natural semantics, corresponding to whether it is viewed as a fuzzy logic or a superintuitionistic logic. As
+a fuzzy logic, propositions take values in [0, 1], and truth values of compound propositions are defined using standard operations
+on the reals. As a superintuitionistic logic, models consist of bi-relational structures: a set equipped with a partial order to interpret
+implication as on an intuitionistic Kripke frame and a function to interpret the 𝖫𝖳𝖫tenses. Notably, the two semantics give rise to
+the same set of valid formulas (Theorem3.3).
+One may be concerned that the passage from two-valued to infinite-valued 𝖫𝖳𝖫 could lead to an explosion in computational
+complexity, as has been known to happen when combining sub-classical logics with transitive modal logics: for these combinations
+it is often algorithmically undecidable if a formula is valid[31], or decidable with only a superexponential space upper bound being
+known [32]. As we will see, this need not be the case: our combination of Gödel–Dummett logic with linear temporal logic remains
+pspace-complete (Theorem11.11), the minimal possible complexity given that classical 𝖫𝖳𝖫embeds into it. This is true even when the
+syntax is enriched with the dual implication connective[33], which has been argued in [34]to be useful for reasoning with incomplete
+or inconsistent information. In contrast, the 𝖫𝖳𝖫extension of equilibrium logic mentioned earlier isexpspace-complete[35].
+2
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Even the decidability of 𝖦𝖳𝖫is quite surprising, since its modal companion1 𝖲𝟦.𝟥×𝖫𝖳𝖫is not recursively axiomatisable[37],
+and, as we show, 𝖦𝖳𝖫does not enjoy the finite model property for either of its two semantics (i.e.there are non-valid formulas whose
+falsifiability can only be seen using an infinite model).
+For Gödel logics, it is often possible to prove decidability despite the lack of finite model property by considering alternative
+semantics (see, e.g., [38]). For example, the logic 𝖦𝖲𝟦 does not have the real-valued finite model property, but it does have the
+bi-relational finite model property[32]. Since 𝖦𝖳𝖫does not enjoy eitherversion of the finite model property, we instead introduce
+quasimodels, which do satisfy their own version of the finite model property. Quasimodels are not ‘true’ models, because the relation
+indicating the ‘next’ instant of time is no longer necessarily a function, but quasimodels give rise to standard bi-relational models
+by unwinding. Unwinding consists of transforming a structure into a new one whose worlds are pathsselected from the original, a
+variant of the classic construction used for establishing the tree model property for standard modal logics [39]. Quasimodels are a
+well-established tool in proving e.g.decidability results for modal logics[39], but ours are specifically based on a variant tailored
+for proving upper complexity bounds for dynamic topological logic [40,41]and intuitionistic temporal logic [25]. These turn out to
+be particularly effective in the setting of Gödel temporal logic, yielding the optimalpspaceupper bound.
+A natural deductive calculus for 𝖦𝖳𝖫can readily be defined by combining axioms for Gödel logic (with dual implication) together
+with axioms for linear temporal logic. However, as in the classical setting, a standard attempt to prove the completeness of these
+axioms via a canonical modelwill not yield a structure where the tenses are interpreted correctly. For 𝖫𝖳𝖫, one may use the technique
+of filtrationto obtain a finite model and then use the method of associating a characteristic formulato each world to characterise it up
+to bisimulation, using these to reason that infinitary tenses (such as ‘henceforth’) are indeed interpreted correctly(see, e.g.,[42]). For
+𝖦𝖳𝖫, we are able to prove completeness by using quasimodels to provide an analogue of the finite filtrated model (Theorem10.4),
+with the additional complication that in this sub-classical setting it is necessary to assign twocharacteristic formulas to each world.
+Related work
+As already mentioned, many different extensions of temporal reasoning beyond the classical Boolean propositional framework
+have been studied, for many different reasons. Here we briefly describe the work most closely related to our own, and highlight the
+relationships with our approach and results.
+In [43], Baaz and Preining consider a fragment of monadic first-order𝖫𝖳𝖫. By a reduction from monadic first-order Gödel logic, they
+show that the valid sentences of this monadic first-order 𝖫𝖳𝖫are not computably enumerable. This makes our own result all the more
+surprising: in the classical setting, monadic first-order (indeed, second-order) logic is already decidable, from which decidability for
+𝖫𝖳𝖫follows, although apspacecomplexity bound requires additional proof. In the Gödel setting, we lose the decidability of monadic
+first-order logic, suggesting that Gödel 𝖫𝖳𝖫should at the very least also suffer in terms of complexity. Yet this is not the case, and
+thepspaceupper bound is preserved.
+Almagor et al. [44] introduce the parameterised family 𝖫𝖳𝖫[] of logics for reasoning about the quality of classical, Boolean
+computations. Quality is intended to be a measure of how wella computation meets a logically formalised specification. Accordingly,
+valuations yield values in the unit interval. The temporal operators are those of 𝖫𝖳𝖫, but the parameter  can be any set of (com-
+putable) functions over [0, 1], which replace, in the syntax and semantics, the Boolean propositional operators of 𝖫𝖳𝖫. Thus  may
+contain the connectives of Gödel–Dummett logic, in which case 𝖦𝖳𝖫 will appear to be a syntactic fragment of 𝖫𝖳𝖫[]. However,
+since it is Boolean computational events that are modelled, there is the strong restriction that atomic propositions take values in
+{0, 1}. Since Gödel–Dummett connectives act classically on {0, 1}, the ‘𝖦𝖳𝖫fragment’ of 𝖫𝖳𝖫[]has classical 𝖫𝖳𝖫semantics. Hence,
+contrary to initial appearances, 𝖫𝖳𝖫[]does not subsume 𝖦𝖳𝖫.
+In [44], the authors investigate the validity problem (among others) for 𝖫𝖳𝖫[], and they determine (by means of automata-based
+techniques) that this is inpspace(assuming polynomial-space computability of the functions in ). Bouyer et al.[45]further extend
+𝖫𝖳𝖫[]to 𝖲𝖫[]by replacing 𝖫𝖳𝖫with strategy logic.
+Temporal equilibrium logic[22]is a non-monotonic 𝖫𝖳𝖫that is one of the most popular semantics for temporal answer set program-
+ming. Its definition consists of two main components: a monotonic basis in terms of an 𝖫𝖳𝖫 extension of the Gödel logic 𝖦 and a
+3
+selection criterion to select minimal models. Such a selection criterion can be seen as a second-order quantification over the set of tem-
+poral 𝖦 models. As a result, the complexity of the satisfiability problem of temporal equilibrium logic turns out to beexpspace[35].
+3
+There exists, nevertheless, an interesting fragment, called splittable temporal logic programs [46], whose complexity remains open.
+The approach presented in this paper could help to determine the complexity of the satisfiability problem for the case of such programs.
+Finally, there have been several investigations into fuzzy interval temporal logics, for example [47,48]. This work focuses on the
+study of fuzzy time periods and reasoning about them (e.g. “𝑋 ends before 𝑌 begins”). They do not work with a non-classical
+implication, but rather focus on disjunctions of atomic expressions. Accordingly, the complexity of the tasks they consider isnp. In
+principle, the relations they consider can be represented in a language such as ours, although they work in continuous time. Indeed,
+a continuous-time analogue of our framework would be a natural avenue for future exploration.
+Structure of the article
+Section2:Syntax and semantics. We introduce the temporal language that we work with, and then introduce both the real-valued
+semantics and bi-relational semantics for Gödel temporal logic.
+1 Each superintuitionistic logic 𝖫has a family of modal companions: a normal modal logic 𝖬such that 𝜑 ∈𝖫 ⟺ 𝑇(𝜑) ∈𝖬, where 𝑇 is the well-known Gödel–
+McKinsey–Tarski translation[36]. The smallest modal companion of (propositional) Gödel logic is 𝖲𝟦.𝟥. Similarly, 𝜑 ∈𝖦𝖳𝖫 ⟺ 𝑇(𝜑) ∈𝖲𝟦.𝟥×𝖫𝖳𝖫(where the
+modality introduced by the translation should be distinct from the 𝖦𝖳𝖫modalities). This is immediate from the bi-relational semantics of 𝖦𝖳𝖫(Definition2.5).
+3
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Section3:Real-valued versusbi-relational validity. We prove the equivalence of these two semantics, that is, that they yield the
+same validities (Theorem3.3).
+Section4:Labelled systems and quasimodels. We first note that we do not have a finite model property for either of these semantics.
+But then we define quasimodels (Definition4.6), and in later sections show that our Gödel temporal logic is sound and complete for
+the class of finite quasimodels.
+Section5:From quasimodels to bi-relational models. We show that Gödel temporal logic is sound for (all) quasimodels, constructing
+a bi-relational model from an arbitrary quasimodel by unwinding selected paths within the quasimodel.
+Section6:From bi-relational models to finite quasimodels. Given a bi-relational model falsifying a formula, we use a quotient
+construction to produce a finite (exponential in the length of the formula) quasimodel also falsifying the formula. This completes the
+proof that the semantics of Gödel temporal logic can be reduced to finite quasimodels, yielding the decidability of Gödel temporal
+logic (Theorem6.7).
+Section7:A Hilbert-style deductive calculus. Introduces our Hilbert calculus for the valid formulas of Gödel temporal logic.
+Section 8: The canonical system and canonical quasimodel. Introduces the canonical system, essentially a standard canonical
+model familiar from modal logic. However, this system is not a ‘true’ model, so we proceed to construct the canonical quasimodel by
+re-using the quotient construction from Section6.
+Section9:Characteristic formulas. For the purpose of proving that the canonical quasimodel is indeed a quasimodel, we define
+characteristic formulas, which define models locally up to bisimulation.
+Section10:Completeness. Characteristicformulas are used to prove that the canonical quasimodel satisfies all required properties
+of a quasimodel, from which completeness of our axiomatisation follows (Theorem10.4).
+Section11:PSPACE-complete complexity. We refine our decidability result, showing that Gödel temporal logic is in factpspace-
+complete (Theorem11.11).
+Section12:Concluding remarks. We summarise our results, contrast them with the properties of similar logics, and suggest some
+directions for future work.
+There are several routes through the paper for readers interested only in a portion of the results. Section2is common background
+needed for the rest of the paper. Section3may be skipped by readers not interested in real-valued semantics, or alternatively read
+after the rest of the paper. Sections5–6provide a full proof of decidability, and readers interested only in complexity may then skip to
+Section11. Readers interested in completeness of the Hilbert calculus should read Sections5–10; note that the proof of completeness
+builds on the proof of decidability.
+2. Syntax and semantics
+In this section we first introduce the temporal language we work with and then two possible semantics for this language: real-
+valued semantics and bi-relational semantics.
+Fix a countably infinite set ℙof propositional variables. Then theGödel temporal languageis defined by the grammar (in
+Backus–Naur form):
+𝜑,𝜓∶=𝑝|𝜑∧𝜓 |𝜑∨𝜓 |𝜑⇒𝜓 |𝜑⇐𝜓 |𝖷𝜑|𝖸𝜑|𝖦𝜑|𝖧𝜑|𝜑𝖴𝜓 |𝜑𝖲𝜓,
+where 𝑝 ∈ℙ. The intended meaning of the temporal modalities is the following: 𝖷𝜑means that 𝜑is true at the ‘next’ time instant;
+𝖸𝜑, read as ‘yesterday 𝜑, means that 𝜑holds at the previous time instant; 𝖦𝜑, read as ‘going to always be 𝜑’, means that 𝜑holds
+at all future time instants; 𝖧𝜑, read as ‘has always been 𝜑’, means that 𝜑holds at all past time instants; 𝜑 𝖴𝜓 means that ‘𝜑holds
+until 𝜓 holds’, and 𝜑 𝖲𝜓 means that ‘𝜑 holds since 𝜓 holds’. The connective ⇐ is called ‘co-implication’ and it is the order dual
+to standard (intuitionistic) implication [49], in much the same way as disjunction is dual to conjunction. Roughly, 𝜑 ⇐𝜓 states
+that the implication 𝜓⇒𝜑would fail if all truth values were ‘turned upside down’ (see Definition2.3). We also use the following
+abbreviations:
+• ⊤abbreviates 𝑝 ⇒𝑝, for some fixed, but unspecified, 𝑝 ∈ℙ;
+• ⊥abbreviates 𝑝 ⇐𝑝;
+• ¬𝜑abbreviates 𝜑 ⇒⊥;
+• 𝜑 ⇔𝜓 abbreviates (𝜑 ⇒𝜓) ∧(𝜓⇒𝜑)(not the formula (𝜑 ⇒𝜓) ∧(𝜑 ⇐𝜓));
+• 𝖥𝜑, read as ‘future’, abbreviates ⊤ 𝖴𝜑;
+• 𝖯𝜑, read as ‘past’, abbreviates ⊤ 𝖲𝜑.
+Although we will not need them, note that we can also define ‘release’ as 𝜑 𝖱𝜓∶=(𝜓𝖴𝜑) ∨𝖦𝜓 and the past analog of release
+similarly. Often the alternative names ‘eventually’ and ‘henceforth’ are used for ‘future’ and ‘going’ respectively.
+Example 2.1. The rules for an autonomous vehicle presented in the introduction correspond to the following temporal formulas:
+(a) 𝖦(𝚊𝚑𝚎𝚊𝚍𝙲𝚕𝚘𝚜𝚎∧𝚜𝚙𝚎𝚎𝚍𝙷𝚒𝚐𝚑⇒𝚍𝚎𝚌𝚎𝚕𝚎𝚛𝚊𝚝𝚎);
+4
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+(b) 𝖦(𝚝𝚊𝚗𝚔𝙻𝚘𝚠⇒(𝚝𝚊𝚗𝚔𝙻𝚘𝚠𝖴(𝚛𝚎𝚏𝚒𝚕𝚕∨𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢)));
+(c) 𝖦(𝚛𝚘𝚌𝚔𝚏𝚊𝚕𝚕∧𝚖𝚘𝚞𝚝𝚒𝚎𝚛𝚜⇒𝖦(𝚖𝚘𝚞𝚝𝚒𝚎𝚛𝚜⇒𝚌𝚊𝚞𝚝𝚒𝚘𝚗)).
+Example 2.2. In the setting of a credit card fraud-detection system, we considered a rule stating that the level of alert must be raised
+if suspicious activity has been recorded since the PIN was last requested. This may be formalised as
+(d) (𝚜𝚞𝚜𝚙𝚒𝚌𝚒𝚘𝚞𝚜⇒(𝖷𝚊𝚕𝚎𝚛𝚝⇐𝚊𝚕𝚎𝚛𝚝))𝖲𝙿𝙸𝙽
+Here, the expression 𝖷 𝚊𝚕𝚎𝚛𝚝⇐𝚊𝚕𝚎𝚛𝚝is crucial, as it indicates that the level of alert should be strictlyhigher at the next moment.
+Properties of this sort (i.e., values changing or being different from each other) are expressed using co-implication.
+We now introduce the first of our semantics for the Gödel temporal language: real-valued semantics, which views as a fuzzy logic
+(enriched with temporal modalities). In the definition, [0, 1]denotes the real unit interval.
+Definition 2.3 (real-valued semantics). Aflowis a pair  =(𝑇, 𝑆), where 𝑇 is a set and 𝑆∶𝑇 →𝑇 is a bijection. Areal valuation
+on  is a function 𝑉∶ ×𝑇 →[0, 1]such that, for all 𝑡 ∈𝑇, the following equalities hold, where ℕdenotes the set of non-negative
+integers.
+𝑉(𝜑∧𝜓,𝑡) = min{𝑉(𝜑,𝑡),𝑉(𝜓,𝑡)} 𝑉(𝜑∨𝜓,𝑡) = max{𝑉(𝜑,𝑡),𝑉(𝜓,𝑡)}
+{ {
+1if𝑉(𝜑,𝑡)≤𝑉(𝜓,𝑡) 0if𝑉(𝜑,𝑡)≤𝑉(𝜓,𝑡)
+𝑉(𝜑⇒𝜓,𝑡) = 𝑉(𝜑⇐𝜓,𝑡) =
+𝑉(𝜓,𝑡)otherwise 𝑉(𝜑,𝑡)otherwise
+𝑉(𝖷𝜑,𝑡) = 𝑉(𝜑,𝑆(𝑡)) 𝑉(𝖸𝜑,𝑡) = 𝑉(𝜑,𝑆−1(𝑡))
+𝑉(𝖦𝜑,𝑡) = inf𝑛∈ℕ𝑉(𝜑,𝑆𝑛(𝑡)) 𝑉(𝖧𝜑,𝑡) = inf𝑛∈ℕ𝑉(𝜑,𝑆−𝑛(𝑡))
+𝑉(𝜑𝖴𝜓,𝑡)=sup𝑛∈ℕmin{𝑉(𝜑,𝑆0(𝑡)),…,𝑉(𝜑,𝑆𝑛−1(𝑡)),𝑉(𝜓,𝑆𝑛(𝑡))}
+𝑉(𝜑𝖲𝜓,𝑡)=sup𝑛∈ℕmin{𝑉(𝜑,𝑆0(𝑡)),…,𝑉(𝜑,𝑆−(𝑛−1)(𝑡)),𝑉(𝜓,𝑆−𝑛(𝑡))}
+A flow  equipped with a valuation 𝑉 is areal-valued (Gödel temporal) model.
+Informally, the real number 𝑉(𝜑, 𝑡)records the degree of truth of 𝜑at time 𝑡.
+Example 2.4. Following on from Example2.1, let us examine the semantic conditions imposed by the first two formulas.
+Let  =(𝑇, 𝑆, 𝑉)be a real-valued model and 𝑡 ∈𝑇. Suppose that
+𝑉(𝖦(𝚊𝚑𝚎𝚊𝚍𝙲𝚕𝚘𝚜𝚎∧𝚜𝚙𝚎𝚎𝚍𝙷𝚒𝚐𝚑⇒𝚍𝚎𝚌𝚎𝚕𝚎𝚛𝚊𝚝𝚎),𝑡)=1.
+By the semantic clause for 𝖦, this may only occur if
+𝑉(𝚊𝚑𝚎𝚊𝚍𝙲𝚕𝚘𝚜𝚎∧𝚜𝚙𝚎𝚎𝚍𝙷𝚒𝚐𝚑⇒𝚍𝚎𝚌𝚎𝚕𝚎𝚛𝚊𝚝𝚎,𝑆𝑛 (𝑡))=1
+for all 𝑛 ∈ℕ, which is equivalent to the inequality
+min{𝑉(𝚊𝚑𝚎𝚊𝚍𝙲𝚕𝚘𝚜𝚎,𝑆𝑛 (𝑡)),𝑉(𝚜𝚙𝚎𝚎𝚍𝙷𝚒𝚐𝚑,𝑆𝑛 (𝑡))}≤𝑉(𝚍𝚎𝚌𝚎𝚕𝚎𝚛𝚊𝚝𝚎,𝑆𝑛 (𝑡)).
+In other words, the vehicle must decelerate with a higher intensity when it has a higher speed and a vehicle is nearby.
+We may perform a similar analysis to check when
+𝑉(𝖦(𝚝𝚊𝚗𝚔𝙻𝚘𝚠⇒(𝚝𝚊𝚗𝚔𝙻𝚘𝚠𝖴(𝚛𝚎𝚏𝚒𝚕𝚕∨𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢))),𝑡)=1.
+This formula holds when 𝑉(𝚝𝚊𝚗𝚔𝙻𝚘𝚠, 𝑆𝑛(𝑡))is non-decreasing with respect to 𝑛, until a value 𝑚is reached with
+𝑉(𝚝𝚊𝚗𝚔𝙻𝚘𝚠,𝑆𝑚 (𝑡))≤max{𝑉(𝚛𝚎𝚏𝚒𝚕𝚕,𝑆𝑚 (𝑡)),𝑉(𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢,𝑆𝑚 (𝑡))}.
+As autonomous vehicles presumably are programmed to avoid an empty tank, this prompts the vehicle to eventually refill.
+Note that in this example, 𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢should arguably be Boolean, but this is readily incorporated into our framework by replacing
+it by ¬¬𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢, which always takes values in {0, 1}(other combinations such as ∼∼𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢or ∼¬𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢will also do
+the trick). This allows us to combine classical and fuzzy reasoning without having to extend our framework.
+The second semantics, bi-relationalsemantics, views as a (consistent) superintuitionistic logic, temporally enriched. Below, define
+𝑆⃗ (𝑤, 𝑡) =(𝑤, 𝑆(𝑡)), and if 𝑋is a subset of the domain of 𝑆⃗ , then 𝑆⃗𝑋={𝑆⃗ (𝑥) ∣𝑥 ∈𝑋}.
+5
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Definition 2.5 (bi-relational semantics). A(Gödel temporal) bi-relational frameis a quadruple =(𝑊, 𝑇, ≤, 𝑆)where (𝑊, ≤)is a
+linearly ordered set and (𝑇, 𝑆)is a flow. Abi-relational valuationon  is a function (cid:2)⋅(cid:3)∶ →2𝑊×𝑇 such that, for each 𝑝 ∈ℙ, the
+set (cid:2)𝑝(cid:3)is downward closedin its first coordinate, and the following equalities hold.
+(cid:2)𝜑∧𝜓(cid:3)=(cid:2)𝜑(cid:3)∩(cid:2)𝜓(cid:3) (cid:2)𝜑∨𝜓(cid:3)=(cid:2)𝜑(cid:3)∪(cid:2)𝜓(cid:3)
+(cid:2)𝜑⇒𝜓(cid:3)={(𝑤,𝑡)∈𝑊 ×𝑇 ∣∀𝑣≤𝑤((𝑣,𝑡)∈(cid:2)𝜑(cid:3) implies(𝑣,𝑡)∈(cid:2)𝜓(cid:3))}
+(cid:2)𝜑⇐𝜓(cid:3)={(𝑤,𝑡)∈𝑊 ×𝑇 ∣∃𝑣≥𝑤((𝑣,𝑡)∈(cid:2)𝜑(cid:3) and(𝑣,𝑡)∉(cid:2)𝜓(cid:3))}
+(cid:2)𝖷𝜑(cid:3)=𝑆⃗−1(cid:2)𝜑(cid:3) (cid:2)𝖸𝜑(cid:3)=𝑆⃗(cid:2)𝜑(cid:3)
+⋂ ⋂
+(cid:2)𝖦𝜑(cid:3)= 𝑆⃗−𝑛(cid:2)𝜑(cid:3) (cid:2)𝖧𝜑(cid:3)= 𝑆⃗𝑛(cid:2)𝜑(cid:3)
+𝑛∈ℕ 𝑛∈ℕ
+( ) ( )
+⋃ ⋂ ⋃ ⋂
+(cid:2)𝜑𝖴𝜓(cid:3)= 𝑆⃗−𝑛(cid:2)𝜓(cid:3)∩ 𝑆⃗−𝑖(cid:2)𝜑(cid:3) (cid:2)𝜑𝖲𝜓(cid:3)= 𝑆⃗𝑛(cid:2)𝜓(cid:3)∩ 𝑆⃗𝑖(cid:2)𝜑(cid:3)
+𝑛∈ℕ 0≤𝑖<𝑛 𝑛∈ℕ 0≤𝑖<𝑛
+A bi-relational frame  equipped with a valuation (cid:2)⋅(cid:3)is a(Gödel temporal) bi-relational model.
+Informally, the set {𝑤 ∈𝑊 ∣(𝑤, 𝑡) ∈(cid:2)𝜑(cid:3)}records the degree of truth of 𝜑at time 𝑡. This semantics combines standard intuitionistic
+Kripke frame semantics for the implications based on the order ≤(read downward) and standard semantics for the tenses based on 𝑆:
+for example, (𝑤, 𝑡) ∈(cid:2)𝜑𝖴𝜓(cid:3)if and only if there exists 𝑛 ≥0such that (𝑤, 𝑆𝑖(𝑡)) ∈(cid:2)𝜑(cid:3)for all 0 ≤𝑖 <𝑛, and (𝑤, 𝑆𝑛(𝑡)) ∈(cid:2)𝜓(cid:3). Note that
+by structural induction, the valuation of anyformula 𝜑in is downward closed in its first coordinate, in the sense that if (𝑤, 𝑡) ∈(cid:2)𝜑(cid:3)
+and 𝑣 ≤𝑤, then (𝑣, 𝑡) ∈(cid:2)𝜑(cid:3).
+For both real-valued semantics and bi-relational semantics, validity of -formulas is defined in the usual way.
+Definition 2.6 (validity). Given a real-valued model =(𝑇, 𝑆, 𝑉)and a formula 𝜑 ∈, we say that 𝜑isglobally trueon , written
+⊧𝜑, if for all 𝑡 ∈𝑇 we have 𝑉(𝜑, 𝑡) =1. Given a bi-relational model =(, (cid:2)⋅(cid:3))and a formula 𝜑 ∈, we say that 𝜑isglobally
+trueon , written ⊧𝜑, if (cid:2)𝜑(cid:3)=𝑊 ×𝑇.
+If  is a flow or a bi-relational frame, we write ⊧𝜑and say 𝜑isvalidon , if 𝜑is globally true for every valuation on . If Ω
+is a class of flows, frames, or models, we say that 𝜑 ∈isvalidon Ωif, for every ∈Ω, we have ⊧𝜑. If 𝜑is not valid on Ω, it is
+falsifiableon Ω.
+We define:
+• the logic 𝖦𝖳𝖫 ℝto be the set of -formulas that are valid over the class of all flows;
+• the logic 𝖦𝖳𝖫 to be the set of -formulas that are valid over the class of all bi-relational frames.
+rel
+3. Real-valued versusbi-relational validity
+In this section, we show that an arbitrary -formula is real valid if and only if it is bi-relationally valid. That is, 𝖦𝖳𝖫 ℝ=𝖦𝖳𝖫 rel.
+The two directions of this equivalence are Lemma3.1and Lemma3.2below.
+Lemma 3.1. Suppose that 𝜑is an -formula that is not real valid. Then 𝜑is not bi-relationally valid.
+Proof. Let (𝑇, 𝑆)be a flow, 𝑉 a real valuation on (𝑇, 𝑆), and 𝑡 ∈𝑇 be such that 𝑉(𝜑, 𝑡 ) <1. Since we are only concerned with the
+0 0
+valuation at 𝑡 , we may assume without loss of generality that 𝑇 =ℤ, 𝑡 =0, and 𝑆(𝑥) =𝑥 +1; in particular, that 𝑇 is countable. Let
+0 0
+𝑋 be the set of all real numbers 𝑥such that 𝑉(𝜓, 𝑡) =𝑥for some -formula 𝜓 and some 𝑡 ∈𝑇. Thus, 𝑋 is a countable subset of
+0 0
+[0, 1]. Let 𝑋=(0, 1) ⧵𝑋 .
+0
+We consider the bi-relational frame =(𝑋, 𝑇, ≤, 𝑆), where ≤is the usual order on real numbers, and the bi-relational valuation
+(cid:2)⋅(cid:3)given by
+(𝑥,𝑡)∈(cid:2)𝑝(cid:3) ifandonlyif𝑉(𝑝,𝑡)>𝑥. (1)
+We then prove by induction that (1)holds for arbitrary -formulas 𝜓 and arbitrary 𝑥 ∈𝑋 and 𝑡 ∈𝑇. Then letting 𝑥 ∈𝑋 be such
+that 𝑉(𝜑, 𝑡 ) <𝑥(this exists because 𝑋 is countable), we have (𝑥, 𝑡 ) ∉(cid:2)𝜑(cid:3), so that (, (cid:2)⋅(cid:3))is a bi-relational countermodel for 𝜑, as
+0 0 0
+needed. □
+Lemma 3.2. Suppose that 𝜑is an -formula that is not bi-relationally valid. Then 𝜑is not real valid.
+Proof. Suppose that there is a bi-relational frame =(𝑊, 𝑇,≤, 𝑆)and a valuation (cid:2)⋅(cid:3)such that (𝑤, 𝑡 ) ∉(cid:2)𝜑(cid:3). As above, we may
+0
+assume that 𝑇 =ℤ, that 𝑆 is the standard successor function, and that 𝑡 =0. By a routine downward Löwenheim–Skolem-type
+0
+6
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+argument, we may assume that 𝑊 is countable. To do so, let us build a suborder (𝑊∗, ≤∗)of (𝑊, ≤)by induction on the structure
+of 𝜑as follows: start with {𝑤}and inductively decompose 𝜑according to its outermost connective. When considering subformulas
+𝜓 of the form 𝜑 ⇒𝜑 or 𝜑 ⇐𝜑 , we add to 𝑊∗(if necessary), for each world 𝑤∗in the suborder being built and for each 𝑠 ∈𝑇, a
+0 1 0 1
+new element of 𝑊 witnessing the quantifier in the definition of (cid:2)𝜓(cid:3)in a way that ensures that ‘(𝑤∗, 𝑠) ∈(cid:2)𝜓(cid:3)’ holds in (𝑊, 𝑇, ≤, 𝑆)
+if and only if it holds in (𝑊∗, 𝑇, ≤∗, 𝑆).
+We define a binary relation on  ×𝑇 by
+(𝜓,𝑡 )≤(𝜒,𝑡 )ifandonlyif∀𝑤∈𝑊 ((𝑤,𝑡 )∈(cid:2)𝜓(cid:3) ⟹ (𝑤,𝑡 )∈(cid:2)𝜒(cid:3)),
+1 2 1 2
+that is, if the valuation of 𝜓 at 𝑡 is contained in that of 𝜒 at 𝑡 . Since valuations of formulas are downward closed in their first
+1 2
+coordinates, this reflexive transitive relation is total (any two elements are comparable). Let (𝐿, ≤) denote the linear order of all
+equivalence classes [𝜓, 𝑡]under ≤, and let 0and 1denote the equivalence classes of [⊥, 𝑡]and [⊤, 𝑡], respectively (these are independent
+of the choice of 𝑡).
+We claim that this linear order respects valuations, in the sense that it satisfies the following properties for each 𝑡 ∈𝑇:
+• 0is the least element and 1is the greatest element of 𝐿;
+• [𝜓∧𝜒, 𝑡] =min{[𝜓, 𝑡], [𝜒, 𝑡]}and [𝜓∨𝜒, 𝑡] =max{[𝜓, 𝑡], [𝜒, 𝑡]};
+• [𝜒⇒𝜓, 𝑡] =1if [𝜒, 𝑡] ≤[𝜓, 𝑡], and [𝜒⇒𝜓, 𝑡] =[𝜓, 𝑡]otherwise;
+• [𝜒⇐𝜓, 𝑡] =0if [𝜒, 𝑡] ≤[𝜓, 𝑡], and [𝜒⇐𝜓, 𝑡] =[𝜒, 𝑡]otherwise;
+• [𝖷𝜓, 𝑡] =[𝜓, 𝑡 +1]and [𝖸𝜓, 𝑡] =[𝜓, 𝑡 −1];
+• [𝖦𝜓, 𝑡] =inf𝑛∈ℕ[𝜓, 𝑡 +𝑛]and [𝖧𝜓, 𝑡] =inf𝑛∈ℕ[𝜓, 𝑡 −𝑛];
+• [𝜑 𝖴𝜓, 𝑡] =sup𝑛∈ℕmin{[𝜑, 𝑡], … , [𝜑, 𝑡 +(𝑛 −1)], [𝜓, 𝑡 +𝑛]};
+• [𝜑 𝖲𝜓, 𝑡] =sup𝑛∈ℕmin{[𝜑, 𝑡], … , [𝜑, 𝑡 −(𝑛 −1)], [𝜓, 𝑡 −𝑛]}.
+These properties easily follow from the definitions.
+Now, (𝐿, ≤)is a countable linear order with endpoints, so it can be continuously (with respect to the order topology) embedded
+into the interval [0, 1]in such a way that the images of 0and 1are, respectively, 0and 1. Let 𝜌be such an embedding. (We refer the
+reader to for example the proof of [5, Theorem 5.1]for an explicit construction of such a 𝜌.) We define a real valuation 𝑉 by setting
+𝑉(𝜓, 𝑡) =𝜌([𝜓, 𝑡]). By the properties above, 𝑉 is indeed a real valuation and 𝑉(𝜑, 𝑡 ) =𝜌([𝜑, 𝑡 ]) <1. □
+0 0
+Theorem 3.3. 𝖦𝖳𝖫 ℝ=𝖦𝖳𝖫 rel.
+4. Labelled systems and quasimodels
+Our decidability proof for the set of Gödel temporal validities 𝖦𝖳𝖫 ℝ is based on (nondeterministic) quasimodels. In this section
+we will introduce labelled spaces, labelled systems, and finally, quasimodels. Quasimodels can be viewed as a sort of temporally
+nondeterministic generalisation of bi-relational models.
+The method of quasimodels was originally introduced in several papers on related to combinations of description logics with
+modal and temporal logics[50,51]and later extended to products of modal logics in[52]. In[53]quasimodels are a key tool to
+prove decidability in a wide range of products of modal logics. Regarding constructive extensions of temporal logics, the method
+of quasimodels was also extended in [40] for dynamic topological logic, a classical predecessor of intuitionistic temporal logic, for
+which quasimodels were also used in [25]. As the bi-relational semantics makes evident, Gödel temporal logic is closely related to
+intuitionistic temporal logic.
+Definition 4.1. Thestrong finite model propertyfor 𝖦𝖳𝖫 is the statement that if 𝜑 ∈is falsifiable on a bi-relational model,
+rel
+then it is falsifiable on a bi-relational model =(𝑊, 𝑇, ≤, 𝑆, (cid:2)⋅(cid:3))where both 𝑊 and 𝑇 are finite.
+Theorder finite model propertyfor 𝖦𝖳𝖫 is the statement that if 𝜑 ∈is falsifiable on a bi-relational model, then it is falsifiable
+rel
+on a bi-relational model =(𝑊, 𝑇, ≤, 𝑆, (cid:2)⋅(cid:3))where 𝑊 is finite.
+Thetemporal finite model propertyfor 𝖦𝖳𝖫 is the statement that if 𝜑 ∈is falsifiable on a bi-relational model, then it is
+rel
+falsifiable on a bi-relational model =(𝑊, 𝑇, ≤, 𝑆, (cid:2)⋅(cid:3))where 𝑇 is finite.
+Of course, many decidability proofs for classical modal logics are obtained via the finite model property, so it is worthwhile to
+first note that this strategy cannot work for 𝖦𝖳𝖫 ℝbecause finite model properties do not hold, in either semantics. The finite model
+properties we define are of the form: falsifiableimplies falsifiable in a finite model. It is worth remarking that in sub-classical logics, it
+is indeed the notion of falsifiability that is relevant, as it is falsifiability that is (by definition) the complement to validity. However,
+in view of our inclusion of co-implication, we may define ∼𝜑 ≡⊤ ⇐𝜑, and then it is not hard to check that ∼𝜑is satisfiable(in the
+sense of having a non-zero truth value) if and only if 𝜑is falsifiable. Moreover, as we will see, our logic ispspace-complete, and this
+class is closed under complements. Thus validity, satisfiability, and falsifiability for 𝖦𝖳𝖫 ℝare all inter-reducible.
+Proposition 4.2. None of the finite model properties for 𝖦𝖳𝖫 listed in Definition4.1hold. In particular, 𝖥(𝑝 ⇒𝖷𝑝)is falsifiable, yet it is
+rel
+valid over the class of finite bi-relational models.
+7
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+⋮ ⋮
+(𝑤,𝑡)
+𝑝
+𝑝 𝑝 𝑝
+... ... ... ...
+𝑝 𝑝 𝑝 𝑝
+𝑝 𝑝 𝑝 𝑝 𝑝
+⋮ ⋮
+Fig.1.Left:Abi-relationalmodelfalsifying𝖥(𝑝⇒𝖷𝑝);right:𝑊 and𝑇 arenecessarilyinfinite.Timeisrepresentedbythehorizontalaxisandtruthbythevertical.
+Proof. To see that 𝖥(𝑝 ⇒𝖷𝑝) is falsifiable, take the flow (ℤ, 𝑆), where 𝑆 is the standard successor function. Consider the model
+(ℤ, ℤ, ≤, 𝑆, (cid:2)⋅(cid:3)), where (cid:2)𝑝(cid:3)={(𝑛, 𝑡) ∈ℤ ×ℤ ∣𝑛 ≤−𝑡}. (See Fig.1(left).) Then at each (−𝑖, 𝑖), the formula 𝑝holds but 𝖷𝑝does not.
+Hence at each (0, 𝑖)with 𝑖 ∈ℤ ≥0, the formula 𝑝 ⇒𝖷𝑝is falsified. Thus 𝖥(𝑝 ⇒𝖷𝑝)is falsified at (0, 0).
+To see that 𝖥(𝑝 ⇒𝖷𝑝)can only be falsified on a model (𝑊, 𝑇, ≤, 𝑆, (cid:2)⋅(cid:3))for which both 𝑊 and 𝑇 are infinite, suppose 𝖥(𝑝 ⇒𝖷𝑝)is
+falsified at (𝑤, 𝑡). Then there must be a sequence 𝑤 ≥𝑤 0>𝑤 1>… such that for each 𝑖 ∈ℤ ≥0, the formula 𝑝holds on each (𝑤 𝑖, 𝑆𝑖(𝑡))
+but not on (𝑤 𝑖, 𝑆𝑖+1(𝑡)). This clearly forces 𝑊 to be infinite, and by downward closure of (cid:2)⋅(cid:3), it forces 𝑇 to be infinite too. (See Fig.1
+(right).) □
+The same example as in Proposition4.2shows that under real-valued semantics it is also the case that some formulas can only be
+falsified on an infinite flow with infinitely many realised truth values, as falsification of 𝖥(𝑝 ⇒𝖷𝑝)forces 𝑉(𝑝, 𝑡) >𝑉(𝑝, 𝑆(𝑡))for all 𝑡.
+Note that we have refuted all these finite model properties without using many of the connectives (in particular without ⇐and
+without any past connectives), thus in fact proving the stronger result that the finite model properties fail for the fragment standardly
+used for (future time) linear temporal logic.
+We now begin to introduce the structures we will use to mitigate the failure of these finite model properties.
+Definition 4.3. Given a set Σ ⊆that is closed under subformulas, we say that Φ ⊆Σis aΣ-typeif the following occur.
+1. If 𝜑 ∧𝜓∈Σ, then 𝜑 ∧𝜓∈Φif and only if 𝜑 ∈Φand 𝜓∈Φ.
+2. If 𝜑 ∨𝜓∈Σ, then 𝜑 ∨𝜓∈Φif and only if either 𝜑 ∈Φor 𝜓∈Φ.
+3. If 𝜑 ⇒𝜓∈Σ, then
+(a) 𝜑 ⇒𝜓∈Φimplies either 𝜑 ∉Φor 𝜓∈Φ,
+(b) 𝜓∈Φimplies 𝜑 ⇒𝜓∈Φ.
+4. If 𝜑 ⇐𝜓∈Σ, then
+(a) 𝜑 ⇐𝜓∈Φimplies 𝜑 ∈Φ,
+(b) 𝜑 ∈Φand 𝜓∉Φimplies 𝜑 ⇐𝜓∈Φ.
+The set of Σ-types will be denoted by 𝕋 .
+Σ
+A partially ordered set (𝐴, ≤)islocally linearif it is a disjoint union of linear posets. If 𝑎, 𝑏 ∈𝐴, we write 𝑎 ⋚𝑏if 𝑎 ≤𝑏or 𝑏 ≤𝑎.
+We call the set {𝑏 ∈𝐴 ∶𝑏 ⋚𝑎}thelinear componentof 𝑎; by assumption, the linear components partition 𝐴.
+Definition 4.4. Let Σ ⊆be closed under subformulas. AΣ-labelled spaceis a triple =(𝑊, ≤ , 𝓁 ), where (𝑊, ≤ )is a locally
+linear poset and 𝓁∶𝑊 →𝕋 an anti-monotone function, in the sense that
+Σ
+𝑤≤ 𝑣implies𝓁 (𝑤)⊇𝓁 (𝑣),
+and such that for all 𝑤 ∈𝑊:
+(a) whenever 𝜑 ⇒𝜓∈Σ ⧵𝓁 (𝑤), there is 𝑣 ≤𝑤such that 𝜑 ∈𝓁 (𝑣)and 𝜓∉𝓁 (𝑣);
+(b) whenever 𝜑 ⇐𝜓∈𝓁 (𝑤), there is 𝑣 ≥𝑤such that 𝜑 ∈𝓁 (𝑣)and 𝜓∉𝓁 (𝑣).
+The Σ-labelled space  falsifies𝜑 ∈if 𝜑 ∈Σ ⧵𝓁 (𝑤)for some 𝑤 ∈𝑊. Theheightof  is the supremum of all 𝑛such that
+there is a chain 𝑤 1< 𝑤 2< ⋯ < 𝑤 𝑛.
+8
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+𝑅 𝑅 𝑅 𝑅
+≤ ≤ ≤ ≤ ≤ ≤ ≤ ≤
+𝑅 𝑅 𝑅 𝑅
+forth–down forth–up back–down back–up
+Fig.2.Confluenceconditions.
+If  is a labelled space, elements of its domain 𝑊 will sometimes be calledworlds.2When clear from the context we will omit
+subscripts and write, for example,≤instead of ≤ .
+We now enrich labelled spaces with a relation capturing temporalinformation.
+Definition 4.5. Recall that a subset 𝑆 of a poset (𝑃, ≤)isconvexif 𝑠 ∈𝑆 whenever 𝑎, 𝑏 ∈𝑆 and 𝑎 ≤𝑠 ≤𝑏. In this article, aconvex
+relationbetween posets (𝐴, ≤ 𝐴)and (𝐵, ≤ 𝐵)is a binary relation 𝑅 ⊆𝐴 ×𝐵such that for each 𝑥 ∈𝐴the image set {𝑦 ∈𝐵∣𝑥 𝑅𝑦}is
+convex with respect to ≤ 𝐵, and for each 𝑦 ∈𝐵the preimage set {𝑥 ∈𝐴 ∣𝑥 𝑅𝑦}is convex with respect to ≤ 𝐴.
+The relation 𝑅isfully confluentif it validates the four following conditions:
+forth–down if 𝑥 ≤ 𝐴𝑥′𝑅𝑦′, then there is 𝑦such that 𝑥 𝑅𝑦 ≤ 𝐵𝑦′;
+forth–up if 𝑥′≥ 𝐴𝑥 𝑅𝑦, then there is 𝑦′such that 𝑥′𝑅𝑦′≥ 𝐵𝑦;
+back–down if 𝑥′𝑅𝑦′≥ 𝐵𝑦, then there is 𝑥such that 𝑥′≥ 𝐴𝑥 𝑅𝑦;
+back–up if 𝑥 𝑅𝑦 ≤ 𝐵𝑦′, then there is 𝑥′such that 𝑥 ≤ 𝐴𝑥′𝑅𝑦′.
+Fig.2depicts the four confluence conditions that a fully confluent relation must validate.
+Definition 4.6. Let Σ ⊆be closed under subformulas. Suppose that Φ, Ψ ∈𝕋 . The ordered pair (Φ, Ψ)issensibleif
+Σ
+(1) for all 𝖷𝜑 ∈Σ, we have 𝖷𝜑 ∈Φif and only if 𝜑 ∈Ψ;
+(2) for all 𝖸𝜑 ∈Σ, we have 𝖸𝜑 ∈Ψif and only if 𝜑 ∈Φ;
+(3) for all 𝖦𝜑 ∈Σ, we have 𝖦𝜑 ∈Φif and only if 𝜑 ∈Φand 𝖦𝜑 ∈Ψ;
+(4) for all 𝖧𝜑 ∈Σ, we have 𝖧𝜑 ∈Ψif and only if 𝜑 ∈Ψand 𝖧𝜑 ∈Φ;
+(5) for all 𝜑 𝖴𝜓∈Σ, we have 𝜑 𝖴𝜓∈Φif and only if either 𝜓∈Φor (𝜑 ∈Φand 𝜑 𝖴𝜓∈Ψ);
+(6) for all 𝜑 𝖲𝜓∈Σ, we have 𝜑 𝖲𝜓∈Ψif and only if either 𝜓∈Ψor (𝜑 ∈Ψand 𝜑 𝖲𝜓∈Φ).
+A pair (𝑤, 𝑣)of worlds in a Σ-labelled space  issensibleif (𝓁(𝑤), 𝓁(𝑣))is sensible. A relation𝑅 ⊆𝑊 ×𝑊 issensibleif every pair
+in 𝑅is sensible. It isbi-serial, if for each 𝑤 ∈𝑊 there exist both 𝑣 ∈𝑊 with 𝑤 𝑅𝑣 and𝑣 ∈𝑊 with 𝑣 𝑅𝑤. Further, 𝑅is
+1 1 −1 −1
+𝜔-sensibleif:
+• whenever 𝖦𝜑 ∈Σ ⧵𝓁(𝑤), there are 𝑛 ≥0and 𝑣such that 𝑤 𝑅𝑛𝑣and 𝜑 ∈Σ ⧵𝓁(𝑣);
+• whenever 𝖧𝜑 ∈Σ ⧵𝓁(𝑤), there are 𝑛 ≥0and 𝑣such that 𝑣 𝑅𝑛𝑤and 𝜑 ∈Σ ⧵𝓁(𝑣);
+• whenever 𝜑 𝖴𝜓∈𝓁(𝑤), there are 𝑛 ≥0and 𝑣such that 𝑤 𝑅𝑛𝑣and 𝜓∈𝓁(𝑣)3;
+• whenever 𝜑 𝖲𝜓∈𝓁(𝑤), there are 𝑛 ≥0and 𝑣such that 𝑣 𝑅𝑛𝑤and 𝜓∈𝓁(𝑣).
+AΣ-labelled systemis a labelled space  equipped with a bi-serial, fully confluent, convex, sensible relation 𝑅 ⊆𝑊 ×𝑊. If
+moreover 𝑅 is 𝜔-sensible, we say that is aΣ-quasimodel. The Σ-quasimodel  =(𝑄, ≤ , 𝓁 , 𝑅 )falsifies𝜑 ∈if 𝜑 ∈Σ ⧵𝓁 (𝑤)
+for some 𝑤 ∈𝑄.
+Any bi-relational model can be regarded as a Σ-quasimodel. If =(𝑊, 𝑇, ≤,𝑆, (cid:2)⋅(cid:3))is a bi-relational model and 𝑥 ∈𝑊 ×𝑇, we
+can assign a Σ-type 𝓁 (𝑥)to 𝑥given by 𝓁 (𝑥) ={𝜓∈Σ∣𝑥∈(cid:2)𝜓(cid:3)}. We also set 𝑅 ={((𝑤, 𝑡), (𝑤, 𝑆(𝑡))) ∣𝑤 ∈𝑊, 𝑡 ∈𝑇}; it is obvious
+that 𝑅  is 𝜔-sensible. Henceforth we will tacitly identify  with its associated Σ-quasimodel.
+Example 4.7. Recall that in Example2.4, we provided conditions under which
+𝜑∶=𝖦(𝚝𝚊𝚗𝚔𝙻𝚘𝚠⇒(𝚝𝚊𝚗𝚔𝙻𝚘𝚠𝖴(𝚛𝚎𝚏𝚒𝚕𝚕∨𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢)))
+2 Note that the conditions on a labelled space ensure that every type 𝓁 (𝑤)used to label a world is necessarily ‘consistent’ in the sense that it cannot contain ⊥
+(which implies further that it can never contain both 𝜑and ¬𝜑).
+𝓁(3 𝑚N −1o )t ,e th ∈at b (𝑣e 𝑚ca ).u Sse 𝑅 ili as la ys s fu om te hd t fo lb le wse in ns gi b 𝖲le c, t nh dis c ioo nn .dition is equivalent to the existence of 𝑚 ≥0and 𝑣 0𝑅𝑣 1𝑅… 𝑅𝑣 𝑚such that 𝑣 0=𝑤and 𝜑 ∈𝓁(𝑣 0), … , 𝜑 ∈
+𝑣 𝜓 𝓁 im r r e o o o it
+9
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+𝑅
+𝑤
+1
+𝑅
+𝑅 ≤
+𝚝𝚊𝚗𝚔𝙻𝚘𝚠 𝑤 𝑣 𝚛𝚎𝚏𝚒𝚕𝚕
+0 𝑅
+𝑅
+Fig.3.Quasimodel associated with Example4.7. The dashed line represents the relation ≤(for which reflexive lines are not displayed), while solid arrows represent
+the relation 𝑅.
+is true in a real-valued model. Alternately, quasimodels allow us for a succinct witness that this formula is satisfiable.
+Let Σbe the set of subformulas of 𝜑and consider the quasimodel of Fig.3, which corresponds to the structure  =(𝑄, ≤, 𝓁, 𝑅),
+where 𝑄 ={𝑤 , 𝑤 , 𝑣}. Suppose that 𝑤 <𝑤 (and 𝑥 ≤𝑥for all 𝑥) and define 𝑅so that 𝑅(𝑤 ) ={𝑤 , 𝑣}, 𝑅(𝑤 ) ={𝑤 , 𝑤 , 𝑣}and
+0 1 0 1 0 0 1 0 1
+𝑅(𝑣) ={𝑤 , 𝑤 }.
+0 1
+The labelling 𝓁is such that 𝚝𝚊𝚗𝚔𝙻𝚘𝚠is the only atomic proposition in 𝓁(𝑤 ), 𝚛𝚎𝚏𝚒𝚕𝚕is the only atomic proposition in 𝓁(𝑣), and
+0
+no atomic proposition belongs to 𝓁(𝑤 ). It is not too hard to check that such an 𝓁can be defined so that 𝜑belongs to every label. In
+1
+particular, letting 𝜓∶=𝚝𝚊𝚗𝚔𝙻𝚘𝚠𝖴(𝚛𝚎𝚏𝚒𝚕𝚕∨𝚝𝚊𝚗𝚔𝙴𝚖𝚙𝚝𝚢), we would have
+𝓁(𝑤 )={𝚝𝚊𝚗𝚔𝙻𝚘𝚠,𝜓,𝚝𝚊𝚗𝚔𝙻𝚘𝚠⇒𝜓,𝜑}.
+0
+The 𝜔-sensibility condition for 𝖴is witnessed by the transition 𝑤 𝑅𝑣.
+0
+This quasimodel not only makes 𝜑 globally true, but it does so in a way that does not allow the tank to become empty, thus
+making the required condition valid while also representing desirable behaviour for an autonomous vehicle.
+5. From quasimodels to bi-relational models
+If  =(𝑄, ≤ , 𝓁 , 𝑅 )is a quasimodel, then we cannot necessarily view directly as a bi-relational model for the primary reason
+that 𝑅 is not necessarily a function. However, we can extract bi-relational models from quasimodels via an unwinding and selection
+construction. More precisely, given a Σ ⊆that is finite and closed under subformulas, suppose 𝜑is falsified on the Σ-quasimodel
+. In this section we show how to obtain from a bi-relational model ⃗ 𝜑 falsifying 𝜑. We call the resulting bi-relational model a
+limit modelof . This proves 𝖦𝖳𝖫 is sound for the class of quasimodels.
+rel
+The general idea for determinising is to consider infinite paths on as points in the limit model. However, we will only select
+paths 𝑤⃗ with the property that, if 𝜑 𝖴𝜓 occurs in 𝑤⃗, then 𝜓 must also occur at a later time, with similar conditions for 𝖲, 𝖦, and 𝖧.
+These are the realisingpaths of .
+( )
+Definition 5.1. Apathin a Σ-quasimodel (  = )(𝑄, ≤ , 𝓁 , 𝑅 )is any sequence 𝑤 𝑖 𝛼<𝑖<𝛽with −∞ ≤𝛼<𝛽≤∞such that 𝑤 𝑖𝑅 𝑤 𝑖+1
+for all 𝛼<𝑖 <𝛽−1. An infinite path 𝑤⃗= 𝑤 𝑖 𝑖∈ℤisrealisingif for all 𝑖 ∈ℤ:
+• for all 𝖦𝜓∈Σ ⧵𝓁(𝑤 𝑖), there exists 𝑗≥𝑖such that 𝜓∈Σ ⧵𝓁(𝑤 𝑗);
+• for all 𝖧𝜓∈Σ ⧵𝓁(𝑤 𝑖), there exists 𝑗≤𝑖such that 𝜓∈Σ ⧵𝓁(𝑤 𝑗);
+• for all 𝜑 𝖴𝜓∈𝓁(𝑤 𝑖), there exists 𝑗≥𝑖such that 𝜓∈𝓁(𝑤 𝑗);
+• for all 𝜑 𝖲𝜓∈𝓁(𝑤 𝑖), there exists 𝑗≤𝑖such that 𝜓∈𝓁(𝑤 𝑗).
+( ) ( )
+Denote the set of realising paths by |⃗|, and let 𝑣 𝑖 𝑖∈ℤ≤ 𝑤 𝑖 𝑖∈ℤ if and only if 𝑣 𝑖≤𝑤 𝑖 for all 𝑖 ∈ℤ. The worlds of the limit
+model will be a subset of ⃗ that is linearly ordered (with respect to ≤).
+Given our Σ ⊆that is finite and closed under subformulas and a formula 𝜑 falsified in , the limit model ⃗ 𝜑 will be of the
+form (𝑊, ℤ, ≤, 𝑆,(cid:2)⋅(cid:3)), where 𝑊 ⊆|⃗|, the flow function 𝑆∶ℤ →ℤis the standard successor function, and (cid:2)𝑝(cid:3)={(𝑤⃗, 𝑖) ∣𝑝 ∈𝓁(𝑤 𝑖)}
+(extended to compound formulas in accordance with Definition2.5). We now describe how to select the linearly ordered subset of
+realising paths 𝑊.
+Definition 5.2. Afinite gridis a finite set of paths in with uniform index bounds 𝑙<𝑘 ∈ℤthat is linearly ordered (by the pointwise
+ordering).
+A finite grid 𝑃′of paths with bounds 𝑙′<𝑘′extendsa finite grid 𝑃 of paths with bounds 𝑘, if 𝑙′≤𝑙<𝑘 ≤𝑘′and 𝑃 ⊆𝑃′| 𝑙,𝑘, where
+𝑃′| 𝑙,𝑘is the restriction of the paths in 𝑃′to their segments within the bounds 𝑙and 𝑘.
+10
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Definition 5.3 (defects). Let 𝑃 be a finite grid.
+• A𝖦-defectof 𝑃 is a pair ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝖦𝜑) ∈𝑃×Σsuch that 𝖦𝜑 ∉𝓁(𝑤 𝑘−1), but 𝜑 ∈𝓁(𝑤 𝑘−1).
+• A𝖧-defectof 𝑃 is a pair ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝖧𝜑) ∈𝑃×Σsuch that 𝖧𝜑 ∉𝓁(𝑤 𝑙+1), but 𝜑 ∈𝓁(𝑤 𝑙+1).
+• An𝖴-defectof 𝑃 is a pair ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝜑 𝖴𝜓) ∈𝑃×Σsuch that 𝜑 𝖴𝜓∈𝓁(𝑤 𝑘−1), but 𝜓∉𝓁(𝑤 𝑘−1).
+• A𝖲-defectof 𝑃 is a pair ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝜑 𝖲𝜓) ∈𝑃×Σsuch that 𝜑 𝖲𝜓∈𝓁(𝑤 𝑙+1), but 𝜓∉𝓁(𝑤 𝑙+1).
+• An⇒-defectof 𝑃 is a triple ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝜑 ⇒𝜓, 𝑗) ∈𝑃 ×Σ ×{𝑙+1, … , 𝑘 −1}such that 𝜑 ⇒𝜓∉𝓁(𝑤 𝑗), but there is no (𝑣 𝑖)𝑙<𝑖<𝑘≤
+(𝑤 𝑖)𝑙<𝑖<𝑘also in 𝑃 such that 𝜑 ∈𝓁(𝑣 𝑗), but 𝜓∉𝓁(𝑣 𝑗).
+• A⇐-defectof 𝑃 is a triple ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝜑 ⇐𝜓, 𝑗) ∈𝑃 ×Σ ×{𝑙+1, … , 𝑘 −1}such that 𝜑 ⇐𝜓∈𝓁(𝑤 𝑗), but there is no (𝑣 𝑖)𝑙<𝑖<𝑘≥
+(𝑤 𝑖)𝑙<𝑖<𝑘also in 𝑃 such that 𝜑 ∈𝓁(𝑣 𝑗), but 𝜓∉𝓁(𝑣 𝑗).
+• Aseriality defectis a pair ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝑏) ∈𝑃×{−, +}. The symbols −and +indicate a defect affecting the past or future, respectively.
+Note that because Σis finite, any finite grid has a finite number of defects. We select the set 𝑊 ⊆|⃗|as follows. We maintain a
+(finite) first-in-first-out queue 𝐷of defects and a finite grid 𝑃 that is extended each time we process a defect. (We will update 𝐷at
+each iteration to ensure that it only contains all the defects of the grid after each update.
+Choose some 𝑤 ∈𝑄falsifying 𝜑. We initialise the grid to the single sequence (𝑤) (of length 1, using the index 0) and add all
+defects of this grid to 𝐷.
+Using the properties of quasimodels, we may extend 𝑃 to a new grid 𝑃′, so that the defect at the head of the queue 𝐷is not a
+defect of 𝑃′. (Because of seriality defects, 𝐷is never empty.) The construction of 𝑃′is realised via a case-by-case analysis.
+• If the defect is an 𝖴-defect ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝜑 𝖴𝜓)of 𝑃, then because 𝑅 =𝑅 is 𝜔-sensible we know that there exist 𝑗>0and 𝑣 ∈𝑅𝑗(𝑤 𝑘−1)
+such that 𝜑 ∈𝓁(𝑣). We then define 𝑘′=𝑘 +𝑗and choose
+𝑤 𝑘−1𝑅𝑤 𝑘𝑅…𝑅𝑤 𝑘′−1=𝑣.
+By the forth–up confluence property, we can extend every (𝑣 𝑖)𝑙<𝑖<𝑘>(𝑤 𝑖)𝑙<𝑖<𝑘in 𝑃 to a sequence with upper index bound 𝑘′in a
+way that preserves the (linear) ordering on sequences. Similarly for every (𝑣 𝑖)𝑙<𝑖<𝑘<(𝑤 𝑖)𝑙<𝑖<𝑘in 𝑃 using the forth–down confluence
+property.
+• If the defect is a 𝖦-defect ((𝑤 𝑖)𝑖<𝑘, 𝖦𝜑), we can find 𝑗>0and 𝑣 ∈𝑅𝑗(𝑤 𝑘−1)such that 𝜑 ∉𝓁(𝑣), and proceed as for the 𝖴case.
+• The cases of 𝖲-and 𝖧-defects are the temporal duals of 𝖴-and 𝖦-defects, respectively.
+• If the defect is an ⇒-defect ((𝑤 𝑖)𝑙<𝑖<𝑘, 𝜑 ⇒𝜓, 𝑗), in view of Definition4.4(a) we may choose 𝑣 𝑗∈𝑄such that 𝑣 𝑗<𝑤 𝑗and 𝜑 ∈𝓁(𝑣 𝑗),
+but 𝜓∉𝓁(𝑣 𝑗). Let (𝑢 𝑖)𝑙<𝑖<𝑘be the minimum sequence in 𝑃 with 𝑢 𝑗>𝑣 𝑗 and (𝑡 𝑖)𝑙<𝑖<𝑘be the maximum sequence in 𝑃 with 𝑡 𝑗<𝑣 𝑗,
+if it exists. We will assume that (𝑡 𝑖)𝑖<𝑘 is defined, since the case where 𝑣 𝑗 is not bounded below is similar but simpler. We will
+complete the sequence (𝑣 𝑖)𝑙<𝑖<𝑘 so that (𝑡 𝑖)𝑙<𝑖<𝑘<(𝑣 𝑖)𝑙<𝑖<𝑘<(𝑢 𝑖)𝑙<𝑖<𝑘. Suppose we have defined 𝑣 𝑗′ for 𝑗≤𝑗′<𝑘 −1. To define
+𝑣 𝑗′+1, choose 𝑦with 𝑣 𝑗′𝑅𝑦and 𝑦 ≤𝑢 𝑗′+1, which exists by forth–down confluence. If 𝑦 ≥𝑡 𝑗′+1we can set 𝑣 𝑗′+1=𝑦and we are done.
+Otherwise, by local linearity of ≤, we have 𝑦 <𝑡 𝑗′+1. In this case, choose 𝑧 with 𝑣 𝑗′𝑅𝑧and 𝑧 ≥𝑡 𝑗′+1, which exists by forth–up
+confluence. Then 𝑦 <𝑡 𝑗′+1≤𝑧, so as the image set of 𝑣 𝑗′ under 𝑅is convex (by convexity of 𝑅), we have 𝑣 𝑗′𝑅𝑡 𝑗′+1 and we can
+set 𝑣 𝑗′+1=𝑡 𝑗′+1. In this way we can define (𝑣 𝑖)𝑙<𝑖<𝑘 inductively for all indices greater than 𝑗. The process for indices less than 𝑗
+is similar, using back–up and back–down confluence and the convexity of preimage sets under 𝑅. By construction, (𝑣 𝑖)𝑙<𝑖<𝑘 sits
+strictly between (𝑡 𝑖)𝑙<𝑖<𝑘and (𝑢 𝑖)𝑙<𝑖<𝑘.
+• The case of a ⇐-defect is similar to that of an ⇒-defect, except that we choose 𝑣 𝑗>𝑤 𝑗.
+• If the defect is a seriality defect ((𝑤 𝑖)𝑙<𝑖<𝑘, +), we extend (𝑤 𝑖)𝑙<𝑖<𝑘 to (𝑤 𝑖)𝑙<𝑖<𝑘+1, relying on the fact that 𝑅is serial, and then we
+extend the other sequences to length 𝑘 +1using forth–up and forth–down confluence. A seriality defect ((𝑤 𝑖)𝑙<𝑖<𝑘, −)is analogous:
+we extend (𝑤 𝑖)𝑙<𝑖<𝑘to (𝑤 𝑖)𝑙−1<𝑖<𝑘, relying on converse seriality of 𝑅.
+Next we must update 𝐷so that it contains all defects of 𝑃′, and all the elements of 𝐷that are not defects of 𝑃′ (which by design
+includes the head of 𝐷) are removed. Finally, we update 𝑃 ∶=𝑃′.
+We set 𝑊 to be the limit of this sequence of finite grids. More precisely, let the sequence of grids be 𝑃 , 𝑃 , … , containing paths
+0 1
+with bounds (𝑙 0, 𝑘 0), (𝑙 1, 𝑘 1) … , respectively. Then 𝑊 is the set of paths (𝑤 𝑖)𝑖∈ℤfor which there exists 𝑁 such that for all 𝑛 >𝑁 the
+finite segment (𝑤 𝑖)𝑙𝑛<𝑖<𝑘𝑛 is in 𝑃 𝑛. (This gives us the limit we would expect and forbids ‘diagonal’ sequences whose finite segments
+appear in 𝑃 , 𝑃 , … merely infinitely often.)
+0 1
+By construction, (𝑊, ≤)is a linearly ordered set, and for each 𝑝 ∈ℙ, the set (cid:2)𝑝(cid:3)is downward closed in its first coordinate. Thus
+the limit model ⃗ 𝜑=(𝑊, ℤ, ≤, 𝑆, (cid:2)⋅(cid:3)) indeed defines a bi-relational model. Of course ⃗ 𝜑 is only useful if (cid:2)⋅(cid:3) ‘matches’ 𝓁 on all
+formulas in Σ, not just propositional variables. Fortunately, this turns out to be the case.
+Lemma 5.4. Let Σ ⊆be finite and closed under subformulas, be a Σ-quasimodel, 𝜑, 𝜓∈Σ, and ⃗ 𝜑=(𝑊, ℤ, ≤, 𝑆,(cid:2)⋅(cid:3))be as described
+above. Then (cid:2)𝜓(cid:3)={(𝑤⃗, 𝑖) ∣𝜓∈𝓁(𝑤 𝑖)}.
+Proof. The proof goes by standard induction of formulas. The induction steps for ∧and ∨are immediate. The cases of the remaining
+connectives follow straightforwardly from the construction of 𝑊, because every defect is eventually eliminated. Indeed every 𝑤 𝑖in
+11
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+the limit is also in some 𝑃 𝑛, at which point all the defects associated to 𝑤 𝑖 are present in the finite first-in-first-out queue 𝐷; thus
+they will eventually reach the front of 𝐷and be eliminated. □
+We obtain the main result of this section, which in particular implies that 𝖦𝖳𝖫 is sound for the class of quasimodels.
+rel
+Proposition 5.5. Let Σ ⊆be finite and closed under subformulas and be any Σ-quasimodel, and suppose 𝜑is falsified on . Then there
+exists a bi-relational model ⃗ 𝜑that falsifies 𝜑.
+It is interesting to note that although we assumed in this section that Σ was finite, this restriction can be removed. Since  is
+countable, for an arbitrary subformula-closed Σ ⊆, there can only be a countable number of defects in any finite grid. Thus with
+appropriate scheduling all defects can be eliminated in the limit.
+6. From bi-relational models to finite quasimodels
+As we noted earlier, every bi-relational model can be naturally viewed as a quasimodel. However, we wish to show that, given
+a finite and subformula-closed Σ, we can from each bi-relational model  produce a finitequasimodel falsifying exactly the same
+formulas from Σas . In this section we do just this by describing a quotient construction that given an arbitrary Σ-labelled system
+produces a new Σ-labelled system . This construction does not require Σto be finite, but when it is, is finite. Since bi-relational
+models can be viewed as Σ-labelled systems, our quotient construction applies to them. We then observe that the construction
+preserves 𝜔-sensibility, so that when applied to a bi-relational model, we do indeed obtain a quasimodel. An illustrative example will
+follow (Example6.4).
+The process of constructing of consists of two steps. The first is to take a quotient to obtain a Σ-labelled space equipped with
+a bi-serial, fully confluent, sensible relation. The second step is to enlarge the equipped relation to make it also convex, so all the
+conditions for a Σ-labelled space hold.
+{ Let Σ be }a subformula-closed subset of , and let  =(𝑊, ≤, 𝓁, 𝑅) be a Σ-labelled system. For 𝑤 ∈𝑊, define 𝐿 (𝑤) =
+𝓁(𝑣)∣𝑣⋚𝑤 . Define the equivalence relation ∼on 𝑊 by
+𝑤∼𝑣 ⟺ (𝓁(𝑤),𝐿(𝑤))=(𝓁(𝑣),𝐿(𝑣)).
+If Σis finite, then clearly 𝑊∕∼is finite.4
+Now define a partial order ≤ on the equivalence classes 𝑊∕∼of ∼by
+[𝑤]≤ [𝑣] ⟺ 𝐿(𝑤)=𝐿(𝑣)and𝓁(𝑤)⊇𝓁(𝑣),
+noting that this is well-defined and is indeed a partial order.
+Since each set 𝐿(𝑤) can be linearly ordered by inclusion and 𝓁(𝑤) ∈𝐿(𝑤), the poset (𝑊∕∼, ≤ ) is a disjoint union of linear
+posets. By defining 𝓁  by 𝓁 ([𝑤]) =𝓁(𝑤)we obtain a Σ-labelled space (𝑊∕∼, ≤ , 𝓁 ); it is not hard to check that this labelling is
+anti-monotone and that the clauses for ⇒and ⇐in the definition of a labelled space hold with this labelling.
+Now define the binary relation 𝑅 on 𝑊∕∼to be the smallest relation such that 𝑤 𝑅𝑣implies [𝑤] 𝑅 [𝑣].
+Lemma 6.1. The relation 𝑅 is bi-serial, sensible, and fully confluent.
+Proof. It is clear that 𝑅 is bi-serial and sensible.
+For confluence, suppose [𝑤] 𝑅 [𝑣], where we may assume that 𝑤 𝑅𝑣. To see that the forth–up condition holds, suppose further
+that [𝑤] ≤ [𝑢]. Then, as 𝑙(𝑢) ∈𝐿(𝑢) =𝐿(𝑤), there is some 𝑢′≥𝑤with [𝑢] =[𝑢′]. By forth–up confluence of 𝑅, there exists 𝑧with
+𝑢′𝑅𝑧and 𝑣 ≤𝑧. Then, we have [𝑢′] 𝑅 [𝑧]and [𝑣] ≤ [𝑧], as required for the forth–up condition. The proofs of the remaining three
+confluence conditions are entirely analogous. □
+As promised, we now have a Σ-labelled space equipped with a bi-serial, fully confluent, sensible relation. We now transform this
+structure into a Σ-labelled system by making the equipped relation convex by fiat.
+Define 𝑅+ by 𝑋𝑅+ 𝑌 if and only if there exist 𝑋 1≤ 𝑋≤ 𝑋 2and 𝑌 1≤ 𝑌 ≤ 𝑌 2such that 𝑋 2𝑅 𝑌 1and 𝑋 1𝑅 𝑌 2. Now define
+ =(𝑊∕∼, ≤ , 𝓁 , 𝑅+ ).
+Proposition 6.2. The structure is a Σ-labelled system.
+Proof. We already know that (𝑊∕∼, ≤ , 𝓁 )is a Σ-labelled space. First we must check that the enlarged relation 𝑅+ is still bi-serial,
+sensible, and fully confluent. Bi-seriality is clear, since this is a monotone condition.
+4 Note that if is a bi-relational model, then ∼is the largest relation that is simultaneously a bisimulation with respect to the relations ≤and ≥, with Σtreated
+asthesetofatomicpropositionsthatbisimilarworldsmustagreeon.
+12
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+⋮ ⋮
+𝑝 {𝑝} ∅ ∅ ∅
+[∅]
+𝑝 𝑝 Σ {𝑝} ∅ ∅
+... ... ... ...
+[{𝑝}]
+𝑝 𝑝 𝑝 Σ Σ {𝑝} ∅
+[Σ]
+𝑝 𝑝 𝑝 𝑝 Σ Σ Σ {𝑝}
+⋮ ⋮
+Fig.4.Left:Thebi-relationalmodel;centre:valuesof𝓁 whenΣ={𝖥(𝑝⇒𝖷𝑝),𝑝⇒𝖷𝑝,𝖷𝑝,𝑝};right:thequotientquasimodelmodelobtainedfromandΣ.
+To see that 𝑅+ is sensible, suppose 𝑋𝑅+ 𝑌 and that 𝖷𝜑 ∈Σ. Take 𝑋 1≤ 𝑋≤ 𝑋 2and 𝑌 1≤ 𝑌 ≤ 𝑌 2such that 𝑋𝑅 𝑌 1. Then
+𝖷𝜑∈𝓁 (𝑋) ⟹ 𝖷𝜑∈𝓁 (𝑋 1) ⟹ 𝜑∈𝓁 (𝑌 2) ⟹ 𝜑∈𝓁 (𝑌)
+⟹ 𝜑∈𝓁 (𝑌 1) ⟹ 𝖷𝜑∈𝓁 (𝑋 2) ⟹ 𝖷𝜑∈𝓁 (𝑋),
+so 𝖷𝜑 ∈𝓁 (𝑋) ⟺ 𝜑 ∈𝓁 (𝑌). The cases of the remaining modalities are similar.
+For the forth–down condition, suppose 𝑋≤ 𝑋′𝑅+ 𝑌′. Then by the definition of 𝑅+ , there exist 𝑋 2≥ 𝑋′ and 𝑌 1≤ 𝑌′ such
+that 𝑋 2𝑅 𝑌 1. Since 𝑋≤ 𝑋′≤ 𝑋 2, by the forth–down condition for 𝑅 there is some 𝑌 ≤ 𝑌 1with 𝑋𝑅 𝑌 and therefore 𝑋𝑅+ 𝑌.
+Since 𝑌 ≤ 𝑌 1≤ 𝑌′, we are done. The proof that the forth–up condition holds is just the order dual of that for forth–down. The
+proofs of the back–down and back–up conditions are similar. Thus 𝑅+ is fully confluent.
+
+Finally, we show that 𝑅+ is convex. Firstly, for the image condition, if 𝑋𝑅+ 𝑌 and 𝑋𝑅+ 𝑌 with 𝑌 1≤ 𝑌 ≤𝑌 2, then by the
+ 1 2
+definition of 𝑅+ we can find 𝑋 2≥ 𝑋 and 𝑌 1′≤ 𝑌 with 𝑋 2𝑅 𝑌 1′, and similarly 𝑋 1≤ 𝑋 and 𝑌 2′≥ 𝑌 with 𝑋 1𝑅 𝑌 2′. Since
+ 1 2
+then 𝑋 1≤ 𝑋≤ 𝑋 and 𝑌 1′≤ 𝑌 ≤ 𝑌 2′, by the definition of 𝑅+ we conclude that 𝑋𝑅+ 𝑌. The preimage condition is completely
+2 
+analogous. This completes the proof that is a Σ-labelled system. □
+Proposition6.2will be of independent interest later for proving the completeness of our deductive calculus. For now, however,
+we are only interested in the case that we had an 𝜔-sensible 𝑅to begin with, in which case we are certain to obtain a quasimodel,
+as the next lemma shows.
+Lemma 6.3. If 𝑅is 𝜔-sensible, then 𝑅+ is 𝜔-sensible.
+
+Proof. We first show that 𝑅 is 𝜔-sensible. Suppose that 𝜑 𝖴𝜓∈𝓁 ([𝑤]). Then by definition, 𝜑 𝖴𝜓∈𝓁(𝑤). Thus as 𝑅is 𝜔-sensible,
+there exists 𝑣 ∈𝑅𝑛(𝑤)such that 𝜓∈𝓁(𝑣)for some 𝑛 >0. It follows that [𝑣] ∈𝑅𝑛 ([𝑤])and 𝜓∈𝓁 ([𝑣]). Similar reasoning applies
+when we suppose that 𝜑 𝖲𝜓∈𝓁 ([𝑤]), 𝖦𝜑 ∉𝓁 ([𝑤]), or 𝖧𝜑 ∉𝓁 ([𝑤]); thus 𝑅 is 𝜔-sensible. It now follows immediately that 𝑅+
+
+is 𝜔-sensible, since the conditions for a relation to be 𝜔-sensible are monotone. □
+Example 6.4. We return to the example seen in the proof of Proposition4.2. Let Σbe the set of all subformulas of 𝖥(𝑝 ⇒𝖷𝑝). So
+Σ ={𝖥(𝑝 ⇒𝖷𝑝), 𝑝 ⇒𝖷𝑝, 𝖷𝑝, 𝑝}. We take as bi-relational model  the model (ℤ, ℤ, ≤, 𝑆, (cid:2)⋅(cid:3))seen in the proof of Proposition4.2and
+depicted again on the left of Fig.4. Examining , we see that there are three possible values that 𝓁 (𝑥)can take: Σ, {𝑝}, or ∅. These
+values are depicted in the centre of Fig.4. There is only one possible value for 𝐿 (𝑥): {Σ, {𝑝}, ∅}, so the quotient quasimodel is
+linearly ordered by ≤ . The quasimodel is depicted on the right of Fig.4(with the constant 𝐿-data omitted).
+Proposition 6.5. Let =(𝑊, 𝑇, ≤,𝑆, (cid:2)⋅(cid:3))be a bi-relational model and  =((𝑊 ×𝑇)∕∼, ≤ , 𝓁 , 𝑆 +)the quotient Σ-quasimodel obtained
+from . Let 𝜑 ∈Σ. Then  falsifies 𝜑if and only if falsifies 𝜑.
+Proof. We have:  falsifies 𝜑if and only if ∃(𝑤, 𝑡) ∈(𝑊 ×𝑇) ⧵(cid:2)𝜑(cid:3)if and only if ∃[(𝑤, 𝑡)] ∈(𝑊 ×𝑇)∕∼with 𝜑 ∈Σ ⧵𝓁 ([(𝑤, 𝑡)])if
+and only if falsifies 𝜑. □
+In order to use Proposition6.5to prove decidability, we need to compute a bound on the size of the quasimodel in terms of the
+size of Σ, when Σis finite.
+Lemma 6.6. Suppose Σis finite, and write |Σ|for its cardinality. Then the height of is bounded by |Σ| +1, and the cardinality of the
+domain (𝑊 ×𝑇)∕∼of is bounded by (|Σ| +1) ⋅2|Σ|(|Σ|+1)+1.
+13
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Proof. Each element of the domain of  is a pair (𝓁, 𝐿) where 𝐿 is a (nonempty) subset of (Σ) and 𝓁∈𝐿 ∑. Since 𝐿 is linearly
+ordered by inclusion, it has height at most |Σ| +1. There are (2|Σ|)𝑖 subsets of (Σ)of size 𝑖, so there are at most |Σ|+1(2|Σ|)𝑖 distinct
+𝑖=1
+𝐿. The sum is bounded by 2|Σ|(|Σ|+1)+1. The factor of |Σ| +1corresponds to choice of an 𝓁∈𝐿, for each 𝐿. □
+Thus we have an exponential bound on the size of . Hence any falsifiable formula is falsifiable on an effectively bounded
+quasimodel, and it follows that 𝖦𝖳𝖫 rel, which we know coincides with 𝖦𝖳𝖫 ℝ, is decidable.
+Theorem 6.7. The logic 𝖦𝖳𝖫 ℝof -formulas that are valid on all flows and the logic 𝖦𝖳𝖫 relof -formulas that are valid on all bi-relational
+frames are equal and decidable.
+Proof. By Theorem 3.3, 𝖦𝖳𝖫 ℝ=𝖦𝖳𝖫 rel. Since falsifiability is the complement of validity, it suffices to show that it is decidable
+whether a formula 𝜑is falsifiable over the class of all bi-relational frames. Let Σ be the set of subformulas of 𝜑. If 𝜑is falsifiable
+in a Σ-quasimodel of size at most (|Σ| +1) ⋅2|Σ|(|Σ|+1)+1, then by Proposition5.5, 𝜑is falsified in a bi-relational frame. Conversely,
+if 𝜑 is falsified in a bi-relational frame, then by Proposition 6.5 and Lemma 6.6, 𝜑 is falsified in a Σ-quasimodel of size at most
+(|Σ| +1) ⋅2|Σ|(|Σ|+1)+1. Hence it suffices to check falsifiability of 𝜑on the set of all Σ-quasimodels of size at most (|Σ| +1) ⋅2|Σ|(|Σ|+1)+1.
+It is clear that this check can be carried out within a computable time bound; hence the problem is decidable. □
+7. A Hilbert-style deductive calculus
+Now begins the second half of this article, in which we prove that a certain Hilbert-style deductive calculus is sound and complete
+for the validities of Gödel temporal logic (under both real-valued and bi-relational semantics). We start by presenting the calculus. It
+is obtained by adapting the standard axioms and inference rules of 𝖫𝖳𝖫[54], as well as their order dual and temporal dual versions.
+Definition 7.1. The logic 𝖦𝖳𝖫is the least set of -formulas closed under the following axioms and rules.
+I All substitution instances of intuitionistic tautologies (see e.g.[55])
+II Axioms and rules of Heyting–Brouwer logic:
+𝜑⇒𝜓 𝜑⇒𝜓∨𝛾
+a 𝜑⇒(𝜓∨(𝜑⇐𝜓)) b c
+(𝜑⇐𝜃)⇒(𝜓⇐𝜃) (𝜑⇐𝜓)⇒𝛾
+III Linearity axioms:
+a (𝜑⇒𝜓)∨(𝜓⇒𝜑) b ¬((𝜑⇐𝜓)∧(𝜓⇐𝜑))
+IV Temporal axioms:
+a ¬𝖷⊥ a′ ¬𝖸⊥
+b 𝖷(𝜑∨𝜓)⇒(𝖷𝜑∨𝖷𝜓) b′ 𝖸(𝜑∨𝜓)⇒(𝖸𝜑∨𝖸𝜓)
+c (𝖷𝜑∧𝖷𝜓)⇒𝖷(𝜑∧𝜓) c′ (𝖸𝜑∧𝖸𝜓)⇒𝖸(𝜑∧𝜓)
+d 𝖷(𝜑⇒𝜓)⇔(𝖷𝜑⇒𝖷𝜓) d′ 𝖸(𝜑⇒𝜓)⇔(𝖸𝜑⇒𝖸𝜓)
+e 𝖦(𝜑⇒𝜓)⇒(𝖦𝜑⇒𝖦𝜓) e′ 𝖧(𝜑⇒𝜓)⇒(𝖧𝜑⇒𝖧𝜓)
+f 𝖦(𝜑⇒𝜓)⇒(𝜃𝖴𝜑⇒𝜃𝖴𝜓) f′ 𝖧(𝜑⇒𝜓)⇒(𝜃𝖲𝜑⇒𝜃𝖲𝜓)
+g 𝖦(𝜑⇒𝜓)⇒(𝜑𝖴𝜃⇒𝜓𝖴𝜃) g′ 𝖧(𝜑⇒𝜓)⇒(𝜑𝖲𝜃⇒𝜓𝖲𝜃)
+h 𝖦𝜑⇒𝜑∧𝖷𝖦𝜑 h′ 𝖧𝜑⇒𝜑∧𝖸𝖧𝜑
+i 𝜓∨(𝜑∧𝖷(𝜑𝖴𝜓))⇒𝜑𝖴𝜓 i′ 𝜓∨(𝜑∧𝖸(𝜑𝖲𝜓))⇒𝜑𝖲𝜓
+j 𝖦(𝜑⇒𝖷𝜑)⇒(𝜑⇒𝖦𝜑) j′ 𝖧(𝜑⇒𝖸𝜑)⇒(𝜑⇒𝖧𝜑)
+k 𝖦(𝜓∧𝖷𝜑⇒𝜑)⇒(𝜓𝖴𝜑⇒𝜑) k′ 𝖧(𝜓∧𝖸𝜑⇒𝜑)⇒(𝜓𝖲𝜑⇒𝜑)
+V Connection axioms
+a 𝜑⇔𝖷𝖸𝜑 a′ 𝜑⇔𝖸𝖷𝜑
+VI Standard modal rules:
+𝜑, 𝜑⇒𝜓 𝜑 𝜑 𝜑 𝜑
+mp nec𝖷 nec𝖸 nec𝖦 nec𝖧
+𝜓 𝖷𝜑 𝖸𝜑 𝖦𝜑 𝖧𝜑
+Axiom groupiiconcerns the relationship between ⇒and ⇐. In particular, Axiomii.ais used in C.Rauszer’s axiomatisation of
+intuitionistic logic with co-implication (called Heyting–Brouwer logic)[56]. The Gödel–Dummett axiomiii.aand its order dualiii.b
+reflect the fact that the connectives ⇒and ⇐are implemented on locally linear posets (which conversely is necessaryfor these axioms
+to be valid).
+14
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Axiomsiv.atoiv.kconcern the future. Axiomsiv.c,iv.d, andiv.eare standard modal axioms (viewing 𝖷as a box-type modality).
+In particular they hold in any normal modal logic, although of course 𝖦𝖳𝖫is not itself normal by virtue of being strictly sub-classical.
+Axiomiv.fis an order dual version of iv.e; such dual axioms are often needed in intuitionistic modal logic, since 𝖥and 𝖦are not
+typically interdefinable. The axiomsiv.aandiv.bhave to do with the passage of time being deterministic in linear temporal logic:
+iv.acharacterises seriality andiv.bcharacterises (partial) functionality, thus together they constrain temporal accessibility to be a
+total function.
+The co-inductive axiomiv.hstates that if something will henceforth be the case, then it is true now and, moreover, in the next
+moment, it will still henceforth be the case. Axiomiv.jis successor induction, as future moments are indexed by the natural numbers
+with their usual ordering. Axiomsiv.iandiv.kare analogues ofiv.handiv.jrespectively. Axiomsiv.a′toiv.k′are the past analogues
+of axiomsiv.atoiv.k. The connection axiomsv.aandv.a′relate past and future tenses by combining the connectives 𝖷and 𝖸.
+All rules of groupviare standard modal logic deduction rules, and in particular any normal modal logic is closed under these
+rules.
+Most of the axioms are either included in the axiomatisation of intuitionistic 𝖫𝖳𝖫[57]or a variant of one of them (e.g.a contra-
+positive). From this, we easily derive the following.
+Proposition 7.2. The above calculus is sound for the class of real-valued models, as well as for the class of bi-relational models.
+Proof. The rulesii.bandii.care readily seen to preserve validity. We check Axiomiii.b; all other rules or axioms have been shown
+to be sound for intuitionistic or bi-relational models in the literature (see e.g.[56,58]).
+iii.b: Let us assume towards a contradiction that ¬((𝜑 ⇐𝜓) ∧(𝜓⇐𝜑))is not valid with respect to bi-relational models, so we can
+find  =(𝑊, 𝑇, ≤, 𝑆,(cid:2)⋅(cid:3))and (𝑤, 𝑡) ∈such that (𝑤, 𝑡) ∉(cid:2)¬((𝜑⇐𝜓)∧(𝜓⇐𝜑))(cid:3). Therefore there exists (𝑣, 𝑡) ≤(𝑤, 𝑡)such that
+(𝑣, 𝑡) ∈(cid:2)(𝜑⇐𝜓)∧(𝜓⇐𝜑)(cid:3). Then (𝑣, 𝑡) ∈(cid:2)𝜑⇐𝜓(cid:3)and (𝑣, 𝑡) ∈(cid:2)𝜑⇐𝜓(cid:3). Hence there exist (𝑣′, 𝑡) ≥(𝑣, 𝑡)and (𝑣′′, 𝑡) ≥(𝑣, 𝑡)such that
+(𝑣′, 𝑡) ∈(cid:2)𝜑(cid:3)⧵(cid:2)𝜓(cid:3)and (𝑣′′, 𝑡) ∈(cid:2)𝜓(cid:3)⧵(cid:2)𝜑(cid:3). Since (𝑊, ≤)is a linear order, either (𝑣′, 𝑡) ≤(𝑣′′, 𝑡)or (𝑣′, 𝑡) ≥(𝑣′′, 𝑡). In the former case we
+get that (𝑣′, 𝑡) ∈(cid:2)𝜓(cid:3)and in the latter case we get that (𝑣′′, 𝑡) ∈(cid:2)𝜑(cid:3); in any case we reach a contradiction. □
+Our main objective is to show that our calculus is indeed complete; proving this will take up the remainder of this article.
+As we show next, we can also derive the converses of some of⋀ these axioms⋁. Below, for a set of formulas Γwe define 𝖷Γ ={𝖷𝜑 ∣
+𝜑 ∈Γ}, and empty conjunctions and disjunctions are defined by ∅ =⊤and ∅ =⊥.
+When reasoning about 𝖦𝖳𝖫, it is useful to note that by i and mp (modus ponens), the following weak form of the deduction
+theorem holds: for 𝜑, 𝜓∈, we have 𝜑 ⇒𝜓∈𝖦𝖳𝖫if (and only if) we can deduce 𝜓 from 𝜑in the system with 𝖦𝖳𝖫as its axioms
+and modus ponens as its only deduction rule. We will often implicitly use this to simplify reasoning.
+Lemma 7.3. Let 𝜑 ∈and Γ ⊆be finite. Then the following formulas belong to 𝖦𝖳𝖫.
+⋁ ⋁ ⋁ ⋁
+(a) 𝖷(⋀Γ) ⇔ ⋀𝖷Γ (g) 𝖸(⋀Γ) ⇔ ⋀𝖸Γ
+(b) 𝖷( Γ) ⇔ 𝖷Γ (h) 𝖸( Γ) ⇔ 𝖸Γ
+(c) 𝜑 𝖴𝜓⇒𝖥𝜓 (i) 𝜑 𝖲𝜓⇒𝖯𝜓
+(d) 𝜑 𝖴𝜓⇒𝜓∨(𝜑 ∧𝖷(𝜑 𝖴𝜓)) (j) 𝜑 𝖲𝜓⇒𝜓∨(𝜑 ∧𝖸(𝜑 𝖲𝜓))
+(e) 𝜑 ∧𝖷𝖦𝜑 ⇒𝖦𝜑 (k) 𝜑 ∧𝖸𝖧𝜑 ⇒𝖧𝜑
+(f) (𝜑 ⇐𝜑) ⇒𝜓 (l) (𝜑 ⇐𝜓) ⇒𝜑
+Proof. For claims (a) and (b), one direction is obtained from repeated use of Axiomsiv.boriv.cand the other is proven using nec𝖷
+andiv.d; note that the first claim requiresiv.ato treat the case when Γ =∅. Details are left to the reader. For (c), we recall that 𝖥𝜓
+is shorthand for ⊤ 𝖴𝜓. Then one usesiv.gand the tautology 𝜑 →⊤to obtain 𝜑 𝖴𝜓→⊤ 𝖴𝜓.
+For (d), let 𝜃=𝜓∨(𝜑 ∧𝖷(𝜑 𝖴𝜓)). We claim that 𝜑 ∧𝖷𝜃⇒𝜃is derivable, for which it suffices to show 𝖷𝜃⇒𝖷(𝜑 𝖴𝜓). Using (a)
+and (b), this amounts to showing
+𝖷𝜓∨(𝖷𝜑∧𝖷𝖷(𝜑𝖴𝜓))⇒𝖷(𝜑𝖴𝜓),
+which would follow from both 𝖷𝜓⇒𝖷(𝜑 𝖴𝜓)and 𝖷𝜑 ∧𝖷𝖷(𝜑 𝖴𝜓) ⇒𝖷(𝜑 𝖴𝜓)via propositional reasoning. But these follow from
+iv.i, which yields 𝜓⇒(𝜑 𝖴𝜓)and 𝜑 ∧𝖷(𝜑 𝖴𝜓) ⇒(𝜑 𝖴𝜓), along with routine reasoning involving 𝖷.
+From 𝜑 ∧𝖷𝜃⇒𝜃, we use necessitation andiv.kto obtain 𝜑 𝖴𝜃⇒𝜃. Now we note that 𝜓⇒𝜃is a tautology; hence usingiv.f, we
+obtain 𝜑 𝖴𝜓⇒𝜃, i.e.𝜑 𝖴𝜓⇒𝜓∨(𝜑 ∧𝖷(𝜑 𝖴𝜓)), as needed.
+Claim (e) is similar. Note that 𝖦𝜑 ⇒𝜑holds byiv.h, so we have 𝖷𝖦𝜑 ⇒𝖷𝜑by nec𝖷,iv.d, and modus ponens as before. Similarly,
+𝖦𝜑 ⇒𝖷𝖦𝜑holds byiv.h, so 𝖷𝖦𝜑⇒𝖷𝖷𝖦𝜑holds by nec𝖷,iv.d, and modus ponens. Hence we have
+𝖷𝖦𝜑⇒𝖷𝜑∧𝖷𝖷𝖦𝜑.
+Usingiv.cand some propositional reasoning we obtain
+𝜑∧𝖷𝖦𝜑⇒𝖷(𝜑∧𝖷𝖦𝜑).
+15
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+By 𝖦-necessitation andiv.j, we have
+𝜑∧𝖷𝖦𝜑⇒𝖦(𝜑∧𝖷𝖦𝜑).
+Since 𝖦(𝜑 ∧𝖷𝖦𝜑) ⇒𝖦𝜑can be proven usingiv.e, we obtain 𝜑 ∧𝖷𝖦𝜑 ⇒𝖦𝜑, as needed.
+Claim(f) can be derived from the intuitionistic tautology 𝜑 ⇒𝜓∨𝜑and Ruleii.c.
+The proofs of claims(g)–(l) follow similar lines of reasoning as for their future versions. □
+8. The canonical system and canonical quasimodel
+In this section we first construct a standard canonical structure for 𝖦𝖳𝖫. In the presence of 𝖴, 𝖲, 𝖦, and 𝖧, this canonical structure
+is only a labelled system, rather than a proper bi-relational model. Nevertheless, it will be a useful ingredient in our completeness
+proof, for we can apply the quotient construction of Section6to it and show that the resulting labelled system is in fact a quasimodel.
+Since we are working over an intermediate logic, the role of maximal consistent sets⋀ will be playe⋁d by complete types, as defined
+below (see Definition4.3for the definition of types). Below, recall that by convention, ∅ =⊤and ∅ =⊥.
+Definition 8.1. Given two sets of formulas Γ, ⋀ Δ ⊆, ⋁we say that Δis aconsequenceof Γ, denoted by Γ ⊢Δ, if there exist finite
+(possibly empty) Γ′⊆Γand Δ′⊆Δsuch that Γ′⇒ Δ′∈𝖦𝖳𝖫. We say that the pair (Γ, Δ)isconsistentif Γ ⊬Δ. We will call a
+Σ-type Φconsistent if (Φ, Σ ⧵Φ)is consistent.
+Note that we are using the standard interpretation of Γ ⊢Δin Gentzen-style calculi. When working within a turnstile, we will
+follow the usual proof-theoretic conventions of writing Γ, Δinstead of Γ ∪Δ, and writing 𝜑instead of {𝜑}.
+We will often want to think of a consistent Σ-type Φas representing the pair (Φ, Σ ⧵Φ). Note that for such a Φ, the set Σ ⧵Φ
+cannot contain any formula in 𝖦𝖳𝖫since 𝜑 ∈𝖦𝖳𝖫implies ∅ ⊢𝜑.
+Lemma 8.2. If Σ ⊆is closed under subformulas, Φ ⊆Σ, and (Φ, Σ ⧵Φ)is consistent, then Φis a (consistent) Σ-type.
+Proof. We check the conditions of Definition4.3.
+• Condition1: If 𝜑 ∧𝜓∈Φthen since 𝜑 ∧𝜓⇒𝜑is an intuitionistic tautology, we cannot have 𝜑 ∈Σ ⧵Φ; thus 𝜑 ∈Φ. Similarly,
+𝜓∈Φ. The converse is even more trivial, using the tautology 𝜑 ∧𝜓⇒𝜑 ∧𝜓.
+• Condition2: If 𝜑 ∨𝜓∈Φthen since 𝜑 ∨𝜓⇒𝜑 ∨𝜓 is an intuitionistic tautology, we cannot have both 𝜑 ∈Σ ⧵Φand 𝜑 ∈Σ ⧵Φ;
+thus either 𝜑 ∈Φor 𝜑 ∈Φ. The converse uses the tautologies 𝜑 ⇒𝜑 ∨𝜓 and 𝜓⇒𝜑 ∨𝜓.
+• Condition3: (a) If 𝜑 ⇒𝜓∈Φand 𝜑 ∈Φ, then since (𝜑 ⇒𝜓) ∧𝜑 ⇒𝜓 is an intuitionistic tautology, we cannot have 𝜓∈Σ ⧵Φ;
+thus 𝜓∈Φ.
+(b) If 𝜓∈Φthen since 𝜓⇒(𝜑 ⇒𝜓)is an intuitionistic tautology, we cannot have 𝜑 ⇒𝜓∈Σ ⧵Φ; thus 𝜑 ⇒𝜓∈Φ.
+• Condition4: (a) By Lemma7.3(l), we know that 𝜑 ⇐𝜓⊢𝜑. Hence if 𝜑 ⇐𝜓∈Φwe cannot have 𝜑 ∈Σ ⧵Φ; thus 𝜑 ∈Φ.
+(b) By Axiom ii.a we know that 𝜑 ⊢𝜓 ∨(𝜑 ⇐𝜓). Hence if 𝜑 ∈Φ and 𝜓 ∈Σ ⧵Φ, we cannot have 𝜑 ⇐𝜓 ∈Σ ⧵Φ; thus
+𝜑 ⇐𝜓∈Φ. □
+As with maximal consistent sets, consistent types satisfy a Lindenbaum property. Below, if (Γ, Δ)and (Γ′, Δ′)are pairs of sets of
+formulas, we say that (Γ′, Δ′)extends(Γ, Δ)if Γ ⊆Γ′and Δ ⊆Δ′. A consistent Σ-type Φextends (Γ, Δ)if (Φ, Σ ⧵Φ)extends (Γ, Δ).
+Lemma 8.3 (Lindenbaum lemma). Let Σ ⊆be closed under subformulas, and Γ, Δ ⊆Σ. If Γ ⊬Δ, then there exists a consistent Σ-type
+extending (Γ, Δ).
+Proof. The proof is standard, but we provide a sketch. Let 𝜑 ∈Σ. Note that either Γ, 𝜑 ⊬Δor Γ ⊬Δ, 𝜑, for otherwise by an application
+of the cut rule (which is intuitionistically derivable) we would have Γ ⊢Δ. Thus we can add 𝜑to Γor to Δand remain consistent.
+By repeating this process for each of the countable number of formulas of Σ(or using Zorn’s lemma) we can find a consistent (Γ′, Δ′)
+extending (Γ, Δ)such that Γ′∪Δ′=Σ. Since (Γ′, Δ′)is consistent, Δ′is also disjoint from Γ′; hence Δ′=Σ ⧵Γ′. Thus by Lemma8.2,
+Γ′is a consistent Σ-type. □
+Before defining the canonical system, recall that for a set of formulas Γ, we have 𝖷Γ ∶={𝖷𝜑 ∣𝜑 ∈Γ}. We also define
+𝖷−1Γ∶={𝜑∣𝖷𝜑∈Γ}.
+Given a set 𝐴, let 𝕀 𝐴denote the identity function on 𝐴. The canonical system Cis defined as the labelled structure
+C=(𝕋 ,≤ ,𝓁 ,𝑆 ),
+∞ C C C
+where
+16
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+• 𝕋 is the set of consistent -types,
+∞
+• Φ ≤ Ψif Φ ⊇Ψ,
+C
+• 𝓁 (Φ) =Φ,
+C
+• 𝑆 (Φ) =𝖷−1Φ.
+C
+We will usually omit writing 𝓁 , as it has no effect on its argument. We will verify shortly that 𝖷−1Φis indeed a consistent -type.
+C
+Next we show that Cis an -labelled system. We begin by showing that it is based on a labelled space.
+Lemma 8.4. (𝕋 , ≤ , 𝓁 )is an -labelled space.
+∞ C C
+Proof. It is trivial that ≤ is a partial order. Moreover, 𝓁 is the identity, so Φ ≤ Ψ implies that 𝓁 (Φ) ⊇𝓁 (Ψ); that is, 𝓁 is
+C C C C C C
+anti-monotone.
+To prove that (𝕋 , ≤ )is locally linear, assume towards a contradiction that it is not. We consider two cases:
+∞ C
+1. There exist Φ, Ψand Θsuch that Φ ⊆Ψand Φ ⊆Θ, but Ψ ⊈Θand Θ ⊈Ψ. Thus there exist two formulas 𝜑 ∈Θ ⧵Ψand 𝜓∈Ψ ⧵Θ.
+Then it is easy to see that 𝜑 ⇒𝜓∉Θand 𝜓⇒𝜑 ∉Ψ. Thus neither of these formulas is in Φ, so by condition2 of Definition4.3their
+disjunction, Axiomiii.a, is in  ⧵Φ—a contradiction.
+2. There exist Φ, Ψand Θsuch that Φ ⊇Ψand Φ ⊇Θ, but Ψ ⊉Θand Θ ⊉Ψ. Then it is easy to see that there exist two formulas
+𝜑 ∈Ψ ⧵Θand 𝜓∈Θ ⧵Ψsuch that 𝜑 ⇐𝜓∈Ψand 𝜓⇐𝜑 ∈Θ. From Φ ⊇Ψand Φ ⊇Θ, we conclude that 𝜑 ⇐𝜓, 𝜓⇐𝜑 ∈Φ. But
+this contradicts the consistency of Φ, since by Axiomiii.bwe have 𝜑 ⇐𝜓, 𝜓⇐𝜑 ⊢⊥.
+We finish by considering the conditions on ⇒and ⇐in the definition of a labelled space. Let us consider Φ ∈𝕋 .
+∞
+• Suppose 𝜑 ⇒𝜓∉Φ. Then by condition 3b of Definition 4.3, 𝜓∉Φ. Let us define 𝑢 =(Φ ∪{𝜑}, {𝜓}), and let us assume for a
+contradiction that 𝑢 is inconsistent. This means that there exists 𝛾 ∈Φ such that 𝛾∧𝜑 ⇒𝜓 ∈𝖦𝖳𝖫. By propositional reasoning,
+𝛾⇒(𝜑 ⇒𝜓) ∈𝖦𝖳𝖫. Since 𝛾∈Φand Φis consistent, 𝜑 ⇒𝜓∉ ⧵Φ, that is, 𝜑 ⇒𝜓∈Φ—a contradiction. Hence 𝑢is consistent and
+by Lemma8.3can be extended to a consistent -type Ψ. From the definition of 𝑢we can conclude that Ψ ≤ Φ, 𝜑 ∈Ψ, and 𝜓∉Ψ
+C
+as required.
+• Suppose 𝜑 ⇐𝜓∈Φ. Then by condition 4a of Definition 4.3, 𝜑 ∈Φ. Let us define 𝑢 =({𝜑}, ( ⧵Φ) ∪{𝜓}), and let us assume
+by contradiction that 𝑢 is inconsistent. This means that there exists 𝛾 ∈ ⧵Φ such that 𝜑 ⇒𝜓∨𝛾∈𝖦𝖳𝖫. By Rule ii.c, we get
+(𝜑 ⇐𝜓) ⇒𝛾∈𝖦𝖳𝖫. Since 𝛾∈ ⧵Φ, we deduce that 𝜑 ⇐𝜓∈ ⧵Φ—a contradiction. By Lemma8.3, 𝑢can be extended to a complete
+type Ψ. It is easy to check that Φ ≤ Ψ, 𝜑 ∈Ψ, and 𝜓∉Ψas required. □
+C
+Lemma 8.5. The function 𝑆 ∶𝕋 →𝕋 is well defined. That is, 𝑆 (Φ) ∈𝕋 for every Φ ∈𝕋 .
+C ∞ ∞ C ∞ ∞
+Proof. Let Φ ∈𝕋 and Ψ =𝑆 C(Φ) =𝖷−1Ψ. By ⋀Lemma⋁8.2, we only need to check that (Ψ,  ⧵Ψ)is co⋀nsistent.⋁ Suppose not; then
+∞
+let Γ ⊆Ψand Δ ⊆ ⧵Ψbe finite a⋀nd such ⋁that Γ ⇒ Δ ∈𝖦𝖳𝖫. Using nec𝖷 andiv.dwe see that 𝖷 Γ ⇒𝖷 Δ ∈𝖦𝖳𝖫, which
+in view of Lemma7.3implies that 𝖷Γ ⇒ 𝖷Δ ∈𝖦𝖳𝖫as well. But 𝖷Γ ⊆Φand 𝖷Δ ⊆ ⧵Φ(since 𝛿∈Δimplies 𝛿∉𝖷−1Φ, which
+implies 𝖷𝛿∉Φ), contradicting the fact that Φis consistent. We conclude that Ψ ∈𝕋 . □
+∞
+In order to see that the function 𝑆 is a fully confluent, convex relation, it will be useful to note that 𝑆 is a bijection.
+C C
+Lemma 8.6. The function 𝑆 is a bijection.
+C
+Proof. Define 𝖸−1Φ ∶={𝜑 ∣𝖸𝜑 ∈Φ}. We claim that Φ ↦𝖸−1Φis the inverse of 𝑆 . By Axiomv.a
+C
+𝜑∈𝖸−1𝖷−1Φ ⟺ 𝖷𝖸𝜑∈Φ ⟺ 𝜑∈Φ,
+and by Axiomv.a′
+𝜑∈𝖷−1𝖸−1Φ ⟺ 𝖸𝖷𝜑∈Φ ⟺ 𝜑∈Φ. □
+Lemma 8.7. The function 𝑆 is a fully confluent relation.
+C
+Proof. We check the four confluence conditions.
+Forth–down,forth–up: Let Φand Ψbe such that Φ ⊇Ψ. Since 𝑆 is a function, these two confluence properties amount to showing
+C
+that 𝑆 (Φ) ⊇𝑆 (Ψ). If 𝜑 ∈𝑆 (Ψ)then 𝖷𝜑 ∈Ψ, which since Φ ⊇Ψ, implies that 𝖷𝜑 ∈Φ, and hence 𝜑 ∈𝑆 (Φ).
+C C C C
+Back–down,back–up: Let Φand Ψbe such that Φ ⊇Ψ. Since, by Lemma8.6, 𝑆−1 is a function, these two confluence properties
+C
+amount to showing that 𝑆−1(Φ) ⊇𝑆−1(Ψ), that is, 𝖸−1(Φ) ⊇𝖸−1(Ψ). If 𝜑 ∈𝖸−1(Ψ)then 𝖸𝜑 ∈Ψ, which since Φ ⊇Ψ, implies that
+C C
+𝖸𝜑 ∈Φ, and hence 𝜑 ∈𝖸−1(Φ). □
+17
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Lemma 8.8. The function 𝑆 is a convex relation.
+C
+Proof. Since 𝑆 is a function, images of points are singletons and hence automatically convex. The same is true for preimages of
+C
+points, since by Lemma8.6, 𝑆 is an injection. □
+C
+Lemma 8.9. The function 𝑆 is a sensible relation.
+C
+Proof. Let us consider Φand Ψsuch that Ψ =𝑆 (Φ). We verify the conditions required for (Φ, Ψ)to be sensible (Definition4.6).
+C
+We have 𝜑 ∈Ψif and only if 𝖷𝜑 ∈Φby the definition of 𝑆 . Since Φ =𝖸−1(Ψ), we similarly have 𝜑 ∈Φif and only if 𝖸𝜑 ∈Ψ
+C
+If 𝖦𝜑 ∈Φ then, by Axiom iv.hwe get 𝜑, 𝖷𝖦𝜑 ∈Φ. Since Ψ =𝑆 (Φ), we get 𝖦𝜑 ∈Ψ. Conversely, assume that 𝖦𝜑 ∈Φ−. By
+C
+Lemma7.3(e), 𝜑 ∧𝖷𝖦𝜑 ∈Φ−, so either 𝜑 ∈Φ− or 𝖷𝖦𝜑 ∈Φ− (giving in the second case 𝖦𝜑 ∈Ψ−). In either case we reach the
+desired conclusion.
+For the case of 𝖴, by Lemma7.3(d), we know 𝜑 𝖴𝜓⊢𝜓, 𝜑 ∧𝖷(𝜑 𝖴𝜓). Hence if 𝜑 𝖴𝜓∈Φthen either 𝜓∈Φor 𝜑 ∧𝖷(𝜑 𝖴𝜓) ∈Φ.
+In the first case we are done immediately. In the second, since Φ is an -type we deduce 𝜑 ∈Φ and 𝖷(𝜑 𝖴𝜓) ∈Φ, the latter
+of which gives 𝜑 𝖴𝜓 ∈Ψ, and we are done. Conversely, by Axiom iv.i and some intuitionistic reasoning, both 𝜓 ⊢𝜑 𝖴𝜓 and
+𝜑, 𝖷(𝜑 𝖴𝜓) ⊢𝜑 𝖴𝜓. From the first, we see that 𝜓∈Φimplies 𝜑 𝖴𝜓∈Φ. If, alternatively, both 𝜑 ∈Φand 𝜑 𝖴𝜓∈Ψ, then 𝜑 ∈Φ
+and 𝖷(𝜑 𝖴𝜓) ∈Φ, which together with 𝜑, 𝖷(𝜑 𝖴𝜓) ⊢𝜑 𝖴𝜓, also yields 𝜑 𝖴𝜓∈Φ.
+The cases for 𝖧and 𝖲are the temporal converses of those for 𝖦and 𝖴respectively (using again the fact that 𝑆−1is to 𝖸as 𝑆 is
+C C
+to 𝖷). □
+We note the general fact that given a Σ -labelled system and a subformula-closed Σ ⊆Σ , one can restrict the labelling to Σ in
+1 2 1 2
+the natural way (by replacing its value at any point by its intersection with Σ ). Doing so yields a Σ -labelled system. This is easily
+2 2
+verifiable from the definitions.
+Proposition 8.10. The canonical system Cis an -labelled system. Restricting the labelling to any subformula-closed Σ ⊆yields a Σ-labelled
+system.
+Proof. For the first claim, we need for the following three properties to hold:
+1. (𝕋 , ≤ , 𝓁 )is a labelled space;
+∞ C C
+2. 𝑆 is a bi-serial, fully confluent, convex, sensible relation; and
+C
+3. 𝓁 Chas 𝕋 as its codomain.
+The first item is Lemma8.4. The relation 𝑆 is bi-serial since it is a well defined bijection, and it is a fully confluent, convex, sensible
+C
+relation by Lemmas8.7,8.8, and 8.9. Finally, if Φ ∈𝕋 ∞then 𝓁 C(Φ) =Φ, which is an element of 𝕋 by Lemma8.2.
+The second claim follows from the observation preceding the proposition. □
+By Proposition6.2, the structure C∕Σ∶=(𝕋 ∞∕∼, ≤ , 𝑅+ , 𝓁 )formed with the quotient construction of Section6is a Σ-labelled
+system. We call C∕Σthecanonical quasimodel, although we do not yet know it is a quasimodel, since we do not yet know that 𝑅+
+
+is 𝜔-sensible. In the sequel, we show that this is the case. From this we will obtain completeness of our deductive calculus, since any
+formula that is not derivable is falsified in the canonical quasimodel and hence on some model by unwinding.
+9. Characteristic formulas
+In this section, we show that there exist formulas defining points in the canonical quasimodel C∕Σ=(𝕋 ∞∕∼, ≤ , 𝑅+ , 𝓁 ), i.e.to
+each 𝑤 ∈𝕋 ∕∼we assign two formulas that together ‘distinguish’ 𝑤. In the next section, these formulas will play an essential role
+∞
+in the proof that 𝑅+ is 𝜔-sensible, and hence that C∕Σis a quasimodel.
+First, we define a formula 𝜒+(𝑤) (or 𝜒+(𝑤) when Σ is clear from context) such that for all Γ ∈𝕋 , 𝜒+(𝑤) ∈Γ if and only if
+Σ ∞
+[Γ] ≤𝑤. Dually, we define 𝜒−(𝑤)so that for all Γ ∈𝕋 , 𝜒−(𝑤) ∉Γif and only if 𝑤 ≤[Γ]. Compared to [59], these formulas require
+∞
+co-implication, as they must look ‘up’ as well as ‘down’ the model. In this section, we write C∕Σ=(𝕋 ∞∕∼, ≤, 𝑅, 𝓁). We will omit
+subscript indices on the 𝓁and 𝐿functions.
+⋀ ⋁
+D⋀efiniti⋁on 9.1. Fix a Σ ⊆ that is finite and closed under subformulas. Given Δ ∈𝕋 Σ, define Δ⃖⃖⃗ ∶= Δ ⇒ (Σ ⧵Δ) and ⃖ Δ⃖⃖ ∶=
+Δ ⇐ (Σ ⧵Δ). Given 𝑤 ∈𝕋 ∕∼, we define a formula 𝜒0(𝑤)by
+∞
+⋀ ⋀
+𝜒0(𝑤)∶= ∼Δ⃖⃖⃗ ∧ ¬⃖ Δ⃖⃖.
+Δ∈𝐿(𝑤) Δ∈𝕋 Σ⧵𝐿(𝑤)
+Then define 𝜒+(𝑤)by
+𝜒+(𝑤)∶=⃖𝓁⃖⃖ (⃖⃖𝑤⃖⃖⃖ )⃖ ∧𝜒0(𝑤)
+18
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+and 𝜒−(𝑤)by
+𝜒−(𝑤)∶=𝜒0(𝑤)⇒𝓁⃖⃖⃖ (⃖⃖𝑤⃖⃖⃖⃗ ).
+Proposition 9.2. Given 𝑤 ∈𝕋 ∕∼and Γ ∈𝕋 ,
+∞ ∞
+1) 𝜒0(𝑤) ∈Γif and only if 𝐿(Γ) =𝐿(𝑤),
+2) 𝜒+(𝑤) ∈Γif and only if [Γ] ≤𝑤, and
+3) 𝜒−(𝑤) ∉Γif and only if [Γ] ≥𝑤.
+Proof. Let 𝑤 ∈𝕋 ∕∼and Γ ∈𝕋 .
+∞ ∞
+⋀ ⋀
+1) For the left-to-right implication, assume that 𝜒0(𝑤) ∈Γ, so that both Δ∈𝐿(𝑤)∼Δ⃖⃖⃗ ∈Γand Δ∈𝕋 Σ⧵𝐿(𝑤)¬⃖ Δ⃖⃖ ∈Γ, by the defining
+conditions of ⋀-types. For the⋁ inclusion 𝐿(𝑤) ⊆𝐿(Γ), let Δ ∈𝐿(𝑤). From ∼Δ⃖⃖⃗ ∈Γ, we obtain Φ ≥Γsuch that Δ⃖⃖⃗ ∉Φ. Hence there is
+Φ ≤Φwith Δ ∈Φ and (Σ ⧵Δ) ∉Φ ; i.e.𝓁(Φ ) =Δ. From local linearity we see that Φ ⋚Γ; hence Δ =𝓁(Φ ) ∈𝐿(Γ).
+Δ Δ Δ Δ Δ Δ
+⋀ For the inclu⋁sion 𝐿(𝑤) ⊇𝐿(Γ), let Δ ∈𝕋 Σ⧵𝐿(𝑤). Then for⋀ any Ψ ≤Γ we⋁ have that ⃖ Δ⃖⃖ ∉Ψ, so that there is no Ψ Δ≥Ψ with
+Δ ∈Ψ and (Σ ⧵Δ) ∉Ψ . Thus there is no Ψ ⋚Γwith Δ ∈Ψ and (Σ ⧵Δ) ∉Ψ (for the Ψ ≥Γcase, set Ψ =Γ; for
+Δ Δ Δ Δ Δ Δ
+Ψ ≤Γset Ψ =Ψ ). We deduce that Δ ∉𝐿(Γ).
+Δ Δ
+For the right-to-left implication, assume that 𝐿(Γ) =𝐿(𝑤). Then for Δ ∈𝐿(Γ)we readily obtain ∼Δ⃖⃖⃗ ∈Γ, and similarly for Δ ∈
+𝕋 ⧵𝐿(Γ)we obtain ¬⃖ Δ⃖⃖ ∈Γ, from which we obtain by propositional reasoning that 𝜒0(𝑤) ∈Γ.
+Σ
+2) If 𝜒+(𝑤) ∈Γthen 𝜒0(𝑤) ∈Γ, and so by item(1), 𝐿(Γ) =𝐿(𝑤), while ⃖𝓁⃖⃖ (⃖⃖𝑤⃖⃖⃖ )⃖ ∈Γimplies there is some Γ′≥Γwith 𝓁(Γ′) =𝓁(𝑤).
+This shows that 𝑤 =[Γ′] ≥[Γ], as claimed.
+Conversely, if [Γ] ≤𝑤, then 𝐿(Γ) =𝐿(𝑤), and so by item(1), 𝜒0(𝑤) ∈Γ. Further, there exists Γ′ such that [Γ′] =𝑤and Γ′≥Γ,
+⃖𝓁⃖⃖ (⃖⃖𝑤⃖⃖⃖ )⃖ =⃖𝓁⃖⃖ (⃖ [⃖⃖ Γ⃖⃖ ′⃖⃖ ]⃖ )⃖ =⃖𝓁⃖⃖ (⃖ Γ⃖⃖⃖ ′⃖ )⃖
+which implies ∈Γalso.
+3) If 𝜒−(𝑤) ∉Γthen there exists Φ ≤Γwith 𝜒0(𝑤) ∈Φand 𝓁⃖⃖⃖ (⃖⃖𝑤⃖⃖⃖⃗ )∉Φ. From 𝜒0(𝑤) ∈Φwe deduce 𝐿(Γ) =𝐿(Φ) =𝐿(𝑤). From
+𝓁⃖⃖⃖ (⃖⃖𝑤⃖⃖⃖⃗ )∉Φwe deduce there exists Γ′≤Φwith 𝓁(Γ′) =𝓁(𝑤). Since also 𝐿(Γ′) =𝐿(Φ) =𝐿(𝑤), we have [Γ′] =𝑤. Then since Γ ≥Φ ≥Γ′
+we have [Γ] ≥[Γ′] =𝑤.
+Conversely, if [Γ] ≥𝑤, then there exists Γ′≤Γwith [Γ′] =𝑤. Now we have 𝜒0(𝑤) ∈Γ′ but 𝓁⃖⃖⃖ (⃖⃖𝑤⃖⃖⃖⃗ )∉Γ′. It follows that 𝜒−(𝑤) ∉
+Γ. □
+Remark 9.3. Note that the formula 𝜒+(𝑤)makes essential use of co-implication, as properties of 𝑤 ≥[Γ]do not affect truth values
+Σ
+in Γin the language with ⇒alone. In contrast, the formulas 𝜒−are similar to the formulas Sim(𝑤)of [59], although we remark that
+Σ
+co-implication is still needed to describe the full linear component of 𝑤.
+Next we establish some provable properties of each of 𝜒+ and 𝜒−. We begin with the former.
+Σ Σ
+Proposition 9.4. Given 𝑤 ∈𝕋 ∕∼and 𝜓∈Σ:
+∞
+1) If 𝜓∈Σ ⧵𝓁(𝑤), then 𝜒+(𝑤) ⇒(𝜒+(𝑤) ⇐𝜓) ∈𝖦𝖳𝖫.
+2) If 𝜓∈𝓁(𝑤), then 𝜒+(𝑤) ⇒𝜓∈𝖦⋁𝖳𝖫.
+3) For any 𝑤 ∈𝕋 ∕∼, 𝜒+(𝑤) ⇒𝖷 𝜒+(𝑣) ∈𝖦𝖳𝖫.
+∞
+𝑤𝑅𝑣
+Proof. 1) Let 𝜓∈Σ ⧵𝓁(𝑤). It suffices to show that for an arbitrary Γ ∈𝕋 , we have that 𝜒+(𝑤) ∈Γimplies 𝜒+(𝑤) ⇐𝜓∈Γ, for this
+∞
+demonstrates, by Lemma8.3, that (𝜒+(𝑤), 𝜒+(𝑤) ⇐𝜓)is inconsistent, giving 𝜒+(𝑤) ⇒(𝜒+(𝑤) ⇐𝜓) ∈𝖦𝖳𝖫. From 𝜒+(𝑤) ∈Γand
+Proposition9.2we obtain Γ′≤Γsuch that [Γ′] =𝑤, and hence 𝜒+(𝑤) ∈Γ′and 𝜓∉Γ′, yielding 𝜒+(𝑤) ⇐𝜓∈Γ.
+2) With similar reasoning as for 1), let 𝜓∈𝓁(𝑤)and Γ ∈𝕋 , and suppose 𝜒+(𝑤) ∈Γ. Let Γ′≤Γwith [Γ′] =𝑤. Then 𝜓∈Γ′,
+∞
+yielding 𝜓∈Γ.
+3) Let Γbe such that 𝜒+(𝑤) ∈Γ, so that there is Γ′≥Γwith [Γ′] =𝑤. Then 𝑤 𝑅[𝑆 C(Γ′)]by defi⋁nition, and moreover 𝜒+([𝑆 C(Γ′)]) ∈
+𝑆 C(Γ′), which implies that 𝖷𝜒+([𝑆 C(Γ′)]) ∈Γ′. Thus 𝖷𝜒+([𝑆 C(Γ′)]) ∈Γsince Γ′⊆Γ, so that 𝖷 𝑤𝑅𝑣𝜒+(𝑣) ∈Γ. □
+The formula 𝜒−behaves ‘order dually’, as established below.
+Σ
+Proposition 9.5. Given 𝑤 ∈𝕋 ∕∼and 𝜓∈Σ:
+∞
+1) If 𝜓∈Σ ⧵𝓁(𝑤), th(en 𝜓⇒𝜒−(𝑤 )) ∈𝖦𝖳𝖫.
+2) If 𝜓∈𝓁(𝑤), then 𝜓⇒𝜒−(𝑤) ⇒𝜒−(𝑤) ∈𝖦𝖳𝖫.
+19
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+⋀
+3) For any 𝑤 ∈𝕋 ∕∼, 𝖷( 𝜒−(𝑣)) ⇒𝜒−(𝑤) ∈𝖦𝖳𝖫.
+∞
+𝑤𝑅𝑣
+Proof. 1) Assume that 𝜓∈Σ ⧵𝓁(𝑤)and 𝜓∈Γand write 𝑤 =[Γ′]. Then 𝜓∉Γ′, which means Γ ≱Γ′, so [Γ] ≱𝑤. Hence Proposi-
+tion9.2(3) implies that 𝜒−(𝑤) ∈Γ.
+2) Suppose that 𝜓∈𝓁(𝑤) and proceed to prove the claim by contraposition. If 𝜒−(𝑤) ∉Γ for some Γ ∈𝕋 , then there exists
+∞
+Γ′≤Γsuch that 𝑤 =[Γ′]. But then 𝜒−(𝑤) ∉Γ′ and 𝜓∈Γ′, which implies that 𝜓⇒𝜒−(𝑤) ∉Γ′, and hence also 𝜓⇒𝜒−(𝑤) ∉Γ, as
+required.
+3) Proceed by contraposition. If 𝜒−(𝑤) ∉Γfor some Γ ∈𝕋 , then there exists Γ′≤Γsuch that 𝑤 =[Γ′]. We have that 𝑤 𝑅[𝑆 (Γ′)]
+∞ C
+by defini⋀tion. Letting 𝑣 =[𝑆 C(Γ′)], we have that 𝜒−(𝑣) ∉𝑆 C(Γ′), and hence 𝖷𝜒−(𝑣) ∉Γ′. Then since Γ′⊇Γ, we have 𝖷𝜒−(𝑣) ∉Γ.
+Hence 𝖷 𝑤𝑅𝑣𝜒−(𝑣) ∉Γ. □
+10. Completeness
+In this section, we use the formulas 𝜒 Σ± to show that the relation 𝑅+ on C∕Σis 𝜔-sensible and hence C∕Σis a quasimodel. Since
+
+validity over the class of quasimodels is equivalent to bi-relational validity, by Propositions5.5and 6.5, and bi-relational validity is
+equivalent real-valued validity, by Theorem3.3, completeness will follow.
+The following lemma is the first step towards establishing 𝜔-sensibility. Once again, we write C∕Σ=(𝕋 ∞∕∼, ≤, 𝑅, 𝓁), and as usual
+𝑅∗is the transitive, reflexive closure of 𝑅.
+Lemma 10.1. If Σ ⊆is finite and closed under subformulas and 𝑤 ∈𝕋 ∕∼, then
+∞
+⋁ ⋁
+1. ⋀𝑤𝑅∗𝑣𝜒+(𝑣) ⇒𝖷 ⋀𝑤𝑅∗𝑣𝜒+(𝑣) ∈𝖦𝖳𝖫;
+2. ⋁𝖷 𝑤𝑅∗𝑣𝜒−(𝑣) ⇒ ⋁𝑤𝑅∗𝑣𝜒−(𝑣) ∈𝖦𝖳𝖫;
+3. ⋀𝑣𝑅∗𝑤𝜒+(𝑣) ⇒𝖸 ⋀𝑣𝑅∗𝑤𝜒+(𝑣) ∈𝖦𝖳𝖫;
+4. 𝖸 𝑣𝑅∗𝑤𝜒−(𝑣) ⇒ 𝑣𝑅∗𝑤𝜒−(𝑣) ∈𝖦𝖳𝖫.
+Proof. Item1 follows from Proposition9.4(3), as for any 𝑣 ∈𝑅∗(𝑤)we have that
+⋁
+𝜒+(𝑣)⇒𝖷 𝜒+(𝑢)∈𝖦𝖳𝖫.
+𝑣𝑅𝑢
+Since 𝑣 𝑅𝑢implies that 𝑤 𝑅∗𝑢by transitivity,
+⋁
+𝜒+(𝑣)⇒𝖷 𝜒+(𝑢)∈𝖦𝖳𝖫.
+𝑤𝑅∗𝑢
+Since 𝑣was arbitrary, we obtain
+⋁ ⋁
+𝜒+(𝑣)⇒𝖷 𝜒+(𝑢)∈𝖦𝖳𝖫,
+𝑤𝑅∗𝑣 𝑤𝑅∗𝑢
+which by a change of variables yields the original claim.
+Item2 is similar, but uses Proposition9.5(3). Items3 and 4 are the temporal duals of items1 and 2. □
+In order to complete our proof that 𝑅is 𝜔-sensible, it suffices to apply induction to the formulas of Lemma10.1.
+Proposition 10.2.
+1. If 𝑤 ∈𝕋 ∕∼and 𝜑 𝖴𝜓∈𝓁(𝑤), then there exists 𝑣 ∈𝑅∗(𝑤)such that 𝜓∈𝓁(𝑣).
+∞
+2. If 𝑤 ∈𝕋 ∕∼and 𝜑 𝖲𝜓∈𝓁(𝑤), then there exists 𝑣 ∈(𝑅−1)∗(𝑤)such that 𝜓∈𝓁(𝑣).
+∞
+3. If 𝑤 ∈𝕋 ∕∼and 𝖦𝜓∈Σ ⧵𝓁(𝑤), then there exists 𝑣 ∈𝑅∗(𝑤)such that 𝜓∉𝓁(𝑣).
+∞
+4. If 𝑤 ∈𝕋 ∕∼and 𝖧𝜓∈Σ ⧵𝓁(𝑤), then there exists 𝑣 ∈(𝑅−1)∗(𝑤)such that 𝜓∉𝓁(𝑣).
+∞
+Pro⋀of. 1.Toward⋀s a contradiction, assume that 𝑤 ∈𝕋 ∞∕∼and 𝜑 𝖴𝜓∈𝓁(𝑤)but, for all 𝑣 ∈𝑅∗(𝑤)⋀, 𝜓∉𝓁(𝑣). By⋀ Lemma10.1(2),
+𝖷( 𝜒−(𝑣)) ⇒ 𝜒−(𝑣) ∈𝖦𝖳𝖫. By the 𝖥-induction axiomiv.kand standard modal reasoning, 𝖥( 𝜒−(𝑣)) ⇒ 𝜒−(𝑣) ∈𝖦𝖳𝖫;
+𝑤𝑅∗𝑣 𝑤𝑅∗𝑣 𝑤𝑅∗𝑣 𝑤𝑅∗𝑣
+in particular,
+⋀
+𝖥( 𝜒−(𝑣))⇒𝜒−(𝑤)∈𝖦𝖳𝖫. (2)
+𝑤𝑅∗𝑣
+Now let 𝑣 ∈𝑅∗(𝑤). By Proposition9.5(1) ⋀and the assumption that 𝜓∉𝓁(𝑣), we have that 𝜓⇒𝜒−(𝑣) ∈𝖦𝖳𝖫, and since 𝑣was
+an arbitrary element of 𝑅∗(𝑤), we have 𝜓⇒ 𝑤𝑅∗𝑣𝜒−(𝑣) ∈𝖦𝖳𝖫. Using 𝖦-necessitation and the distributivity axiomiv.fwe then
+20
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+⋀
+have that 𝖥𝜓⇒𝖥 𝑤𝑅∗𝑣𝜒−(𝑣) ∈𝖦𝖳𝖫. This, along with (2), shows that 𝖥𝜓⇒𝜒−(𝑤) ∈𝖦𝖳𝖫. Since by Lemma7.3(c), 𝜑 𝖴 (𝜓⇒𝖥𝜓,
+we can) obtain 𝜑 𝖴𝜓⇒𝜒−(𝑤) ∈𝖦𝖳𝖫. However, by Proposition9.5(2) and our assumption that 𝜑 𝖴𝜓∈𝓁(𝑤)we have that 𝜑 𝖴𝜓⇒
+𝜒−(𝑤) ⇒𝜒−(𝑤) ∈𝖦𝖳𝖫. Hence by modus ponens we obtain 𝜒−(𝑤) ∈𝖦𝖳𝖫. Writing 𝑤 =[Γ], Proposition9.2yields 𝜒−(𝑤) ∉Γ+, but
+this contradicts 𝜒−(𝑤) ∈𝖦𝖳𝖫. We conclude that there exists 𝑣 ∈𝑅∗(𝑤)with 𝜓∈𝓁(𝑣), as needed.
+2.This is the temporal dual of item1 (so in particular we use Lemma10.1(4)in place of Lemma10.1(2)).
+3. This is similar to the 𝖴 case, but order duali⋁sed. Towards a ⋁contradiction, assume that 𝑤 ∈𝕋 ∞∕∼ and 𝖦𝜓∈Σ⋁ ⧵𝓁(𝑤), but
+for all 𝑣 ∈𝑅∗(𝑤), 𝜓∈𝓁(𝑣). By Lemma 10.1(1), 𝜒+(𝑣) ⇒𝖷 𝜒+(𝑣) ∈𝖦𝖳𝖫. By the 𝖦-induction axiom iv.j, 𝜒+(𝑣) ⇒
+⋁ 𝑤𝑅∗𝑣 𝑤𝑅∗𝑣 𝑤𝑅∗𝑣
+𝖦 𝜒+(𝑣) ∈𝖦𝖳𝖫; in particular,
+𝑤𝑅∗𝑣
+⋁
+𝜒+(𝑤)⇒𝖦 𝜒+(𝑣)∈𝖦𝖳𝖫. (3)
+𝑤𝑅∗𝑣
+Now le⋁t 𝑣 ∈𝑅∗(𝑤). By Proposition9.4(2) and the assumption that 𝜓∈𝓁(𝑣), we have th⋁at 𝜒+(𝑣) ⇒𝜓∈𝖦𝖳𝖫, and since 𝑣was
+arbitrary, 𝑤𝑅∗𝑣𝜒+(𝑣) ⇒𝜓∈𝖦𝖳𝖫. Using the distributivity axiomiv.ewe then have that 𝖦 𝑤𝑅∗𝑣𝜒+(𝑣) ⇒𝖦𝜓∈𝖦𝖳𝖫. This, along
+with (3), shows that 𝜒+(𝑤) ⇒𝖦𝜓∈𝖦𝖳𝖫. Hence by Ruleii.bwe obtain
+(𝜒+(𝑤)⇐𝖦𝜓)⇒(𝖦𝜓⇐𝖦𝜓)∈𝖦𝖳𝖫. (4)
+( )
+By Proposition 9.4(1) and our assumption that 𝖦𝜓 ∈Σ ⧵𝓁(𝑤) we have that 𝜒+(𝑤) ⇒ 𝜒+(𝑤) ⇐𝖦𝜓 ∈𝖦𝖳𝖫. From this together
+with (4)we obtain 𝜒+(𝑤) ⇒(𝖦𝜓⇐𝖦𝜓) ∈𝖦𝖳𝖫. In view of Lemma7.3(f), this gives 𝜒+(𝑤) ⇒⊥ ∈𝖦𝖳𝖫, so that the pair (𝜒+(𝑤), ∅)
+is inconsistent. Writing 𝑤 =[Γ], Proposition9.2yields 𝜒+(𝑤) ∈Γ, contradicting the deduced inconsistency. We conclude that there
+exists 𝑣 ∈𝑅∗(𝑤)with 𝜓∈Σ ⧵𝓁(𝑣).
+4.This is the temporal dual of item3 (so in particular we use Lemma10.1(3)in place of Lemma10.1(1)). □
+Corollary 10.3. If Σ ⊆is finite and closed under subformulas, then C∕Σis a quasimodel.
+Proof. By Proposition8.10and Proposition6.2, C∕Σis a labelled system, while by Proposition10.2, 𝑅is 𝜔-sensible. By definition,
+these facts make C∕Σa quasimodel. □
+We are now ready to prove that our calculus is complete.
+Theorem 10.4. If 𝜑 ∈is valid, then 𝜑 ∈𝖦𝖳𝖫.
+Proof. We prove the contrapositive. Suppose 𝜑 is an unprovable formula and let Σ be the set of subformulas of 𝜑. Since 𝜑 is
+unprovable, there is Γ ∈𝕋 with 𝜑 ∉Γ. Then [Γ] ∈𝕋 ∕∼is a point in a quasimodel falsifying 𝜑, so that by Proposition5.5, 𝜑is not
+∞ ∞
+valid. □
+11. PSPACE-complete complexity
+The proof of Theorem6.7yields only anexptimeupper bound for the validity problem. In this section, we prove that this can be
+improved topspace.
+First, we recall that the validity problem for 𝖫𝖳𝖫ispspace-complete[60, Theorem 4.1]. Thus to provepspace-hardness of the
+𝖦𝖳𝖫validity problem, it suffices to give a reduction from 𝖫𝖳𝖫validity to 𝖦𝖳𝖫validity. Consider the (negative) translation ( ⋅ )∙ [61]
+defined as follows:
+1) 𝑝∙=¬¬𝑝, for each propositional variable 𝑝, and
+2) homomorphic for the operators.
+In what follows we may assume that 𝑇 =ℤ, equipped with the standard successor function.
+To any given 𝖫𝖳𝖫model (ℤ, 𝑆, 𝑉), we associate a ‘crisp’ Gödel model (ℤ, 𝑆, 𝑉′)where 𝑉′(𝑝, 𝑡) =1if 𝑡 ∈𝑉(𝑝)and 0otherwise.
+Proposition 11.1. For any 𝜑 ∈and for all 𝑡 ∈ℤ,
+1) if (ℤ, 𝑆, 𝑉), 𝑡 ⊧𝜑then 𝑉′(𝜑, 𝑡) =1, and
+2) if (ℤ, 𝑆, 𝑉), 𝑡 ̸⊧𝜑then 𝑉′(𝜑, 𝑡) =0.
+Proof. By structural induction on 𝜑. □
+21
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Conversely, to any given real-valued Gödel temporal model (ℤ, 𝑆, 𝑉′), we associate the crisp Gödel temporal model (ℤ, 𝑆, 𝑉)by
+fixing 𝑉(𝑝, 𝑡) =𝑉′(¬¬𝑝, 𝑡) ∈{0, 1}.
+Proposition 11.2. For any 𝜑 ∈and any 𝑡 ∈ℤ, we have 𝑉′(𝜑∙, 𝑡) =𝑉(𝜑, 𝑡).
+Proof. By structural induction. The case 𝜑 ∈ℙfollows from the definitions: 𝑉′(𝑝∙, 𝑡) =𝑉′(¬¬𝑝,𝑡)=𝑉(𝑝, 𝑡). The other cases follow
+from (⋅)∙being homomorphic. □
+Corollary 11.3. For any 𝜑 ∈, we have 𝖫𝖳𝖫⊧𝜑if and only if 𝖦𝖳𝖫⊧𝜑∙.
+Proof. For the left-to-right direction, assume by contraposition that 𝖦𝖳𝖫̸⊧𝜑∙. Therefore there exists a Gödel temporal model
+(ℤ, 𝑆, 𝑉′) and 𝑡 ∈ℤ such that 𝑉′(𝜑∙, 𝑡) ≠1. By Proposition 11.2 there exists a crisp Gödel temporal model (ℤ, 𝑆, 𝑉) such that
+𝑉(𝜑, 𝑡) ≠1. This latter model can be viewed as an 𝖫𝖳𝖫 model with (ℤ, 𝑆, 𝑉), 𝑡 ̸⊧𝜑, since the real-valued semantics coincide with
+classical truth definitions when values are in {0, 1}. Therefore 𝖫𝖳𝖫̸⊧𝜑.
+Conversely, assume by contraposition that 𝖫𝖳𝖫̸⊧𝜑. This means that there exists an 𝖫𝖳𝖫 model (ℤ, 𝑆, 𝑉) and 𝑡 ∈ℤ such that
+(ℤ, 𝑆, 𝑉), 𝑡 ̸⊧𝜑. Then for the crisp Gödel temporal model (ℤ, 𝑆, 𝑉′)as defined in Proposition11.1we have 𝑉′(𝜑∙, 𝑡) =0. As a conse-
+quence 𝖦𝖳𝖫̸⊧𝜑∙. □
+For the membership of pspace, we adapt the proof of 𝖫𝖳𝖫 satisfiability from [1, Chapter 6] to the case of 𝖦𝖳𝖫. Define an
+ultimately periodic quasimodel to be a quasimodel  =(𝑊, ≤, 𝓁, 𝑆) such that there is a ‘double lasso’ graph (𝑇, 𝑅) with 𝑇 =
+{−(𝑖′+𝑙′−1), … , 𝑖 +𝑙−1}, 𝑘 𝑅(𝑘 +1)for −(𝑖′+𝑙′−1) ≤𝑘 ≤𝑖 +𝑙−2, and also (𝑖 +𝑙) 𝑅𝑖and −𝑖′𝑅−(𝑖′+𝑙′), and a ‘projection’
+function 𝜋∶𝑊 →𝑇 such that each 𝜋−1(𝑡)is an entire linear component of 𝑊, and 𝑤 𝑆𝑣implies 𝜋(𝑤) 𝑅𝜋(𝑣).
+In other words, has an underlying nondeterministic ‘flow’ 𝑇 consisting of a loop, followed by a middle segment (containing 0),
+and finally a second loop, and each 𝑡 ∈𝑇 is assigned a linear order 𝜋−1(𝑡), which we may also write as 𝑊 𝑡.
+Theorem 11.4 (ultimately periodic quasimodel property). Every falsifiable -formula is falsifiable in an ultimately periodic quasimodel of
+height bounded by |Σ| +1.
+Proof. We sketch the construction. By Lemma 6.6, if 𝜑 is falsifiable, it is falsifiable on some quasimodel ′=(𝑊′, ≤′, 𝓁′, 𝑆′) of
+height at most |Σ| +1. Choose 𝑤 ∈𝑊′ such that 𝜑 ∉𝓁 (𝑤 ), and let 𝑊 be the linear component of 𝑤 (i.e.𝑊 ={𝑣 ∈𝑊 ∣𝑣 ≤
+0 0 0 0 0 0
+𝑤 or𝑤 ≤𝑣}) and ≤ be the restriction of ≤′to 𝑊 . By a priority method similar to that of Section5, we define a bi-infinite sequence
+0 0 0 0
+… , (𝑊 −1, ≤ −1)⨆, (𝑊 0, ≤ 0), (⨆𝑊 1, ≤ 1), … and sensible relations ⨆𝑆 𝑘⊆𝑊 𝑘×𝑊 𝑘+1, such that ∞=(𝑊∞, ≤∞, 𝓁∞, 𝑆∞) is a quasimodel,
+where 𝑊∞= 𝑘∈ℤ𝑊 𝑘( denotes a disjoint union), ≤∞= 𝑘∈ℤ≤ 𝑘, and so on.
+Note that there are at most 2|Σ|(|Σ|+1) possible choices of 𝑊 𝑘, since each 𝑊 𝑘 consists of at most |Σ| +1types, and there are at
+most 2|Σ| types. This in particular implies that some 𝑊 𝑖 repeats infinitely often for arbitrarily large values of 𝑖. Let 𝑙>0 be such
+that 𝑊 𝑖+𝑙=𝑊 𝑖 and every 𝖴or 𝖦defect of 𝑊 𝑖 has been realised before 𝑊 𝑖+𝑙; such an 𝑙exists because 𝑊 𝑖 has finitely many defects.
+Similarly, some 𝑊 −𝑖′ repeats for infinitely many values of 𝑖′, and we choose 𝑙′>0such that 𝑊 −(𝑖′+𝑙′)= ⋃𝑊 −𝑖′ and all 𝖲or 𝖧defects
+of 𝑊 −𝑖′ have been realised after 𝑊 −(𝑖′+𝑙′). We define  =(𝑊, ≤, 𝓁, 𝑆)to be the restriction of ∞ to 𝑖 𝑘+ =𝑙 −− (1 𝑖′+𝑙′−1)𝑊 𝑘, but with 𝑆
+redefined on 𝑊 𝑖+𝑙−1so that it maps to 𝑊 𝑖and redefined on 𝑊 −(𝑖′+𝑙′−1)so that it maps from 𝑊 𝑖′.
+It remains to check that is a quasimodel. We only check that it is 𝜔-sensible, as the other properties are easy to check. Consider
+the case of 𝜑 𝖴𝜓∈𝓁(𝑤)(the cases for other temporal modalities are similar). Then 𝑤 ∈𝑊 𝑘for some 𝑘, which means that for some 𝑗
+(namely, 𝑗=𝑖 +𝑙−𝑘), there is 𝑣 ∈𝑊 𝑖such that 𝑤 𝑆𝑗𝑣. If 𝜑 𝖴𝜓∉𝓁(𝑣), then this defect must already have been realised. Otherwise,
+by construction, there are some 𝑗′and some 𝑢such that 𝑣 𝑆𝑗′𝑢and 𝜓∈𝓁(𝑢). Thus 𝑤 𝑆𝑗+𝑗′𝑢and 𝜓∈𝓁(𝑢), as required. □
+Ultimately periodic models can be represented using sets of moments.
+Definition 11.5. AΣ-momentis a sequence of the form m =(m 0, … , m𝑚), where
+1. each m𝑖is a Σ-type,
+2. m𝑖⊋m𝑖+1for 𝑖 <𝑚 −1,
+3. for every 𝜑 ⇒𝜓∈Σ ⧵m𝑖there is some 𝑗≤𝑖with 𝜑 ∈m𝑗 but 𝜓∉m𝑗,
+4. for every 𝜑 ⇐𝜓∈m𝑖there is some 𝑗≥𝑖with 𝜑 ∈m𝑗 but 𝜓∉m𝑗.
+We write |M|for the set {m 0, … , m𝑚}. The set of Σ-moments is denoted 𝑀 Σ.
+We define the labelled space (m 0, … , m𝑚) +(n 0, … , n𝑛)to be the parallel sum of the two linear posets (m 0, … , m𝑚)and (n 0, … , n𝑛)
+with labelling given by the identity.
+Definition 11.6. The moment n is a temporal successor of m, denoted m 𝑆 n, if there exists a fully confluent convex sensible
+Σ
+relation 𝑅 ⊆|m| ×|n|on the labelled space m +n.
+22
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+( )
+Definition 11.7. We define 𝕄 = 𝑀 ,𝑆 .
+Σ Σ Σ
+Because of condition(2)in Definition11.5, if Σis finite then so is 𝕄 .
+Σ
+Definition 11.8. Asmall falsifiability witnessfor an -formula 𝜑is a finite sequence of Σ-moments m−𝑖′−𝑙′, … , m−𝑖′, … , m𝑖, … , m𝑖+𝑙
+with distinguished positions −𝑖′, 𝑖and binary relations ∅ ≠𝑆 𝑘⊆|m𝑘| ×|m𝑘+1|for each 𝑘with −𝑖′−𝑙′≤𝑘 <𝑖 +𝑙such that
+(A) 𝜑 ∉Φfor some Φ ∈m0
+m−𝑖′=m−𝑖′−𝑙′ m𝑖=m𝑖+𝑙
+(B) and ,
+(C) each 𝑆 𝑘is fully confluent, convex, and sensible,
+(D) 𝜓if 𝜑 𝖴 𝑗𝜓 𝑟𝑟∈ m𝑖 𝑗 then there are 𝑟 <𝑙and a sequence (𝑗 𝑘)𝑘≤𝑟with 𝑗 0=𝑗such that m𝑖 𝑗+ 𝑘𝑘𝑆 𝑖+𝑘m𝑖 𝑗+ 𝑘+𝑘 1+1and 𝜑 ∈m𝑖 𝑗+ 𝑘𝑘 for all 𝑘 <𝑟, and
+∈ m𝑖 + ,
+(E) if 𝖦𝜓∈Σ ⧵m𝑖 𝑗 then there are 𝑟 <𝑙and a sequence (𝑗 𝑘)𝑘≤𝑟with 𝑗 0=𝑗such that m𝑖 𝑗+ 𝑘𝑘𝑆 𝑖+𝑘m𝑖 𝑗+ 𝑘+𝑘 1+1for all 𝑘 <𝑟and 𝜓∉m𝑖 𝑗+ 𝑟𝑟 ,
+(F) if 𝜑 𝖲𝜓∈m𝑖 𝑗′ then there are 𝑟 <𝑙′ and a sequence (𝑗 𝑘)𝑘≤𝑟 with 𝑗 0=𝑗 such that m 𝑗− 𝑘𝑖 +′− 1𝑘−1𝑆 −𝑖′−𝑘m− 𝑗𝑘𝑖′−𝑘 and 𝜑 ∈m 𝑗− 𝑘𝑖′−𝑘 for all
+𝑘 <𝑟, and 𝜓∈m− 𝑗𝑟(𝑖′+𝑟) ,
+(G) if 𝖧𝜓∈Σ ⧵m− 𝑗𝑖′ then there are 𝑟 <𝑙′ and a sequence (𝑗 𝑘)𝑘≤𝑟 with 𝑗 0=𝑗 such that m− 𝑗𝑘𝑖 +′− 1𝑘−1𝑆 −𝑖′−𝑘m 𝑗− 𝑘𝑖′−𝑘 for all 𝑘 <𝑟, and
+𝜓∉m− 𝑗𝑟𝑖′−𝑟 .
+Theorem11.4implies that if an -formula is falsifiable then it has a small falsifiability witness. Moreover, the converse is also
+true, because the small falsifiability witness can be viewed as a quasimodel. As a consequence, we obtain an equivalence between
+the existence of a possibly infinite structure (a model of 𝜑) and the existence of a finite structure (a small falsifiability witness) for a
+given -formula 𝜑.
+Theorem 11.9. An -formula is falsifiable if and only if it has a small falsifiability witness.
+Proof. For the left-to-right direction, assume ⋃that the formula 𝜑is falsifiable. By Theorem11.4, there exists an ultimately periodic
+quasimodel  =(𝑊, ≤, 𝓁, 𝑆) such that 𝑊 = 𝑖 𝑘+ =𝑙 −𝑖′−𝑙′𝑊 𝑘 and 𝜑 ∉𝓁(𝑤) for some 𝑤 ∈𝑊 0. For each 𝑊 𝑘, let 𝑊 𝑘={𝑣𝑘 0, … , 𝑣𝑘 𝑚𝑘}
+in increasing order, and let m𝑘 =(𝓁(𝑣𝑘 0), … , 𝓁(𝑣𝑘 𝑚𝑘)) (deleting repeating types if needed). It is easy to check that the sequence
+m−𝑖′−𝑙′, … , m𝑖′, … , m0, … , m𝑖, … , m𝑖+𝑙 , with sensible relations 𝑆 𝑘defined in the obvious way, yields a small falsifiability witness.
+Conversely, we will show that if a formula has a small falsifiability witness m−𝑖′−𝑙′, … ,m−𝑖′, … , m𝑖, … , m𝑖+𝑙 then it is falsifiable.
+Write m𝑘=(m𝑘 0, … , m𝑘 𝑚𝑘)and consider the labelled space  =(𝑊, ≤, 𝓁, 𝑆), where 𝑊 ={(m𝑘 𝑠, 𝑘) ∣−(𝑖′+𝑙′) <𝑘 <𝑖 +𝑙and0 ≤𝑠 ≤𝑚 𝑘}
+and ≤, 𝓁, and 𝑆 are defined in the obvious way. It is not hard to check that is a quasimodel falsifying 𝜑. Hence by Lemma5.4, 𝜑
+is falsifiable. □
+From Theorem 11.9 we may define Algorithm 1, which nondeterministically checks for falsifiability in pspace. According to
+Savitch’s theorem[62], nondeterministic polynomial space is equal to deterministic polynomial space; thus we obtain the following.
+Theorem 11.10. There exists a deterministic algorithm for falsifiability checking of an -formula that is correct and works in space that is
+polynomial in the size of the input formula.
+Proof. We argue that Algorithm1is a correct and complete nondeterministic polynomial-space algorithm for falsifiability. If 𝜑 is
+falsifiable, then by Theorem11.9, 𝜑 has a small falsifiability witness m−𝑖′−𝑙′, … , m−𝑖′, … , m0, … , m𝑖, … , m𝑖+𝑙 . We initialise both m
+and m′to m0. With the first while loop, we initialise m𝑠 to m𝑖′ , initialise m𝑓 to m𝑖 . During each iteration of the second while loop, we
+choose nto be either the successor of mor the predecessor of m′. This yields an accepting computation of Algorithm1. In particular,
+since m−𝑖′−𝑙′, … , m−𝑖′, … , m0, … , m𝑖, … , m𝑖+𝑙 has no defects, for each element of Δ, at some stage a ‘cure’ is found witnessing it is not
+in fact a defect. That is, we eventually obtain Δ ⊆Γ.
+Conversely, if Algorithm1has an accepting computation, let m−𝑖′−𝑙′, … , m−𝑖′, … , m0,… ,m𝑖, … , m𝑖+𝑙 enumerate the values taken
+by mand m′ where 𝑖′ and 𝑖are the least natural numbers such that m𝑖′=m𝑠 and m𝑖=m𝑓 , respectively. It is not hard to check that
+this sequence yields a small falsifiability witness.
+To check that the nondeterministic algorithm uses polynomial space, it is sufficient to observe that each subset of Σcan be encoded
+by a polynomial number of bits. Since m, m′, m𝑓 , m𝑠 and nhave height at most |Σ| +1we need 7|Σ| +7of those sets (at most |Σ| +1
+for each of m, m′, m𝑠 , m𝑓 , n, Δ, and Γ). Checking that nis a temporal successor (respectively predecessor) of m(respectively m′) can
+be done nondeterministically by guessing a relation 𝑅and checking that it is a sensible and bi-serial relation; but the size of 𝑅 is
+bounded by the product of the sizes of m(respectively m′) and n. Similarly, both 𝑆∗and (𝑆−1)∗have at most |Σ|2elements, so also
+only require polynomial space. □
+With this we conclude that the validity problem ispspace-complete.
+23
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Algorithm1:𝖦𝖳𝖫falsifiability algorithm.
+1 input 𝜑
+2 set Σto be the set of subformulas of 𝜑
+3 guess three moments, m𝑝, m, and m𝑓, of heights 𝑠, 𝑚, 𝑛 ≤|Σ| +1such that 𝜑 ∉m𝑚
+4 m′←m
+5 whilem ≠m𝑓 or m′≠m𝑝do
+6 guess a moment nof height at most |Σ| +1
+7 ifm ≠m𝑓 and nis a temporal successor of mthen
+8 m ←n
+9 else ifm′≠m𝑝and nis a temporal predecessor of m′then
+10 m′←n
+11 else
+12 reject
+13 end
+14 end
+//Initialisedefects
+15 Δ ←{(𝑘,𝖥𝜓 )∣𝜑𝖴 𝜓∈m𝑘,0≤𝑘≤𝑛}∪{(𝑘,𝖯𝜓)∣𝜑𝖲𝜓∈m′ 𝑘,0≤𝑘≤𝑠}∪{(𝑘,𝖦𝜓)∣𝖦𝜓∈Σ⧵m𝑘,0≤𝑘≤𝑛}∪{(𝑘,𝖧𝜓)∣𝖧𝜓∈Σ⧵m′ 𝑘,0≤𝑘≤𝑠}
+//Initialisecureddefects
+16 Γ ←{(𝑘,𝖥𝜓 )∣𝜓∈m𝑘,0 ≤𝑘≤𝑛}∪{(𝑘,𝖯𝜓)∣𝜓∈m′ 𝑘,0≤𝑘≤𝑠}∪{(𝑘,𝖦𝜓)∣𝜓∈Σ⧵m𝑘,0≤𝑘≤𝑛}∪{(𝑘,𝖧𝜓)∣𝜓∈Σ⧵m′ 𝑘,0≤𝑘≤𝑠}
+//Initialisereachabilityrelations
+17 𝑆∗←{(𝑘, 𝑘) ∣0 ≤𝑘 ≤𝑛}
+18 (𝑆−1)∗←{(𝑘, 𝑘) ∣0 ≤𝑘 ≤𝑠}
+19 whilem𝑓≠mor m𝑝≠m′or Δ ⊈Γdo
+20 guess a moment nof height at most |Σ| +1
+21 ifm ≠m𝑓 and nis a temporal successor of m,witnessed by 𝑅then
+22 𝑆∗←{(𝑘, 𝑧) ∣∃𝑦 ∶(𝑘, 𝑦) ∈𝑆∗and(m𝑦, n𝑧) ∈𝑅}
+23 Γ ←Γ ∪{(𝑘, 𝖥𝜓) ∣∃𝑧 ∶(𝑘, 𝑧) ∈𝑆∗and𝜓∈n𝑧}
+24 Γ ←Γ ∪{(𝑘, 𝖦𝜓) ∣∃𝑧 ∶(𝑘, 𝑧) ∈𝑆∗and𝜓∈Σ ⧵n𝑧}
+25 m ←n
+26 else ifm′≠m𝑝and nis a temporal predecessor of m′,witnessed by 𝑅then
+27 (𝑆−1)∗←{(𝑧, 𝑘) ∣∃𝑦 ∶(𝑦, 𝑘) ∈(𝑆−1)∗and(m′ 𝑧, n𝑦) ∈𝑅−1}
+28 Γ ←Γ ∪{(𝑘, 𝖯𝜓) ∣∃𝑧 ∶(𝑘, 𝑧) ∈(𝑆−1)∗and𝜓∈n𝑧}
+29 Γ ←Γ ∪{(𝑘, 𝖧𝜓) ∣∃𝑧 ∶(𝑘, 𝑧) ∈(𝑆−1)∗and𝜓∈Σ ⧵n𝑧}
+30 m′←n
+31 else
+32 reject
+33 end
+34 end
+35 accept
+Theorem 11.11. The validity problem for 𝖦𝖳𝖫is pspace-complete.
+12. Concluding remarks
+We have defined a natural version of linear temporal logic with a Gödel–Dummett base, suitable for reasoning with vague or
+incomplete information, and shown that it may equivalently be characterised as a fuzzy logic or as a superintuitionistic logic using
+standard semantics in each case. Despite the lack of a finite model property for either of the two semantics, we have introduced a
+class of quasimodelsfor which 𝖦𝖳𝖫doessatisfy a version of the finite model property, and moreover shown how these quasimodels
+can be used to adapt the classical proof that the validity problem ispspace-complete.
+Thispspace-complete complexity puts Gödel temporal logic in sharp contrast to other fuzzy logics, whose transitive modal versions
+are undecidable[31], or intuitionistic temporal logics, where systems are known to be decidable only with non-elementary upper
+bounds, if at all [25,63]. This places Gödel–Dummett logic as thepremier base for computational applications of sub-classical modal
+and temporal logics, as far as complexity is concerned.
+We have also provided a sound and complete calculus for the Gödel temporal logic 𝖦𝖳𝖫. This result further cements 𝖦𝖳𝖫as a
+privileged logic for temporal reasoning with non-binary degrees of truth and paves the way for a proof-theoretic treatment of this
+logic. Among the challenges in this direction is the design of cut-free or cyclic calculi.
+In proving our main results, we have developed tools for the treatment of superintuitionistic temporal logics, specifically identify-
+ing the usefulness of combining the presence of ‘henceforth’ with co-implication. We believe that this insight will lead to completeness
+proofs for related logics, including intuitionistic 𝖫𝖳𝖫, where complete calculi for ‘eventually’ are available, but not for ‘henceforth’.
+Regarding this, it should be remarked that the techniques of [59]should lead to a sound and complete calculus for the logic with
+implication, ‘next’, and ‘eventually’ (but no co-implication or henceforth), although such a result does not follow immediately from
+the present work. The techniques we have used to prove completeness and decidability are quite robust and we expect that they may
+be applicable to more expressive logics such as the linear-time 𝜇-calculus (see [64]) or the branching-time logics 𝖯𝖣𝖫, 𝖢𝖳𝖫∗, or even
+the full modal 𝜇-calculus. This represents a milestone in the program pioneered by Caicedo et al.[38,65]of extending results from
+classical modal and temporal logics to their Gödel counterparts.
+24
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+Another subject that would be worth studying in the near future is bisimulationin Gödel temporal logic. This tool has been used to
+determine that temporal operators are not interdefinable in the intuitionistic temporal setting[58,63]. For the class of temporal here-
+and-there models, ‘henceforth’ is a basic operator that cannot be defined, while ‘eventually’ becomes definable in terms of ‘henceforth’,
+‘next’, and implication[58,63]. When including co-implication, results on definability exist in the literature: for a combination of
+the logic of here-and-there, co-implication and the basic modal logic 𝖪, it was proven in [66]that the ‘possibly’ and ‘necessarily’
+modalities become interdefinable. We do not know if co-implication has a similar effect on our Gödel temporal logic; a negative
+answer would require a suitable notion of bisimulation preserving both implications as well as the temporal operators.
+CRediT authorship contribution statement
+JuanPablo Aguilera:Conceptualization, Investigation, Writing – original draft, Writing – review & editing.Martín Diéguez:
+Conceptualization, Investigation, Writing – original draft, Writing – review & editing.David Fernández-Duque:Conceptualization,
+Investigation, Writing – original draft, Writing – review & editing.Brett McLean:Conceptualization, Investigation, Writing – original
+draft, Writing – review & editing.
+Declaration of competing interest
+The authors declare the following financial interests/personal relationships which may be considered as potential competing
+interests: Brett McLean reports financial support was provided by Research Foundation Flanders. Juan Pablo Aguilera reports financial
+support was provided by Research Foundation Flanders. Juan Pablo Aguilera reports financial support was provided by Austrian
+Science Fund. David Fernandez-Duque reports financial support was provided by Research Foundation Flanders. David Fernandez-
+Duque reports financial support was provided by European Cooperation in Science and Technology. Martin Dieguez reports financial
+support was provided by European Cooperation in Science and Technology. Martin Dieguez reports financial support was provided
+by Regional Council of Pays de la Loire.
+Acknowledgements
+This work has been partially supported by FWO–FWF grant G030620N/I4513N (Aguilera and Fernández-Duque), FWO grant
+3E017319 (Aguilera), the projects EL4HC and étoiles montantes CTASP at Région Pays de la Loire, France (Diéguez), the COST action
+CA17124 (Diéguez and Fernández-Duque), SNSF–FWO Lead Agency Grant 200021L_196176/G0E2121N (McLean and Fernández-
+Duque), and the FWO Senior Postdoctoral Fellowship 1280024N (McLean).
+Data availability
+No data was used for the research described in the article.
+References
+[1]S.Demri,V.Goranko,M.Lange,TemporalLogicsinComputerScience:Finite-StateSystems,CambridgeTractsinTheoreticalComputerScience,Cambridge
+UniversityPress,2016.
+[2]J.Mendel,Fuzzylogicsystemsforengineering:atutorial,Proc.IEEE83(3)(1995)345–377,https://doi.org/10.1109/5.364485.
+[3]R.Kruse,E.Schwecke,J.Heinsohn,UncertaintyandVaguenessinKnowledgeBasedSystems:NumericalMethods,SpringerBerlinHeidelberg,Berlin,Heidelberg,
+1991,pp.29–44,Ch.VagueData.
+[4]N.Preining,Gödellogics–asurvey,in:C.G.Fermüller,A.Voronkov(Eds.),LogicforProgramming,ArtificialIntelligence,andReasoning,SpringerBerlin
+Heidelberg,Berlin,Heidelberg,2010,pp.30–51.
+[5]M.Baaz,N.Preining,R.Zach,First-orderGödellogics,Ann.PureAppl.Log.147(2007)23–47.
+[6]K.Gödel,ZumintuitionistischenAussagenkalkül,Anz.Akad.Wiss.WienMath.-Nat.wiss.Kl.69(1932)65–66.
+[7]M.Dummett,Apropositionalcalculuswithdenumerablematrix,J.Symb.Log.24(2)(1959)97–106.
+[8]T.Alsinet,C.I.Chesñevar,L.Godo,S.A.Sandri,G.R.Simari,Formalizingargumentativereasoninginapossibilisticlogicprogrammingsettingwithfuzzy
+unification,Int.J.Approx.Reason.48(3)(2008)711–729.
+[9]D.Dubois,J.Lang,H.Prade,Towardspossibilisticlogicprogramming,in:K.Furukawa(Ed.),LogicProgramming,ProceedingsoftheEigthInternational
+Conference,Paris,France,June24–28,1991,MITPress,1991,pp.581–595.
+[10] D.Pearce,Anewlogicalcharacterisationofstablemodelsandanswersets,in:J.Dix,L.M.Pereira,T.C.Przymusinski(Eds.),Non-MonotonicExtensionsofLogic
+Programming,SelectedPapers,NMELP’96,BadHonnef,Germany,September5–6,1996,in:LectureNotesinComputerScience,vol.1216,Springer,1996,
+pp.57–70.
+[11] D.Pearce,Equilibriumlogic,Ann.Math.Artif.Intell.47(1–2)(2006)3–41.
+[12] A.Avron,Hypersequents,logicalconsequenceandintermediatelogicsforconcurrency,Ann.Math.Artif.Intell.4(1991)225–248.
+[13] F.Aschieri,A.Ciabattoni,F.A.Genco,Gödellogic:fromnaturaldeductiontoparallelcomputation,in:32ndAnnualACM/IEEESymposiumonLogicinComputer
+Science,LICS2017,Reykjavik,Iceland,June20-23,2017,IEEEComputerSociety,2017,pp.1–12.
+[14] D.Dubois,H.Prade,Processingfuzzytemporalknowledge,IEEETrans.Syst.ManCybern.19(4)(1989)729–744.
+[15] K.B.Lamine,F.Kabanza,Historycheckingoftemporalfuzzylogicformulasformonitoringbehavior-basedmobilerobots,in:12thIEEEInternationalConference
+onToolswithArtificialIntelligence(ICTAI2000),13–15November2000,IEEEComputerSociety,Vancouver,BC,Canada,2000,pp.312–319.
+[16] S.Mukherjee,P.Dasgupta,Afuzzyreal-timetemporallogic,Int.J.Approx.Reason.54(9)(2013)1452–1470.
+[17] R.Gerber,H.-H.Nagel,Representationofoccurrencesforroadvehicletraffic,Artif.Intell.172(4)(2008)351–391,https://doi.org/10.1016/j.artint.2007.07.001.
+[18] J.E.Naranjo,C.Gonzalez,R.Garcia,T.dePedro,Lane-changefuzzycontrolinautonomousvehiclesfortheovertakingmaneuver,IEEETrans.Intell.Transp.
+Syst.9(3)(2008)438–450,https://doi.org/10.1109/TITS.2008.922880.
+25
+
+J.P.Aguilera,M.Diéguez,D.Fernández-Duqueetal. ArtificialIntelligence338(2025)104236
+[19] S.Shukla,M.Tiwari,Fuzzylogicofspeedandsteeringcontrolsystemforthreedimensionallinefollowingofanautonomousvehicle,Int.J.Comput.Sci.Inf.
+Secur.7(2010).
+[20] A.Pnueli,Thetemporallogicofprograms,in:Proceedings18thIEEESymposiumontheFoundationsofCS,1977,pp.46–57.
+[21] F.Aguado,P.Cabalar,M.Diéguez,G.Pérez,T.Schaub,A.Schuhmann,C.Vidal,Linear-timetemporalanswersetprogramming,TheoryPract.Log.Program.
+23(1)(2021)2–56.
+[22] F.Aguado,P.Cabalar,M.Diéguez,G.Pérez,C.Vidal,Temporalequilibriumlogic:asurvey,J.Appl.Non-Class.Log.23(1–2)(2013)2–24.
+[23] A.Heyting,DieformalenRegelnderintuitionistischenLogik,SitzungsberichtederPreussischenAkademiederWissenschaften.Physikalisch-mathematische
+Klasse,DeütscheAkademiederWissenschaftenzuBerlin,Mathematisch-NaturwissenschaftlicheKlasse,1930.
+[24] P.Balbiani,M.Diéguez,Temporalhereandthere,in:M.Loizos,A.Kakas(Eds.),LogicsinArtificialIntelligence,Springer,2016,pp.81–96.
+[25] D.Fernández-Duque,Theintuitionistictemporallogicofdynamicalsystems,Log.MethodsComput.Sci.14(3)(2018).
+[26] H.Thiele,S.Kalenka,Onfuzzytemporallogic,in:ProceedingsofSecondIEEEInternationalConferenceonFuzzySystems,vol.2,1993,pp.1027–1032.
+[27] A.Frigeri,L.Pasquale,P.Spoletini,Fuzzytimeinlineartemporallogic,ACMTrans.Comput.Log.15(4)(2014).
+[28] Z.Lu,J.Liu,J.C.Augusto,H.Wang,ComputationalIntelligenceinComplexDecisionSystems,AtlantisPress,Paris,2010,pp.125–146,Ch.AMany-Valued
+TemporalLogicandReasoningFrameworkforDecisionMaking.
+[29] J.P.Aguilera,M.Diéguez,D.Fernández-Duque,B.McLean,TimeandGödel:fuzzytemporalreasoninginpspace,in:A.Ciabattoni,E.Pimentel,R.J.G.B.de
+Queiroz(Eds.),Logic,Language,Information,andComputation,SpringerInternationalPublishing,Cham,2022,pp.18–35.
+[30] J.P.Aguilera,M.Diéguez,D.Fernández-Duque,B.McLean,AGödelcalculusforlineartemporallogic,in:Proceedingsofthe19thInternationalConferenceon
+PrinciplesofKnowledgeRepresentationandReasoning(KR),IJCAI,2022,pp.2–11.
+[31] A.Vidal,Ontransitivemodalmany-valuedlogics,FuzzySetsSyst.407(2021)97–114.
+[32] P.Balbiani,M.Diéguez,D.Fernández-Duque,SomeconstructivevariantsofS4withthefinitemodelproperty,in:36thAnnualACM/IEEESymposiumonLogic
+inComputerScience,LICS2021,Rome,Italy,June29-July2,2021,IEEE,2021,pp.1–13.
+[33] C.Rauszer,AnAlgebraicandKripke-StyleApproachtoaCertainExtensionofIntuitionisticLogic,InstytutMatematycznyPolskiejAkademiNauk,Warsaw,1980.
+[34] M.Bílková,S.Frittella,D.Kozhemiachenko,Constrainttableauxfortwo-dimensionalfuzzylogics,in:A.Das,S.Negri(Eds.),AutomatedReasoningwithAnalytic
+TableauxandRelatedMethods-30thInternationalConference,Proceedings,TABLEAUX2021,Birmingham,UK,September6–9,2021,in:LectureNotesin
+ComputerScience,vol.12842,Springer,2021,pp.20–37.
+[35] L.Bozzelli,D.Pearce,Onthecomplexityoftemporalequilibriumlogic,in:Proceedingsofthe201530thAnnualACM/IEEESymposiumonLogicinComputer
+Science(LICS),LICS’15,IEEEComputerSociety,USA,2015,pp.645–656.
+[36] K.Godel,Eineinterpretationdesintuitionistischenaussagenkalkuls,ErgebnisseeinesmathematischesKolloquiums,vol.4,1933,pp.39–40.
+[37] M.Reynolds,M.Zakharyaschev,Ontheproductsoflinearmodallogics,J.Log.Comput.11(6)(2001)909–931,https://doi.org/10.1093/logcom/11.6.909.
+[38] X.Caicedo,G.Metcalfe,R.O.Rodríguez,J.Rogger,Decidabilityoforder-basedmodallogics,J.Comput.Syst.Sci.88(2017)53–74.
+[39] P.Blackburn,M.deRijke,Y.Venema,ModalLogic,CambridgeUniversityPress,2001.
+[40] D.Fernández-Duque,Non-deterministicsemanticsfordynamictopologicallogic,Ann.PureAppl.Log.157(2–3)(2009)110–121.
+[41] D.Fernández-Duque,Asoundandcompleteaxiomatizationfordynamictopologicallogic,J.Symb.Log.77(3)(2012)947–969.
+[42] S.Demri,V.Goranko,M.Lange,TemporalLogicsinComputerScience:Finite-StateSystems,CambridgeTractsinTheoreticalComputerScience,Cambridge
+UniversityPress,2016.
+[43] M.Baaz,N.Preining,GödellogicsandthefullyboxedfragmentofLTL,in:T.Eiter,D.Sands(Eds.),LPAR-21.21stInternationalConferenceonLogicfor
+Programming,ArtificialIntelligenceandReasoning,in:EPiCSeriesinComputing,vol.46,2017,pp.404–416.
+[44] S.Almagor,U.Boker,O.Kupferman,Formallyreasoningaboutquality,J.ACM63(3)(2016),https://doi.org/10.1145/2875421.
+[45] P.Bouyer,O.Kupferman,N.Markey,B.Maubert,A.Murano,G.Perelli,Reasoningaboutqualityandfuzzinessofstrategicbehaviors,ACMTrans.Comput.Log.
+24(3)(2023),https://doi.org/10.1145/3582498.
+[46] F.Aguado,P.Cabalar,G.Pérez,C.Vidal,Loopformulasforsplitabletemporallogicprograms,in:J.P.Delgrande,W.Faber(Eds.),LogicProgrammingand
+NonmonotonicReasoning,SpringerBerlinHeidelberg,Berlin,Heidelberg,2011,pp.80–92.
+[47] S.Badaloni,M.Giacomin,ThealgebraIAfuz:aframeworkforqualitativefuzzytemporalreasoning,Artif.Intell.170(10)(2006)872–908,https://doi.org/10.
+1016/j.artint.2006.04.001.
+[48] S.Schockaert,M.DeCock,Temporalreasoningaboutfuzzyintervals,Artif.Intell.172(8)(2008)1158–1193,https://doi.org/10.1016/j.artint.2008.01.001.
+[49] F.Wolter,Onlogicswithcoimplication,J.Philos.Log.27(4)(1998)353–387.
+[50] F.Wolter,M.Zakharyaschev,Onthedecidabilityofdescriptionlogicswithmodaloperators,in:A.G.Cohn,L.K.Schubert,S.C.Shapiro(Eds.),Proceedingsof
+theSixthInternationalConferenceonPrinciplesofKnowledgeRepresentationandReasoning(KR’98),Trento,Italy,June2–5,1998,MorganKaufmann,1998,
+pp.512–523.
+[51] F.Wolter,M.Zakharyaschev,Temporalizingdescriptionlogics,in:D.M.Gabbay,M.deRijke(Eds.),FrontiersofCombiningSystems,SecondInternational
+Workshop,Proceedings,FroCoS1998,Amsterdam,theNetherlands,October2–4,1998,ResearchStudiesPress/Wiley,1998,pp.379–402.
+[52] F.Wolter,TheproductofconversePDLandpolymodalK,J.Log.Comput.10(2)(2000)223–251,https://doi.org/10.1093/LOGCOM/10.2.223.
+[53] A.Kurucz,F.Wolter,M.Zakharyaschev,D.Gabbay,Many-DimensionalModalLogics:TheoryandApplications,1stedition,StudiesinLogicandtheFoundations
+ofMathematics,vol.148,NorthHolland,2003.
+[54] O.Lichtenstein,A.Pnueli,Propositionaltemporallogics:decidabilityandcompleteness,Log.J.IGPL8(1)(2000)55–85.
+[55] G.Mints,AShortIntroductiontoIntuitionisticLogic,UniversitySeriesinMathematics,Springer,2000.
+[56] C.Rauszer,AformalizationofthepropositionalcalculusofH-Blogic,Stud.Log.33(1)(1974)23–34.
+[57] J.Boudou,M.Diéguez,D.Fernández-Duque,Adecidableintuitionistictemporallogic,in:26thEACSLAnnualConferenceonComputerScienceLogic,CSL2017,
+August20–24,2017,Stockholm,Sweden,2017,14.
+[58] P.Balbiani,J.Boudou,M.Diéguez,D.Fernández-Duque,Bisimulationsforintuitionistictemporallogics,J.Appl.Log.,IfCoLogJ.Log.Appl.8(8)(2021)
+2265–2285.
+[59] M.Diéguez,D.Fernández-Duque,Anintuitionisticaxiomatizationof‘Eventually’,in:G.Bezhanishvili,G.D’Agostino,G.Metcalfe,T.Studer(Eds.),Advancesin
+ModalLogic12,Proceedingsofthe12thConferenceonAdvancesinModalLogic,HeldinBern,Switzerland,August27–31,2018,CollegePublications,2018,
+pp.199–218.
+[60] A.P.Sistla,E.M.Clarke,Thecomplexityofpropositionallineartemporallogics,J.ACM32(3)(1985)733–749.
+[61] A.S.Troelstra,D.vanDalen,ConstructivisminMathematics:AnIntroduction,vol.1,StudiesinLogicandtheFoundationsofMathematics,vol.121,North-
+Holland,1988.
+[62] W.J.Savitch,Relationshipsbetweennondeterministicanddeterministictapecomplexities,J.Comput.Syst.Sci.4(2)(1970)177–192.
+[63] P.Balbiani,J.Boudou,M.Diéguez,D.Fernández-Duque,Intuitionisticlineartemporallogics,ACMTrans.Comput.Log.21(2)(2020)14.
+[64] M.Y.Vardi,Atemporalfixpointcalculus,in:Proceedingsofthe15thACMSIGPLAN-SIGACTSymposiumonPrinciplesofProgrammingLanguages,POPL’88,
+AssociationforComputingMachinery,NewYork,NY,USA,1988,pp.250–259.
+[65] X.Caicedo,R.O.Rodríguez,StandardGödelmodallogics,Stud.Log.94(2)(2010)189–214.
+[66] P.Balbiani,M.Diéguez,Hereandtheremodallogicwithdualimplication,in:G.Bezhanishvili,G.D’Agostino,G.Metcalfe,T.Studer(Eds.),AdvancesinModal
+Logic12,Proceedingsofthe12thConferenceonAdvancesinModalLogic,HeldinBern,Switzerland,August27–31,2018,CollegePublications,2018,pp.63–82.
+26
+

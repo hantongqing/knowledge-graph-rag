@@ -1,0 +1,1029 @@
+ArtificialIntelligence338(2025)104235
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+TeachText: CrossModal text-video retrieval through generalized
+distillation
+Ioana Croitorua,b,1, Simion-Vlad Bogolina,b,1, Marius Leordeanuc, Hailin Jind,
+Andrew Zissermana, Yang Liua,e,∗, Samuel Albanief,∗∗
+aVisual Geometry Group, University of Oxford, United Kingdom
+bInstitute of Mathematics of the Romanian Academy, Romania
+cUniversity Politehnica of Bucharest, Romania
+dAdobe Research, USA
+eWangxuan Institute of Computer Technology, Peking University, China
+fDepartment of Engineering, University of Cambridge, United Kingdom
+A R T I C L E I N F O A B S T R A C T
+Keywords: In recent years, considerable progress on the task of text-video retrieval has been achieved
+Text-video retrieval by leveraging large-scale pretraining on visual and audio datasets to construct powerful video
+Distillation encoders. By contrast, despite the natural symmetry, the design of effective algorithms for
+Texte mbeddings
+exploiting large-scale language pretraining remains under-explored. In this work, we investigate
+Videoexperts
+the design of such algorithms and propose a novel generalized distillation method,TeachText,
+which leverages complementary cues from multiple text encoders to provide an enhanced
+supervisory signal to the retrieval model.TeachTextyields significant gains on a number of
+video retrieval benchmarks without incurring additional computational overhead during inference
+and was used to produce the winning entry in the Condensed Movie Challenge at ICCV 2021.
+We show how TeachText can be extended to include multiple video modalities, reducing
+computational cost at inference without compromising performance. Finally, we demonstrate
+the application of our method to the task of removing noisy descriptions from the training
+partitions of retrieval datasets to improve performance. Code and data can be found at https://
+www .robots .ox .ac .uk /~vgg /research /teachtext/.
+1. Introduction
+The focus of this work is text-video retrieval—the task of identifying which video among a pool of candidates best matches a natural
+language query describing its content. Video search has a broad range of applications across domains such as wildlife surveillance,
+security, industrial process monitoring, and entertainment. Moreover, as humanity continues to produce video at ever-increasing scale,
+the ability to perform such searches effectively and efficiently takes on critical commercial significance to video hosting platforms
+such as YouTube.
+* Correspondingauthorat:VisualGeometryGroup,UniversityofOxford,UnitedKingdom.
+** Correspondingauthor.
+E-mailaddress:samuel.albanie.academic@gmail.com(S.Albanie).
+1 Equal contribution.
+https://doi.org/10.1016/j.artint.2024.104235
+Received 5 November 2022; Received in revised form 11 September 2023; Accepted 12 October 2024
+Availableonline30October2024
+0004-3702/©2024PublishedbyElsevierB.V.
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.1.Distillingtheknowledgefrommultipletextencodersforstrongertext-videoretrieval.Priorwork[5–7]hasshowntheconsiderablebenefitoftransitioning
+fromvideoencodersthatingestasinglemodality(left)tomulti-modalvideoencoders(centre).Inthiswork,weshowthatretrievalperformancecanbefurther
+significantlyenhancedbylearningfrommultipletextencodersthroughtheTeachTextalgorithmwhichimposesnoadditionalcostduringinference.Resultsare
+reportedontheMSR-VTTdataset[8].(Forinterpretationofthecoloursinthefigure(s),thereaderisreferredtothewebversionofthisarticle.)
+A central theme of recently proposed retrieval methods has been the investigation of how to best use multiple video modalities to
+improve performance. In particular, architectures based on mixtures-of-experts[6,5]and multi-modal transformers[7]have shown
+the benefit of making use of diverse sets of pre-trained models for related tasks (such as image classification, action recognition and
+ambient sound classification) as a basis for video encoding during training and testing.
+In this work, we explore whether commensurate gains could be achieved by leveraging multiple text embeddings learned on
+large-scale written corpora. More exactly, in the rapidly evolving field of text-to-video retrieval, the utilization of pre-trained text
+embeddings has emerged as a pivotal element to enhance performance. These embeddings, designed to capture linguistic nuances
+and semantic relationships, play a crucial role in determining how well a retrieval system matches textual queries to relevant video
+content. But, how do these embeddings truly influence the retrieval results, especially given their diverse origins, architectures, and
+training objectives? Consider a scenario where a user searches for a video depicting a ‘golden retriever playing fetch at sunset.’
+Different text embeddings might prioritize different aspects: some may emphasize the ‘golden retriever’ due to the prevalent mention
+of the breed in its training data, while others might focus on the atmospheric quality of ‘sunset’ due to their architectural nuances.
+This raises pertinent questions: Are some embeddings more suited to certain tasks than others? How do variations in their training
+objectives and data influence retrieval performance? Our exploration is centred on dissecting the differential impacts of various
+popular pre-trained text embeddings on the retrieval tasks. Through this study, we aim to shed light on the nuances and variances
+each embedding introduces, thereby offering insights that will help both researchers make informed decisions in their applications.
+While intuitively this can easily be understood, different from video embeddings using multiple modalities and pretraining tasks,
+in the research community, it is less obvious that there is sufficient diversity among collections of text embeddings to achieve a
+meaningful boost in performance. In fact, our inspiration stems from a careful investigation of the performance of different text
+embeddings across a range of retrieval benchmarks (Fig.2). Strikingly, we observe not only that there is considerable variance in
+performance across text embeddings, but also that their ranking is not consistent, strongly supporting the idea of using multiple text
+embeddings.
+Motivated by this finding, we propose a simple algorithm,TeachText, to effectively exploit the knowledge captured by collections
+of text embeddings. Our approach requires a “student” model to learn from a single or multiple “teacher” retrieval models with access
+to different text embeddings by distilling their text-video similarity matrices into an enhanced supervisory signal. As shown in Fig.1,
+TeachTextis capable of delivering a significant performance gain. Moreover, this gain is complementary to that of adding more video
+modalities to the video encoder but importantly, unlike the addition of video modalities, does not incur additional computational
+cost during inference.
+Moreover, our proposed method has a range of potential applications within the text-video retrieval domain. A primary concern
+in this area is dealing with label noise in datasets, especially those which are crowd-sourced. To address this, we highlight denoising
+as a principal application of our approach. For instance, theMSR-VTTdataset contains captions that can be ambiguous or generic,
+complicating the training process. Such captions, including examples like “A tutorial is presented” or “A man is writing”, can be
+relevant to multiple videos. Using theTEACHTEXTteachers, our method offers a solution by filtering out these less precise captions,
+thereby improving dataset quality. This denoising strategy proves especially valuable for datasets with multiple captions per video,
+such as MSR-VTT and MSVD. Subsequent sections will delve deeper into the denoising application and discuss its effectiveness,
+particularly in conjunction with the CE+ model, showcasing the broader applicability of our proposed method.
+Moreover, as we delve deeper into our research, our primary focus remains on harnessing the power of multiple text embeddings
+via a novel distillation approach. However, the foundational ideas of our method naturally extend to video embeddings. With this
+in mind, we introduceTeachVideo, a direct adaptation that integrates various video modalities. In this way, as opposed to current
+approaches, we use multiple video modalities only during training, while having only a small drop in performance.
+Our core contributions are as follows:
+1. We introduce theTeachTextalgorithm that makes effective use of multiple text encoders.
+2. We advocate for a new method to directly learn the retrieval similarity matrix between joint query video embeddings, which is
+unique in the current literature. We compare this approach to existing techniques like uni-modal relationship distillation[4].
+2
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+3. We apply our method to remove noise from current training datasets used in the text-video retrieval task.
+4. Through experimental results, we show that our method offers notable improvements on six text-video retrieval benchmarks.
+This work builds upon our previous publication at ICCV 2021[1]in the following ways:
+1. We enhance the CE+ architecture by adding two variants: one focused on minimizing parameters without sacrificing perfor-
+mance, and another that uses the GPT-J[2]text embeddings, leading to better performance on all benchmarks.
+2. We provide additional results on the Condensed Movies Dataset (CMD)[3], highlighting models from our TeachText-based
+ensemble that performed well in the CMD Challenge.
+3. For a deeper understanding of TeachText, we offer more detailed ablations and technical insights. An error analysis further
+clarifies the benefits of using multiple text embeddings.
+4. We expand our denoising experiments and provide a thorough analysis of theTeachVideoapproach.
+2. Related work
+This section synthesizes foundational and emergent literature across three pertinent domains: Video Retrieval Methods, Text
+Embeddings, and Knowledge Distillation/Privileged Information. We examine methods for Video Retrieval that focus on indexing and
+retrieving content based on textual queries. We also look into Text Embeddings, which discusses the use of linguistic representations
+in a range of applications, including text-to-video retrieval. Finally, we explore the concept of Knowledge Distillation, a technique
+for transferring knowledge between different machine learning models.
+2.1. Video retrieval methods
+The landscape of video content indexing and retrieval has evolved substantially over time, marked by key milestones that have
+expanded the boundaries of the field. Early research focused on object-specific retrieval, with pioneering work by Sivic et al. in
+2003[9]. This was followed by expansions into action-based retrieval[10]and predefined semantic categorization[11], laying the
+groundwork for future developments. A significant advancement came in 2014 with Self-Paced Reranking (SPaR) by Jiang et al.[12],
+which applied a self-paced learning framework for reranking search results. The issue of zero-shot learning then gained prominence,
+with Gan et al. in 2016 providing a novel approach that used external ontologies for action recognition solely based on action
+names[13]. They extended their zero-shot learning paradigm in 2017 to include event recognition in consumer videos, automatically
+selecting representative and reliable concepts for event queries using DECK (Discovering Event Composition Knowledge) from web
+images[14]. As the field further matured, cross-modal methods employing joint-embedding spaces rose to prominence[15,8,16–19].
+These models optimized for efficient indexing by creating a shared space between video and text, while hierarchical embeddings also
+made a significant impact[20]. In recent times, two major themes have emerged. The first focuses on large-scale weakly supervised
+pretraining[21–23], leveraging audio-visual data for weak supervision. The second hones in on multimodal integration[5–7,24],
+which has shown remarkable gains in performance metrics[25]. Our current work engages with this latter, rapidly evolving theme
+of multimodal integration, adding to the ongoing dialogue in this dynamically evolving field.
+2.2. Text embeddings
+The field of linguistic representation through the use of learned embeddings has seen extensive exploration and analysis. Such
+representations, as highlighted by Mikolov et al. (2013)[26], Radford et al. (2018)[27], and Radford et al. (2019)[28], have been
+incorporated into a lot of natural language processing (NLP) tasks. What’s noteworthy from past research is the realization that,
+irrespective of the vastness of pretraining, refining or finetuning these embedding structures on the specific task they are intended
+for can often enhance their efficacy. This perspective is supported by studies like those by Radford et al. (2018)[27]and Devlin et
+al. (2019)[29]. Furthermore, there’s a growing consensus in the literature, underscored by Devlin et al. (2019)[29], that the more
+extensive the model – particularly those models that integrate multiple attention mechanisms – the more optimal its performance.
+Diving into a slightly different domain, Burns et al. (2019)[30]ventured into the interconnected realms of language and vision. They
+presented a comprehensive analysis focusing on the significance of linguistic features in vision-oriented applications. Their research
+also introduced a novel word embedding scheme, tailored specifically to cater to visual tasks. Drawing inspiration from these past
+works, our current study embarks on two primary objectives. Initially, we delve into understanding the influence of various pretrained
+linguistic embeddings on performance outcomes in the realm of text-to-video retrieval. Building on our findings, we subsequently
+introduce a novel technique that capitalizes on the synergistic benefits of integrating multiple textual embeddings.
+2.3. Knowledge distillation/privileged information
+The purpose of knowledge distillation is to transfer knowledge from one model (teacher) to another model (student). This idea
+was originally introduced in the context of decision tree simplification[33]and model compression[34], and later extended by[35]
+who formalised this knowledge transfer as the temperature-parameterised process of knowledge distillation. The concept was further
+generalised in the unifying framework of generalized distillation [36] for learning with privileged information [37] (via similarity
+controland knowledge transfer [38]), together with knowledge distillation[35]. Our approach distills knowledge of the similarities
+3
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.2.Theinfluenceofthetextembedding.Differenttextembeddingsarepresentedalongthex-axes:w2v[26],mt_grovle[30],openai-gpt[27],roberta[31],
+albert[32], gpt2-large[28], gpt2-xl[28], gpt2-xl-F and gpt-J[2]along with their performance in the geometric mean of 𝑅1-𝑅5-𝑅10on five datasets. For each experi-
+ment,wereportthemean(diamond)andstandarddeviation(errorbar)ofthreerandomlyseededruns.ThisstudyisperformedusingtheCEretrievalarchitecture[6]:
+eachmodeldiffersonlyinitsuseofpre-trainedtextembeddingasitsinput.Weobserveasignificantvarianceinperformancewhenchangingthetextembedding,
+bothacrossandwithindatasets.Thedifferenceinrankingsacrossdatasetssuggeststhepresenceofcomplementaryinformationamongdifferenttextembeddings.
+Fig.3.Shareofcorrectlyretrievedsamplesbasedontheusedpre-trainedtextembeddingonMSR-VTT.Asitcanbeseen,eachembeddinghasaconsiderable
+shareofsampleretrievedcorrectlyonlybyitself(intermsofR1leftandR5right),furtherjustifyingourapproach.Bestviewedincolour.
+between video and text samples into the student and therefore represents a form of generalized distillation. While most knowledge
+distillation methods train the student with the teacher’s outputs as targets, more recent methods propose different approaches[39–41].
+Knowledge distillation has consistently aimed to transfer intricate insights from a comprehensive model, often termed the “teacher”,
+to a more compact variant known as the “student”. Historically, most methodologies in this domain have guided the student model to
+replicate the individual output activations exhibited by the teacher for distinct data samples. One notable contribution in this context
+is by Park et al. [4]. Their approach, labelledrelational knowledge distillation (RKD), takes a unique turn. Instead of merely focusing
+on individual data points, RKD emphasizes the transfer of mutual relations among data samples. By introducing distance-wise and
+angle-wise distillation losses, it aims to reduce relational discrepancies, rather than just mirroring the teacher’s outputs. Their work,
+particularly in the sphere of metric learning, has even allowed student models to exceed the performance of their teachers in certain
+instances. However, our methodology introduces a specialized angle: we accentuate direct learning of the cross-modal similarity
+matrix. This nuance sets our work apart, especially when navigating the challenges in cross-modal scenarios.
+3. Motivation and intuition
+Recently, [28]points out that even though language representation learning systems (such as[31,32,27]) are pre-trained on vast
+amounts of data, they are still sensitive to slight changes in the data distribution and task specification. In this way, most systems can
+be viewed as narrow experts rather than competent generalists.
+Consequently, in Fig.2we investigate how the usage of different off-the-shelf pre-trained text embeddings affects retrieval per-
+formance. We observe that there is significant variance both within and across datasets, suggesting that each embedding captures
+different types of information. Our intuition is that this information comes from the diversity of architectures, pretraining datasets
+and pretraining objectives, which differs across the text embeddings.
+Next, we give details about the used text embeddings and summarise the key differences between them in relation to our findings.
+Word2vec (w2v)[26]is a lightweight text embedding that is widely used for vision tasks[42–44]. Multi-task GrOVLE (mt_grovle)[30]
+is an extension of w2v that is specifically designed for vision-language tasks (in our experiments, however, we find that it slightly
+under-performs w2v). The fine-tuned transformer language model (openai-gpt)[27]embedding is trained on a book corpus containing
+long stretches of contiguous text. We observe that it performs well on datasets that have longer text queries such as ActivityNet.
+RoBERTa [31] and ALBERT [32] are based on the BERT architecture [29] and are trained on the same data which consists of
+unpublished books and Wikipedia articles. RoBERTa [31] focuses on hyperparameter optimization and shows that greater model
+capacity leads to better performance while ALBERT[32]proposes parameter-reduction techniques to reduce memory consumption
+and increase training speed. In our experiments, we observe a high variation in performance when comparing the two. In contrast
+to the other embeddings, gpt2[28]is trained on a crawled dataset that was designed to be as diverse as possible. We observe that
+4
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.4.TeachTextteacher-student framework overview.Given a batch of input videos and queries in natural language during training, the student model, 𝑀
+( thle ef t a) ga gn rd gt aea tec dh e mr am tro id cee sls 𝑇 1 t, … t, e𝑇 a𝑁 ch( eri rg sh tt h) e oa uc gh p tr ho ed u dc ise is li lm ati il oa nr i lt oy m at 𝑑ric ine s ( dv dis itu ia ol nis te od ta hs s q reu ta rir ee g ar li d los s) s. T h 𝑟e s Nim oti el a tr hi aty m boa tt hr i tx p er so td uu dc ee nd b ay d𝑀 tei as e hn ec ro u inra gg ee sd tt ho m sa at mch
+e o f h e r h t s s a e v . t h t n c s t e e
+video embeddings (VE), but employ different text embeddings (TE𝑆for the student, TE1, … , TE𝑁for the teachers). At test time, the teacher models are discarded.
+gpt2 performs most robustly in our experiments. However, it nevertheless exhibits a domain gap to each corpus (highlighted by the
+fact that performance increases when fine-tuning gpt2-xl, termed gpt2-xl-F throughout the paper, on descriptions from text-video
+retrieval datasets). Lastly, gpt-J[2]is the largest model in terms of parameters and is trained on vast amounts of textual data (825
+GB).
+In Fig. 3 we illustrate the number of correctly retrieved queries shared between three text embeddings on MSR-VTT: gpt2-xl,
+gpt2-xl-F and w2v. We observe that only approximately 19% of queries are correctly retrieved by all three of the considered text
+embeddings under the R1 (recall@1) metric (for recall@5, the corresponding number is 42%). The significant number of queries
+uniquely retrieved by each text embedding suggests the presence of complementary information across embeddings.
+4. Method
+Motivated by the findings from Sec. 3, our work aims to study the influence of using multiple text embeddings for text-video
+retrieval.
+4.1. Problem description and learning setup
+Let 𝐷={(𝑣 𝑖, 𝑐 𝑖)}𝑛 𝑖=1be a dataset of paired videos and captions. Following the multimodal expert approach of[5–7], for each video
+we assume that we have access to a collection of video embeddings (sometimes referred to as “experts”) 𝑥 𝑖extracted from the various
+modalities of video 𝑣 𝑖 using a pretrained video encoder (VE) in addition to a text embedding 𝑡 𝑖 (extracted using a text encoder, TE)
+for each caption/query 𝑐 𝑖.2The objective of the text-video retrieval task is to learn a model 𝑀(𝑥 𝑖, 𝑡 𝑗)which assigns a high similarity
+value to pairings (𝑥 𝑖, 𝑡 𝑗)of video and text embeddings that are in correspondence (i.e. 𝑖 =𝑗) and a low similarity otherwise. As is
+common in the literature [45,5], we parameterise the model as a dual encoder that produces joint-embeddings in a shared space
+such that they can be compared directly: 𝑀(𝑥 𝑖, 𝑡 𝑗) =𝐹(𝑥 𝑖)𝑇𝑄(𝑡 𝑗) ∈ℝwhere 𝐹 and 𝑄represent the learnt video and text encoder
+respectively. To train the video and text encoder for the task of retrieval, we adopt a contrastive ranking loss[46]:
+∑𝐵 ∑𝐵 [ ]
+1
+ 𝑟= 𝑚𝑎𝑥(0,𝑠 𝑖𝑗−𝑠 𝑖𝑖+𝑚)+ 𝑚𝑎𝑥(0,𝑠 𝑗𝑖−𝑠 𝑖𝑖+𝑚) , (1)
+𝐵
+𝑖=1𝑗=1,𝑗≠𝑖
+where 𝐵 represents the batch size used during training, 𝑠 𝑖𝑗=𝐹(𝑥 𝑖)𝑇𝑄(𝑡 𝑗)is the similarity score between the encoded video 𝐹(𝑥 𝑖)
+and query 𝑄(𝑡 𝑗), and 𝑚is the margin.
+The key idea behind our approach is to learn a retrieval model, 𝑀, that, in addition to the loss described above, also has access
+to information provided by a collection of pre-trained “teacher” text-video retrieval models which are trained on the same task but
+ingest different text embeddings. This is described next.
+4.2. TeachText algorithm
+To enhance the retrieval performance of model 𝑀, we propose theTeachTextalgorithm which seeks to exploit cues from multiple
+text embeddings. An overview of our approach is provided in Fig.4. In the initial phase of the algorithm, we train a collection of
+teacher models {𝑇 𝑘∶𝑘 ∈{1, … , 𝑁}}for the text-video retrieval task using the approach described in Sec.4.1. The teachers share the
+same architecture, but each model 𝑇 𝑘 uses a different text embedding as input (extracted using a pre-trained text encoder TE𝑘). In
+the second phase the parameters of the teachers are frozen. We then proceed by sampling a batch of 𝐵 pairs of videos and captions
+and computing a corresponding similarity matrix 𝑆 𝑘∈ℝ𝐵×𝐵 for each teacher 𝑇 𝑘(Fig.4right). These 𝑁 similarity matrices are then
+2 These embeddings are produced by models that have been trained on relevant tasks (such as action recognition for the video encoder and language modelling for
+thetextencoder.).
+5
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+combined with an aggregation function, Φ ∶ℝ𝑁×𝐵×𝐵→ℝ𝐵×𝐵 , to form a single supervisory similarity matrix (Fig.4, centre-right).
+Concurrently, the batch of videos and captions are likewise processed by the student model, 𝑀, which produces a further similarity
+matrix, 𝑆 𝑠∈ℝ𝐵×𝐵 . Finally, in addition to the standard retrieval loss (Eq.(1)), a distillation loss,  𝑑, encourages 𝑆 𝑠 to lie close to
+the aggregate Φ(𝑆 1, … , 𝑆 𝑁). The algorithm is summarized in Algorithm1. During inference, the teacher models are discarded and
+the student model 𝑀 requires only a single text embedding. Next, we give details of the distillation loss used to drive the similarity
+matrix learning.
+Algorithm 1TeachTextalgorithm.
+1: Phase1:Learnteachermodels
+2: Train 𝑁teacher models 𝑇 𝑘=(𝐹 𝑘, 𝑄 𝑘), 𝑘 ∈{1, … , 𝑁}using the training pairs (𝑥 𝑖, 𝑡𝑘 𝑗)where 𝑡𝑘 𝑗 represents the text modality used by teacher 𝑇 𝑘in a standard
+retrievaltrainingsetup(Sec.4.1).
+3: Phase 2:Learn the student model, 𝑀=(𝐹, 𝑄)
+4: forminibatch of 𝐵paired samples {(𝑣 𝑖, 𝑐 𝑖)}do
+5: For each pair (𝑣 𝑖, 𝑐 𝑖)extract video experts and text embedding pairs (𝑥 𝑖, 𝑡 𝑖)using VEand 𝑇𝐸 𝑆.
+6: Compute student similarity matrix 𝑆 𝑠=[𝑠 𝑖𝑗]where 𝑠 𝑖𝑗=𝐹(𝑥 𝑖)𝑇𝑄(𝑡 𝑗)for 𝑖, 𝑗∈{1, … , 𝐵}
+7: Compute the loss  𝑟via Eqn.(1)using 𝑆 𝑠.
+8: forteacher 𝑇 𝑘, 𝑘 =1, … , 𝑁do
+9: For each pair (𝑣 𝑖, 𝑐 𝑖)extract the video experts and text embedding pairs (𝑥 𝑖, 𝑡𝑘 𝑖)using 𝑉𝐸and 𝑇𝐸 𝑘.
+10: Compute the similarity matrix 𝑆 𝑘=[𝑠𝑘 𝑖𝑗]where 𝑠𝑘 𝑖𝑗=𝐹 𝑘(𝑥 𝑖)𝑇𝑄 𝑘(𝑡𝑘 𝑖)for 𝑖, 𝑗∈{1, … , 𝐵}
+11: endfor
+1 12 4: C Uo pm dap tu et 𝑀e a thg weg ir te hg sa t re ad it ee nea tc sh cee oer m p𝑆a u𝑠t tr eix Φ rΦ( o𝑆 m(𝑆1 , … , c𝑆 𝑆𝑁 m𝑁) p.
+1 3 : C o m p u t e l o s 𝑑 b t w n a n d 1 h, … , ) ov sii ta E loq sn s. (2 =).
+: g d m d f t e o e  𝑟+ 𝑑.
+15: endfor
+4.3. Learning the similarity matrix
+As noted in Sec.4.1, the essence of the retrieval task is to create a model that is able to establish cross-modal correspondences
+between video and text/queries, assigning a high similarity value to a pairing in which a query accurately describes a video, and a
+low similarity otherwise. This renders the similarity matrix a rich source of information about the knowledge held by the model. In
+order to be able to transfer knowledge from the teachers to the student, we encourage the student to produce a similarity matrix that
+matches an aggregate of those produced by the teachers. In this way, we convey information about the text and video correspondences
+without strictly forcing the student to produce the same embeddings as the teachers. To this end, we define the similarity matrix
+distillation loss as:
+∑𝐵 ∑𝐵 [ ]
+1
+ 𝑑= l((Φ(𝑆 1,…,𝑆 𝑁))𝑖𝑗,𝑠 𝑖𝑗) , (2)
+𝐵
+𝑖=1𝑗=1
+where 𝐵 represents the batch size, 𝑁 the number of teachers, 𝑆 𝑘, 𝑘 =1 … 𝑁 the similarity matrix produced by teacher 𝑘,
+Φ(𝑆 1, … , 𝑆 𝑁) represents the aggregation function of the teacher similarity matrices and 𝑠 𝑖𝑗 represents the student similarity be-
+tween the samples 𝑖and 𝑗. Finally, inspired by prior distillation work[4], we implement las a Huber loss defined as follows:
+{
+1(𝑥−𝑦)2 if|𝑥−𝑦|≤1,
+l(𝑥,𝑦)= 2 . (3)
+|𝑥−𝑦|−1 𝑜𝑡ℎ𝑒𝑟𝑤𝑖𝑠𝑒
+2
+∑
+We explored several forms of aggregation function and found that a simple element-wise mean, Φ(𝑆 1, … , 𝑆 𝑁) = 𝑁1 𝑁 𝑘=1𝑆 𝑘,
+worked well in practice.
+The idea of learning directly the cross-modal similarity matrix is, to the best of our knowledge, novel. It draws inspiration from the
+work of relational knowledge distillation[4]which considered the idea of learning from relationships and introduced two algorithms
+to implement this concept in a uni-modal setting through pairwise and triplet distance sampling. We compare our matrix learning
+approach with theirs in Sec.5.
+4.4. Student model
+A key advantage of our approach is that it is agnostic to the architectural form of the student and teachers, and thus the student
+(and teachers) can employ any method from the current literature. We test ourTeachTextalgorithm using three different recent
+works MoEE[5], CE[6], MMT[7]as the student and teacher base architectures. All these works employ multimodal video encoders
+for the text-video retrieval task. For more details, please consult the original paper of each method.
+Establishing a stronger baseline: CE+, CE-L and CE-J.In our exploration beyond the initial models, we studied the efficacy of our approach
+on an enhanced model. This model is built upon the CE architecture from[6], but incorporates several technical improvements. Our
+goal was to create a stronger baseline for evaluating theTeachTextalgorithm. Our refinements began with the input embedding
+selection. From our investigations, we found that certain video modalities, specifically face and OCR as used by[6], did not consistently
+offer performance benefits. As a result, we decided to exclude them from the video encoder’s inputs. Additionally, we revisited the
+6
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.5.(a)Baselineimprovements.They-axes(scaledforclarity)denoteretrievalperformanceonMSR-VTT.Webeginbypresentingtheperformanceoftheoriginal
+CEmodel[6].Firstly,wecorrectcompressionartefactsinthepre-processingusedforembeddingextraction(CEHQ).Secondly,werefinetheusedvideomodalities
+andtextmodalities(ModrefandTextref).Finally,wefinetunethetextembedding(F)andchangetheoptimizertoAdam[51],thusobtainingtheCE+baseline.(b)
+Useofadditionaltextembeddingsatinferencetime.Allexperimentswereperformedwiththesamearchitecture[6],butwithdifferenttextembeddings:gpt2-xl
+(firstbullet),gpt2-xl-F(secondbullet),theconcatenationofgpt2-xlandgpt2-xl-F(thirdbullet),themeanofgpt2-xlandgpt2-xl-F(fourthbullet)andusingTeachText
+(lastbullet).Byusingmultipletextembeddingsattesttime,whichintroducesanoverhead,aboostinperformanceisobtained.However,byusingTeachTextthere
+isnoadditionaloverheadattesttimeandtheperformanceissuperior.
+expert selection outlined by [6]. Instead of using the Action(IG) from the I3D model [47], we opted for an R2P1D model [48].
+This model, which aligns with the Action(IG) architecture, was first trained on IG-65m [49] and later fine-tuned on the Kinetics
+dataset[47]. Further enhancing the model, we integrated the gpt2-xl text embedding from [28]. Following insights from [7], we
+fine-tuned this embedding using captions from our target dataset, leading to noticeable improvements. One of our main contributions
+is the introduction of the CE+ model. It includes all the changes we’ve discussed, and its performance is studied in Sec. 5.5 and
+Fig.5a. This CE+ model serves as an advanced baseline in our study. We also introduce two additional variants: CE-L and CE-J. CE-L
+aims to be efficient with fewer trainable parameters but still delivers competitive performance, using w2v for text embedding. In
+contrast, CE-J is designed for superior performance and employs the robust gpt-jtext embedding. In summary, our work spans several
+base architectures for the student model, referencing works like[5–7], and importantly introduces the CE+, CE-L, and CE-J models.
+4.5. Teacher models
+The teacher models use the same architecture as the student model. Concretely, for each of the four base architectures described
+in Sec. 4.4, we create a pool of multiple teachers, each using a different pretrained text embedding as input. The candidate text
+embeddings we consider in this work are mt_grovle[30], openai-gpt[27], gpt2-large[28], gpt2-xl[28], w2v[26]. In this way, we
+obtain a set of up to five models that form the teachers 𝑇 𝑘, 𝑘 =1..5 used by TeachText. In addition to results reported in our
+conference paper[1], we extend the embedding studies to incorporate gpt-J[2].
+4.6. Training and implementation details
+To effectively train our final student model, we synergistically combine the retrieval loss with the proposed distillation loss,
+represented as  = 𝑟+ 𝑑. Our CE+ models have been trained using Pytorch[50], leveraging the capabilities of the Adam opti-
+mizer[51]. We’ve set the learning rate at 0.001 and applied a weight decay of 1E-5. When an alternative base architecture, other
+than our proposed CE+, is utilized, we ensure the adoption of the same hyper-parameters specified in the public codebase for the
+respective method, whether it’s CE3or MMT.4For the MoEE model, we rely on the reimplementation provided by the original authors
+of the CE method[6]. Importantly,TeachTextdoes not introduce any new trainable parameters or modalities to the final model.
+When employingTeachTextfor training, only the added loss term  𝑑 is integrated, while all other hyper-parameters are retained
+without modification.TeachTexthas no inference overhead. However, during training, multiple teacher models are required with
+a total maximum training time varying from 45 minutes up to 14h depending on the dataset.
+5. Experimental setup
+5.1. Datasets description
+To provide an extensive comparison we test our approach on seven video datasets that have been explored in recent works as
+benchmarks for the task of text-video retrieval. We follow the same experimental setup as prior works [6,7,20,24]. Next, we give
+details about all the datasets used.
+3 https://github .com /albanie /collaborative -experts.
+4 https://github .com /gabeur /mmt.
+7
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+MSRVTT [52] contains 10k videos, each having 20 captions. In order to test the retrieval performance, we report results on the
+official split which contains 2990 videos for the test split and 497 for validation, following the setup used in[6]. We perform most
+of our ablations on this split. To enable comparison with as many other methods as possible, we also report results on the 1k-A split
+as used in[6,7,24]. For this split, we report the performance after training 100 epochs. The split contains 1000 video candidates for
+testing and 9000 for training. We use the same candidates as defined in[6]which are used by other works[18,7,24].
+MSVD[53]contains 80k English descriptions for a total of 1970 videos. We use the standard split of 1200 (training), 100 (validation)
+and 670 (testing) as used in other works[54,8,6]. The videos fromMSVDdo not have audio streams.
+DiDeMo[55]contains 10464 videos sourced from a large-scale creative commons collection[56]and features moments of unedited,
+diverse content (concerts, sports, pets etc.). The dataset comprises 3-5 pairs of descriptions per video. We adopt the paragraph-video
+retrieval protocols used by[57,6]and use splits corresponding to 8392 train, 1065 validation and 1004 test videos.
+LSMDC[58]contains 118081 short video clips extracted from 202 movies. Each clip is described by a caption that is either extracted
+from the movie script or from transcribed DVS (descriptive video services) for the visually impaired. There are 7408 clips in the
+validation set and the testing is performed on 1000 videos from movies that are disjoint from the training and val sets as described
+in the Large Scale Movie Description Challenge (LSMDC).5
+ActivityNet [59] contains 20k videos extracted from YouTube and has around 100K descriptive sentences. We follow the same
+paragraph-video retrieval setup as used in prior works[57,6]and report results on theval1split: we use 10009 videos for training
+and 4917 videos for testing.
+VaTeX [60] contains 34911 videos with multilingual captions (Chinese and English). There are 10 captions per video for each
+language. We follow the same protocol as in[20,24]and split the validation set equally (1500 validation and 1500 testing videos).
+In this work, we only use the English annotations.
+QuerYD[61]contains 1815 videos in the training split and 388 and 390 for validation and testing. The videos are sourced from
+YouTube and cover a diverse range of visual content. The dataset contains 31441 descriptions, from which 13019 are precisely
+localized in the video content (with start time and end time annotations) and the other 18422 are coarsely localized. For this work,
+we do not use the localization annotations and report results for the official splits.
+Condensed Movies[3]is a large scale dataset containing clips from movies annotated with detailed captions. It has around 30k
+captioned video clips extracted from around 3k movies. In order to enable future comparisons, we report results on the validation
+split (2200 clips) used for the CMD-Challenge6while we use the training split (31k clips) for training.
+5.2. Metrics
+To assess performance, we follow prior work (e.g.[16,5,17,18,21,6,7]) and report standard retrieval metrics. These include R@K
+(recall at rank K, where higher is better) and MdR (median rank where lower is better). To maintain concision, for certain analyses
+we report the geometric mean of R@1, R@5, and R@10 rather than individual metrics (this statistic aims to be representative of
+overall retrieval performance). The numbers are reported for the task of retrieving a video given text queriest2vas well as for the
+opposite taskv2t. For each experiment, we report the mean and standard deviation of three randomly seeded runs.
+5.3. Video embeddings (experts) description
+In this work, we used the set of pretrained experts considered by the authors of[6]. For completeness, we summarise below the
+manner in which these experts were extracted.
+Two form of action experts are used: Action(KN)and Action(IG). The former is an I3D architecture trained on Kinetics[47], which
+produces 1024-dimensional embeddings from frame clips extracted at 25fps and centrecropped to 224 pixels. The Action(IG)model
+is a 34-layer R(2+1)D model[48]that has ben trained on IG-65m[49]: it operates on frames extracted at 30 fps in clips of 8 at 112
+×112 pixel resolution.
+Two forms of object experts are used, named Obj(IN)and Obj(IG). They are produced from frame-level embeddings extracted at 25fps.
+The Obj(IN)model consists of an SENet-154 backbone[62]which has been trained on ImageNet for image classification. Obj(IG)is
+formed from a ResNext-101[63]extractor which was trained on weakly labelled Instagram data[64]. For both models, frames are
+resized to 224×224 pixels.
+The audio expert is produced using the VGGish model[65], trained for audio classification on the YouTube-8m dataset.
+The scene expert is an embedding that is extracted at 25 fps from a centrecrop of 224×224 pixels. The model, which is pretrained
+on Places365[66], uses a DenseNet-161[67]architecture.
+The speech expert is produced using the Google Cloud API (to transcribe the speech content).
+5.4. Text embeddings description
+We use several text embeddings as follows:
+5 https://sites .google .com /site /describingmovies /previous -years /lsmdc -2019.
+6 https://www .robots .ox .ac .uk /~vgg /research /condensed -movies /challenge .html.
+8
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.6.(a)Teacherstudy.WeshowtheinfluenceoflearningfromdifferentnumberofteachersontheMSR-VTTdataset(allstudentssharethesameCE+model,
+y-axesscaledforclarity).Theteacherswereaddedinthefollowingorder:gpt2-xl,w2v,gpt2-xl-F,mt_grovle,openai-gpt,gpt2-large.Theperformanceofthecombined
+teachersgrowsasmoreteachersareadded,howeveritreachesaplateauafterthefirst3teachers.Thetrendissimilarforstudentperformance.(b)Performancevs
+teachertype.Westudytheinfluenceofteacherswithdifferenttextembeddingsatinput:w2vandgpt2-xl.Thefirstpointrepresentstheperformanceofthestudent
+withoutusingTeachText.Weobserveaboostinperformanceindependentofthenatureoftheteacher.
+Table1
+Methodgenerality.RetrievalperformanceonvariousdatasetswhenapplyingTeachTextontopofdifferentbasemodels.InstancesinwhichTeachTextbringsan
+improvementoverthebasearchitecturearehighlightedinbold.WeobservethatTeachTextyieldsaconsistentboostinperformanceregardlessofbasearchitecture.
+MSRVTT MSRVTT1k-A MSVD DiDeMo LSMDC ActivityNet
+Model
+Base TeachText Base TeachText Base TeachText Base TeachText Base TeachText Base TeachText
+MoEE 24.4 ±0.1 𝟐𝟓.𝟖 ±0.1 41.6 ±0.4 𝟒𝟑.𝟒 ±0.6 41.8 ±0.3 𝟒𝟑.𝟐 ±0.5 33.2 ±1.4 𝟒𝟎.𝟐 ±0.7 23.8 ±0.4 𝟐𝟔.𝟎 ±0.5 40.1 ±0.3 𝟒𝟓.𝟐 ±0.1
+CE 24.4 ±0.1 𝟐𝟓.𝟗 ±0.1 42.0 ±0.8 𝟒𝟑.𝟖 ±0.3 42.3 ±0.6 𝟒𝟐.𝟔 ±0.4 34.2 ±0.4 𝟑𝟗.𝟓 ±0.5 23.7 ±0.3 𝟐𝟓.𝟓 ±0.5 40.4 ±0.3 𝟒𝟓.𝟎 ±0.6
+MMT - - 44.7 ±0.4 𝟒𝟓.𝟔 ±0.7 - - - - 24.6 ±0.7 𝟐𝟓.𝟗 ±0.6 44.0 ±0.4 𝟒𝟕.𝟗 ±0.4
+CE+ 29.2 ±0.2 𝟑𝟎.𝟒 ±0.0 50.3 ±0.2 𝟓𝟎.𝟗 ±0.4 46.5 ±1.0 𝟒𝟔.𝟔 ±0.5 35.8 ±0.4 𝟒𝟎.𝟒 ±0.4 28.1 ±0.3 𝟑𝟎.𝟕 ±0.3 39.7 ±0.0 𝟒𝟔.𝟑 ±0.2
+CE-L 25.5 ±0.1 𝟐𝟔.𝟗 ±0.1 45.7 ±0.2 𝟒𝟔.𝟓 ±0.8 41.3 ±0.5 𝟒𝟐.𝟔 ±0.7 36.4 ±0.5 𝟒𝟏.𝟓 ±0.4 24.1 ±0.2 𝟐𝟓.𝟗 ±0.3 39.6 ±0.5 𝟒𝟓.𝟕 ±0.2
+mt_grovle[30]is a “vision-sensitive” language embedding which is adapted from w2v using WordNet and an original vision-language
+graph built from Visual Genome[68]. The size of the final pre-trained embedding is 300.
+OpenAI-GPT [27] is a pre-trained text embedding which uses transformers [69] and language modelling on a large corpus (the
+Toronto Book Corpus) (the final model has 110M params). The size of the final pre-trained embedding is 768.
+RoBERTa[31]is a BERT-based embedding[29]. The model is trained longer with bigger batch size on more data, having 125M
+params. The size of the final pre-trained embedding is 768.
+ALBERT[32]is a lightweight modification to BERT[29]which overcomes some memory limitations, having 11M params. The size
+of the final pre-trained embedding is 768.
+GPT2-large[28]is a transformer-based[69]model trained on even more data (40 Gb of text) without any supervision, having 774M
+params. The size of the final pre-trained embedding is 1280.
+GPT2-xl[28]is similar to GPT2-large, but has more parameters (1558M params). The size of the final pre-trained embedding is 1600.
+W2V[26]is one of the most popular text embeddings used in vision tasks. It uses a neural network model to learn word representa-
+tions. The size of the final pre-trained embedding is 300.
+GPT-J[2]is a new powerful text embedding released recently. It has around 6B learnable parameters and is trained on 825Gb of
+textual data. The size of the final pre-trained embedding is 50400 and we use PCA to reduce the dimensionality to 2048.
+5.5. Ablations
+In this section we present an extensive study of our proposed approach. Following the setup used in prior works[6,7]we conduct
+ablations on theMSR-VTTdataset[52], except where otherwise stated.
+Baseline improvements. We propose CE+ as an additional baseline which consists of a series of technical improvements to the
+model of [6]. As seen in Fig.5a each modification described in Sec.4.4brings additional gain over the base architecture. We observe
+in particular that finetuning the text embedding on the target dataset has a high influence, further highlighting the critical role played
+by text embeddings and justifying their study. In addition to other changes we found that certain video embedding expert features
+were highly sensitive to jpeg compression choices used in video pre-processing. To address this, we re-extracted features from video
+frames densely extracted with minimal jpeg compression (corresponding to the use of ffmpeg[70]and the-qscale:v 2flag). In
+order to be fair in our comparisons, we apply this correction everywhere. For a fair comparison, we re-train MoEE[5]and CE[6].
+In Sec.5.11we report the results of re-training the methods[5,6]using these embeddings extracted with the updated pre-processing
+which yields a higher performance than reported in the original papers.
+9
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.7.(b)Distillationtype.Presentingvariousalternativesfordistillingtheinformationfromtheteacher:Embdregresswhichisaclassicalapproachwherethe
+queryandvideojointembeddingsaredirectlyregressedbasedontheembeddingsgivenbytheteacher,Relationaldistillation[4]whichpreservesintra-textand
+intra-videorelationships,pairwisedistancedistillation(Pdist-adapting[4]forcrossmodalrelationships),rankingdistillationinspiredby[71]atRank1andRank
+10andTeachText.Thefirstbulletrepresentsthestudentwithoutdistillation.(b)Similaritymatrixaggregation.Wepresentacomparisonofdifferentsimilarity
+matrixaggregation:min,maxandaverage.Ascanbeseen,theaverageaggregationhasthebestresults(bothwhenevaluatingtheteacherstandaloneorinconjunction
+withourTeachTextalgorithm).
+Fig.8.(a)Batchsizevariation.WevarythebatchsizefortheMSR-VTTdatasettoseehowthisaffectstheperformance.Weobservethatbatchsizeinfluences
+performance.TheunderlyingarchitectureusedforthisexperimentisCE+.(b)Lossstudy.Inthispicture,weshowhowvariousdistillationlosses(L1,L2,Huber)
+affecttheperformance.
+Additionally for the DiDeMo [55] dataset we observed that prior work [6] uses the whole clip to pre-extract the features while
+the captions describe only the first 30 seconds as described in[55]. We address this by employing only the pre-extracted features
+corresponding to the first 30 seconds of video.
+Using multiple text embeddings during inference. TeachText makes no use of additional information at test time. However,
+it is natural to ask whether the additional text embeddings can be trivially included as part of the model architecture. In Fig.5(b)
+we compare our approach with some relatively simple text embedding aggregation techniques, which require access to multiple
+text embeddings during both training and inference. We observe thatTeachTextoutperforms these aggregation techniques such as
+direct concatenation or mean of the text embeddings, suggesting that the proposed method is effective in capturing the additional
+information given by multiple text embeddings. Moreover, the text encoder of existing systems[5–7]typically employs many param-
+eters, so adding multiple text embeddings to the architecture adds a significant number of parameters (100M+). For example, the
+concatenation of two text embeddings (provided that they have the same size) almost doubles the total number of parameters for
+CE+ (approx 240M learnable parameters, yielding total model sizes of 503.98M vs 262.73M for CE+). In contrast, when employing
+TeachText, no parameters are added.
+Teacher variation.The teacher models share the same architecture with the student, but use a different text embedding. We next
+conduct an ablation on the influence of the number of used teachers. We observe in Fig. 6a that performance increases with the
+addition of more teachers. However, since the combined performance of the teachers after adding more than 3 remains similar, we
+do not obtain further improvement. Thus, for our final experiments presented in Sec.5.11we use a combination of three teachers.
+The text embeddings corresponding to these three teachers are: w2v[26], gpt2-xl[28]and gpt2-xl-F (gpt2-xl finetuned on the cap-
+tions from the target dataset). Moreover, in Fig.6b, we study how changing the embedding used by the teacher model affects the
+final performance. We observe that even though the model ingesting w2v embeddings has a significantly lower performance than
+the student model without usingTeachText, there is a significant gain when learning from the teacher which uses w2v. This again
+10
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+indicates that there is additional information captured by using a different text embedding which can be exploited byTeachText.
+Distillation ablation. We compare the proposed learning of the similarity matrix with other distillation alternatives. As seen in
+Fig.7a, our proposed approach is effective in capturing the relationships between video and text. Firstly, we test our approach against
+a more classical distillation setup, that does not follow the idea of relational distillation, where we directly regress the embeddings
+given by the teacher (Embd regress). Next, we provide comparisons betweenTeachTextand several other possible instantiations of
+relational distillation[4]. Indeed, given the highly general nature of[4],TeachTextcan be interpreted within this framework as
+a particular relational configuration that employs cross-modal distillation through batches of similarity matrices. Since the original
+work of[4]considered single-modality applications, we explore two variations of[4]as baselines for the text-video retrieval task.
+The first one (Relational), preserves the same intra-text and intra-video relationships independently. We use the same cost function
+as in[4]and enforce it on both video and text embeddings. The second approach (Pdist), uses the cross modal pairwise distances as
+a relation measure between text and video as opposed to the similarity matrix. While these methods indeed bring a gain, we observe
+thatTeachTextis most effective.
+We also provide a baseline inspired by the work of[71]that highlighted the benefits of considering only the top K predictions
+given by the teacher. To do so, we match the similarities supplied byTeachTextonly for the top K ranks given by the teacher rather
+than for the whole mini-batch. We show the performance for K=1 and K=10 (Rank 1and Rank 10presented in Fig.7b). Restricting
+to only the top K predictions when distilling the similarity matrix results in a slight drop in performance.
+Method generality.To demonstrate the generality of TeachText, we test it on three strong methods[5–7]in addition to the pro-
+posed CE+ baseline. In Table1we observe a consistent gain in performance, independent of the base architecture. Moreover, a gain
+is achieved across all datasets tested, having over 5% absolute gain on DiDeMoand ActivityNet datasets for MoEE, CE and CE+
+models. Note that for MMT[7]we report results on the datasets included in the public implementation provided by the authors.7
+We also introduce a new CE-L base architecture. This is similar to the CE[6]and CE+, but usesw2vas the text embedding, greatly
+reducing the number of architectural parameters. In Table1, we observe that our methodTeachTextis effective even when using
+this lightweight architecture. This architecture also has the lowest number of parameters when compared to prior works as can be
+seen in Table6,7,8,9,10,11,12,13.
+Similarity matrix aggregation study.In Fig.7b we present several similarity matrix aggregation strategies: min, maxand average.
+We observe that using the mean of the similarity matrices is most effective. Because of this, we use the mean as the final aggregation
+technique in ourTeachTextalgorithm.
+Batch size variation.In Fig.8a we vary the batch size during training on theMSR-VTTdataset to investigate its influence on per-
+formance. We observe that we obtain the best result using the same batch size as for the method without applying theTeachText
+algorithm (64 in this case).
+Loss study.In addition to the Huber loss (also employed by[4]), we compare against L1 and L2 losses. As observed in Fig.8b, the
+Huber loss performs better than L1 loss and slightly better than L2.
+Quantity of training data vs performance.We next study how training data quantity influences the proposed method. In Fig.9a
+we observe that by using theTeachTextwith increasing quantities of data, the performance gap increases, suggesting that its benefit
+may prove to be more useful in larger scale dataset scenarios.
+Distillation loss weight vs performance.Our final loss is the sum of the distillation loss  𝑑 and the retrieval loss  𝑟as described
+in Algorithm1. In this ablation study, we investigate the influence of varying the weight of each loss. We explore variants of the
+distillation loss weight as follows  =𝛼∗ 𝑑+(1 −𝛼) ∗ 𝑟, for different values of 𝛼∈[0.1, 1]. In Fig.9b, we observe the best results
+if the two losses have equal weight.
+Mixture of architectures.In all experiments so far, the only model difference between the teacher and the student has been the
+pre-trained text embedding fed to the model. However, our method is not limited to this constraint. In this ablation, we investigate
+the influence of using teachers with different underlying architectures. Our preliminary results shown in Fig.10a indicate that using
+a mixture of architectures as teachers brings limited gains. This suggests that, in contrast to using different text embeddings, archi-
+tectural changes introduce limited diversity into the teacher mixture.
+Joint embedding size variation.As presented in Sec.4, the student model learns a joint embedding between text and video. In this
+experiment, we vary the dimensionality of this embedding. In Fig.10b, we observe that the embedding size has a slight influence on
+performance. The best results are obtained using an embedding size of 768 which we use in all the experiments.
+Computational costWhileTeachTextdoes not incur any computational cost during inference, for training we need to train multiple
+teacher models. Depending on the dataset, the training time of a model varies between 15 minutes to 4.5 hours on one Nvidia P40
+GPU. In Table2we present an analysis with the required training time along with the number of parameters for the teacher models.
+For the final model TT-CE+ we are using three teachers, so the total training time of the teacher varies between 45 minutes to 14h,
+depending on the dataset. Please note that the teachers can be trained in parallel.
+5.6. Increasing text embedding capacity
+In this experiment, we investigate the use of the recently released GPT-J[2]model, a powerful text embedding trained on large
+volumes of text data. This model uses a particularly large embedding dimensionality (50,400), so we employ PCA on every dataset,
+7 https://github .com /gabeur /mmt.
+11
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Table2
+Trainingtime.Analysisforthetrainingtimefortheteachersbasedon
+thedataset.
+Model Dataset Params AvgTeachertrainingtime
+TT-CE+ MSR-VTT 262M 3x55.3𝑚
+TT-CE+ MSVD 87M 3x71.8𝑚
+TT-CE+ DiDeMo 99M 3x15.4𝑚
+TT-CE+ LSMDC 388M 3x80.5𝑚
+TT-CE+ Activity-Net 376M 3x271.8𝑚
+Fig.9.(a)Amountoftrainingdatavsperformance.WeobservethattherateofimprovementinducedbyTeachTextincreasesastrainingdataincreases.(b)
+Distillation loss weight vs performance.We obtain the best performance if the distillation loss  𝑑and the retrieval loss  𝑟have the same weight.
+Fig.10.(a)Mixtureofarchitectures.Weperformpreliminaryexperimentstoexplorewhetherourmethodbenefitsfromlearningfromteachersthatdonotshare
+thesamearchitecture.Thexaxiscorrespondstothemodelswhichareusedasteachers.Incaseslabelledwith3texteach,weusedthreedifferentvariationsof
+eacharchitectureasteachers,accountingforatotalnumberofno.methods*3teachers.Weobservelimitedbenefitinusingmultiplearchitecturesasteachers.(b)
+Joint-Embeddingsizevariation.WevarythesizeoftheunderlyingjointembeddingusedbythestudentmodelandapplyTeachTextit.Weobtainthebestresults
+usinga768dimensionalembedding.
+using the training split, to reduce its dimensionality to 2,048. We observe that GPT-J yields performance gains, as shown in Ta-
+ble6,7,8,9,10,11,12,13(note that the model termed TT-CE-J uses GPT-J as text embedding).
+5.7. Method application -denoising
+One immediate application of our method is data denoising. Existing real-world text-video datasets for the retrieval task suffer
+from label noise which can harm training. More concretely, in crowd-sourced datasets such asMSR-VTTthere are some captions that
+are highly ambiguous/generic (e.g.“A tutorial is presented”, “Clip showing different colours”, “A man is writing”) and can describe
+multiple videos from the dataset. We therefore propose to use TeachTextteachers to filter out such cases. For this scenario, we
+simply remove low-ranked predictions given by teachers and retrain the student using only the new samples. Specifically, we remove
+all sentences for which the correct video is not ranked in the top 40 results from the training set. This method is best-suited for
+datasets where multiple captions per video are available, ensuring that we can remove noisy captions without removing the video
+itself from training. We apply the denoising method on theMSR-VTTandMSVDdatasets (which have multiple captions per video)
+with the CE+ model. As seen in Fig.11a, this can be an effective way of further improving the results. This process can be applied
+to either the student or the teacher and in each case it brings an improvement as shown in Fig.11a. Note that denoising is not used
+in other ablations unless otherwise specified.
+In Fig.11b we vary the threshold used to filter out sentences from the training set, where we observe that denoising brings a boost
+in performance. We also observe that the best filtering threshold forMSR-VTTis rank 40. This method turns out to be effective in
+12
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.11.(a)Denoising.WeobservedinpreliminarystudiesthatsomeofthecaptionsavailableinMSR-VTTandMSVDarenoisyandmayactivelyharmthetraining
+process.Here,wepresenttheeffectofdenoisingonretrievalperformanceonMSR-VTT(y-axesscaledforclarity).WedenotebySthecasesinwhichthestudentwas
+trainedusingdenoisingandbyTthecasesinwhichtheteachersweretrainedusingdenoising.Weestimatethedegreeofnoisepresentinacaptionbylookingatthe
+teacherrankanddropthecaptionifnecessary.Weobservetheeffectivenessofdenoisingwhenappliedinisolation(CE+vsCE+Denoise)andinconjunctionwith
+thefullTeachTextmethod.Moreover,weobservethatthemethodincreasesinefficiencyifwedenoiseboththestudentandtheteacher(TEACHTEXTDenoiseT+S).
+(b)Rankvariationfordenoising.Thedenoisinginvolvesdroppingcaptionsthatareassignedalowrankingbytheteacherforthetrainingset.Inthisexperiment,
+wevarytherankbelowwhichwedropsentences.Pleasenotethatforarankof5(onthetrainingset)theamountofdroppedsentencesisapproximately46%.Note
+thatMSR-VTThas20captionspervideo,soafterapplyingthisfilterwekeeponaverage10captionspervideo.
+Table3
+Denoising-keptvsremovedqueriescomparison.
+Inordertoseeifthereareanydifferences,wecom-
+putethelengthandthespecificityscore[72]forthe
+sentenceskeptandremovedinthedenoisingprocess.
+Asitcanbeseen,theremovedqueriesareshorterand
+lessspecific.
+Average Keptqueries Removedqueries
+Length 9.39 6.98
+Specificity 0.37 0.32
+Fig.12.(a)TeachVideo-Extensiontovideosidemodalities.Weobservethatourmethodcanbeeffectiveintakingadvantageoftheadditionalinformation
+broughtbyusingmultiplevideosidemodalities,withoutincurringcomputationaloverheadattesttime.(b)TeachVideo-Modalitystudy.Inthisfigurewestudyif
+thenatureoftheremovedmodalityaffectstheperformance.Weobservethatifweremovetheaudiomodalityfromthestudentthereisasignificantlossinperformance
+and,whileTeachVideobringsanimprovement,theaudiomodalitycannotbedistilledentirely.Ontheotherhand,byemployingTeachVideowecanremovethe
+Action(KN)fromthestudentwithoutobservingadropinperformance.
+reducing noise for retrieval datasets. Our final results when comparing with prior methods are presented using denoising onMSR-VTT
+andMSVDdatasets. ForMSVDdataset we use rank 100 as a filtering threshold.
+5.8. TeachVideo -extension to video modalities
+While the focus of this work is the use of multiple text embeddings, it is natural to consider whether this approach can be
+extended to video encoder modalities. Thus, we introduce theTeachVideoalgorithm which follows the same setup as the original
+TeachText, but now the teacher has access to multiple video modalities instead of multiple text modalities. In this study, all students
+and all teachers use the same text embedding to assess the gains due to TeachVideo. By employing TeachVideo we retain the
+computational advantage of requiring fewer video modalities during inference. The experiments presented in Fig.12a suggest that
+TeachVideo can bring a boost over the original student. We believe this extension may be useful in scenarios in which limited
+computational resources are available during inference. We also study whether the selection of specific types of modalities affects
+13
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.13.(a)Performancevsquerylength.WepresenttheperformancevsquerylengthfortheMSR-VTTdataset.Asitcanbeseen,thereisaclearcorrelation
+betweentheperformanceandthequerylength.(b)ShareofcorrectlyretrievedsamplesintermsofR1whenusingTeachTextontheMSR-VTTtestset.We
+showthecasewherewelearnfrom3teachers.WecanseethatthemodelwithTeachText,preservesmostoftheknowledgefromthestudentwithoutTeachText,
+butalsoacquiresnewinformationfromtheteacher(yellowarea).Bestviewedincolour.
+Table4
+MSR-VTTfullsplit-TeachVideocomparisonwithothermethods.Asitcanbeseen,ifweremoveavideomodalityfromtheCE+model,theperformancedrops
+(CE+(w/oAudio)andCE+(w/oAction).However,ifweemployTeachVideo,wecanregainsomeoftheperformance,evenwithoutusingthatmodalityduring
+inference.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Params
+QB-Norm[73] ✓ t2v 29.6 54.5 65.3 4.0 v2t − − − − −
+CLIP2Video[74] ✓ t2v 29.8 55.5 66.2 4.0 v2t 54.6 82.1 90.8 1.0 −
+Dual[75] ✗ t2v 7.7 22.0 31.8 32.0 v2t 13.0 30.8 43.3 15.0 −
+HGR[20] ✗ t2v 9.2 26.2 36.5 24.0 v2t 15.0 36.7 48.8 11.0 −
+MoEE[5] ✗ t2v 11.1 ±0.1 30.7 ±0.1 42.9 ±0.1 15.0 ±0.0 v2t 16.5 ±0.1 43.1 ±0.5 57.3 ±0.6 7.7 ±0.5 400.41𝑀
+CE[6] ✗ t2v 11.0 ±0.0 30.8 ±0.1 43.3 ±0.3 15.0 ±0.0 v2t 17.0 ±0.5 43.5 ±0.4 57.8 ±0.5 7.2 ±0.2 183.45𝑀
+QB-Norm[73] ✗ t2v 17.3 ±0.0 42.1 ±0.1 54.9 ±0.1 8.0 ±0.0 v2t − − − − 262.73𝑀
+Teacher(CE+) ✗ t2v 13.7 ±0.3 36.4 ±0.5 48.3 ±0.5 11.0 ±0.0 v2t 22.0 ±0.6 50.8 ±1.1 64.5 ±1.1 5.3 ±0.6 262.73𝑀
+CE+(w/oAudio) ✗ t2v 12.4 ±0.2 33.6 ±0.6 46.3 ±0.6 12.7 ±0.6 v2t 19.6 ±0.7 46.3 ±1.0 60.2 ±0.9 6.5 ±0.5 226.3𝑀
+TV-CE+(w/oAudio) ✗ t2v 12.8 ±0.1 34.3 ±0.1 47.0 ±0.1 12.0 ±0.0 v2t 21.1 ±0.5 49.6 ±0.9 62.8 ±1.0 5.8 ±0.3 226.3𝑀
+CE+(w/oAction) ✗ t2v 13.5 ±0.1 36.0 ±0.1 48.8 ±0.1 11.0 ±0.0 v2t 21.7 ±0.7 51.4 ±1.1 65.1 ±0.6 5.0 ±0.0 226.69𝑀
+TV-CE+(w/oAction) ✗ t2v 14.0 ±0.0 36.6 ±0.1 49.6 ±0.0 11.0 ±0.0 v2t 22.7 ±0.2 51.7 ±0.8 65.8 ±0.6 5.0 ±0.0 226.69𝑀
+the effectiveness of distillation. In Fig.12b we observe that if we remove the audiomodality from the student, but retain it for the
+teacher thenTeachVideoimproves the student but does not enable it to match the performance of the teacher. However, we find
+that when repeating this procedure with Action(KN),TeachVideowe can successfully train a student that does not have access to
+this modality but nevertheless has the same performance as if it were available. Thus, the benefits of TeachVideodepend on the
+removed modality. Additionally, in Table4we present a comparison with other methods on the MSRVTT dataset. As it can be seen,
+if the computational resources during inference are scarce,TeachVideocan be employed to reduce the computational cost, while
+it may suffer from a slight decrease in performance. This computational cost reduction happens due to two factors: 1)TeachVideo
+requires extracting fewer video modalities for inference (in this case 6 vs 7 in the teacher case) and 2) it has fewer parameters.
+5.9. Error analysis
+The purpose of this section is to better the limitations and characteristics of our retrieval system. We begin with a simple unimodal
+analysis that investigates the influence of query length. As seen in Fig.13a, there is a positive correlation between query length and
+performance, both with and without usingTeachText.
+As part of our qualitative inspection of the queries removed during the denoising step (described in Sec.5.7), we observed that
+many of the removed sentences are quite general in nature (e.g. “a man walks away”, “a video showing scenes from a movie”). This
+motivated an investigation of differences in distribution between the pool of kept sentences and the pool of removed sentences. First,
+as seen in Table3, we found that retained sentences tend to be longer. Second, we used the sentence specificity estimation method
+of Ko et al.[72]to estimate a specificity score for each query. We found a small difference in the specificity score between removed
+and retained queries. One consequence of this observation is that it may be possible to predict retrieval performance to some degree
+for a given query by only inspecting the query itself.
+Gains due to distillation.In Fig.13b we visualise the proportions of overlapping correctly retrieved samples in terms of R1 on the
+test set of theMSR-VTTdataset for the teacher, the student, and the student withTeachText. We illustrate common retrievals when
+distillation employs three teachers. We observe that theTeachTextmodel retains most of the knowledge of the student, but also
+acquires additional information from the teacher.
+14
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Fig.14.Qualitativeresults.Wepresentthetop3videoretrievalsforeachquery,givenbytheTeachTextmethodusedontopofaCE+architecture.Moreover,
+weshowtherankandsimilarityfortheteacher,aswellasforthestudentwithoutusingTeachTextforthegroundtruthvideo.Wemarkingreencaseswherethe
+retrievaliscorrectintermsofR1andwithredcaseswhereisincorrect.Foreachofthecasesshown,themodellearnsfromtheteachertocorrectitsprediction.
+Table5
+CondensedMoviesDatasetvalidationsplitresults.Resultsarere-
+portedforourbestsinglemodelinordertoenablefuturecomparisons.
+*(pt)denotespretrainingonHowTo100M.
+Model 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓
+CMDbaseline[3] 3.44 10.29 15.7 -
+MMCM[76](pt)* 5.8 ±0.2 15.8 ±0.2 22.4 ±0.1 73.7 ±1.7
+CE+ 𝟕.𝟐 ±0.1 18.6 ±0.1 26.9 ±0.3 42.0 ±1.4
+TT-CE+ 𝟕.𝟐 ±0.4 𝟏𝟗.𝟒 ±0.1 𝟐𝟕.𝟖 ±0.8 𝟑𝟖.𝟕 ±1.2
+Table6
+MSR-VTTfullsplit:Comparisontostateoftheart.VTPTmarkscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebestperforming
+modelwherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Params
+QB-Norm[73] ✓ t2v 29.6 54.5 65.3 4.0 v2t − − − − −
+CLIP2Video[74] ✓ t2v 29.8 55.5 66.2 4.0 v2t 54.6 82.1 90.8 1.0 −
+Dual[75] ✗ t2v 7.7 22.0 31.8 32.0 v2t 13.0 30.8 43.3 15.0 −
+HGR[20] ✗ t2v 9.2 26.2 36.5 24.0 v2t 15.0 36.7 48.8 11.0 −
+MoEE[5] ✗ t2v 11.1 ±0.1 30.7 ±0.1 42.9 ±0.1 15.0 ±0.0 v2t 16.5 ±0.1 43.1 ±0.5 57.3 ±0.6 7.7 ±0.5 400.41𝑀
+CE[6] ✗ t2v 11.0 ±0.0 30.8 ±0.1 43.3 ±0.3 15.0 ±0.0 v2t 17.0 ±0.5 43.5 ±0.4 57.8 ±0.5 7.2 ±0.2 183.45𝑀
+QB-Norm[73] ✗ t2v 17.3 ±0.0 42.1 ±0.1 54.9 ±0.1 𝟖.𝟎 ±0.0 v2t − − − − 262.73𝑀
+TT-CE ✗ t2v 11.8 ±0.1 32.7 ±0.1 45.3 ±0.1 13.0 ±0.0 v2t 19.3 ±0.4 47.0 ±0.7 60.0 ±0.4 6.7 ±0.5 183.45𝑀
+TT-CE-L ✗ t2v 13.0 ±0.0 34.6 ±0.1 47.3 ±0.2 12.0 ±0.0 v2t 22.4 ±0.3 50.4 ±0.6 63.8 ±0.3 5.3 ±0.5 66.72𝑀
+TT-CE+ ✗ t2v 15.0 ±0.1 38.5 ±0.1 51.7 ±0.1 10.0 ±0.0 v2t 25.3 ±0.1 55.6 ±0.0 68.6 ±0.4 𝟒.𝟎 ±0.0 262.73𝑀
+TT-CE-J ✗ t2v 16.1 ±0.1 40.1 ±0.1 52.9 ±0.1 9.0 ±0.0 v2t 𝟐𝟔.𝟕 ±0.1 𝟓𝟕.𝟒 ±0.1 𝟕𝟎.𝟓 ±0.4 𝟒.𝟎 ±0.0 330.28𝑀
+TT-CE-J(+QB-Norm[73]) ✗ t2v 𝟏𝟖.𝟓 ±0.1 𝟒𝟑.𝟒 ±0.1 𝟓𝟓.𝟗 ±0.0 𝟖.𝟎 ±0.0 v2t − − − − 330.28𝑀
+5.10. Condensed movies challenge
+TeachTextformed the backbone of our submission to the 2021 Condensed Movies Challenge,8 where we won first place. Our
+final submission comprised an ensemble of several models, making use of multiple text embeddings in conjunction withTeachText.
+In Table5, in order to enable future comparisons, we present the results of our single models on the validation split of the Condensed
+Movies Dataset[3]used for the challenge.
+5.11. Comparison to prior work
+In Table6,7,8,9,10,11,12,13we compare our approach to prior work on seven datasets. In order to enable fair comparisons,
+we split the methods into two categories: those that use large-scale pretraining on text-video data and those that do not use. We use
+VT PTcolumn in all tables to distinguish between the two. Since in our case the focus is the usage of multiple text embeddings, we
+report results only on the case where the methods do not use video-text pre-training. This makes it easier to study the effect of each
+text embedding since there is no pre-learnt connection between the text embedding and the video embedding. Moreover, in order to
+8 https://www .robots .ox .ac .uk /~vgg /research /condensed -movies /challenge .html.
+15
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Table7
+MSR-VTT1k-Asplit[18]:Comparisonwithothers.VTPT markscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebest
+performingmodelwherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Params
+MMT[7] ✓ t2v 26.6 57.1 69.6 4.0 v2t 27.0 57.5 69.7 3.7 133.36𝑀
+MMCM[76] ✓ t2v 28.7 ±0.7 59.5 ±0.7 70.3 ±0.7 3.8 ±0.2 v2t − − − − −
+SSB[4] ✓ t2v 30.1 58.5 69.3 3.0 v2t 28.5 58.6 71.6 3.0 −
+Frozen[77] ✓ t2v 31.0 59.5 70.5 3.0 v2t − − − − 180𝑀
+HD-VILA[78] ✓ t2v 35.6 65.3 78.0 3.0 v2t − − − − −
+BVTR[79] ✓ t2v 37.6 64.8 75.1 3.0 v2t − − − − −
+OA-Trans[80] ✓ t2v 40.9 70.4 80.3 2.0 v2t − − − − −
+CLIP4Clip[81] ✓ t2v 44.5 71.4 81.6 2.0 v2t 42.7 70.9 80.6 2.0 −
+CLIP2Video[74] ✓ t2v 45.6 72.6 81.7 2.0 v2t 43.5 72.3 82.1 2.0 −
+QB-Norm[73] ✓ t2v 47.2 73.0 83.0 2.0 v2t − − − − −
+MoEE[5] ✗ t2v 21.6 ±1.0 50.8 ±1.1 65.6 ±0.7 5.3 ±0.6 v2t 22.4 ±0.5 51.2 ±1.0 66.1 ±0.4 5.2 ±0.3 400.41𝑀
+CE[6] ✗ t2v 21.7 ±1.3 51.8 ±0.5 65.7 ±0.6 5.0 ±0.0 v2t 22.7 ±0.4 51.8 ±0.4 65.7 ±0.2 5.0 ±0.0 183.45𝑀
+MMCM[76] ✗ t2v 22.5 ±0.9 53.2 ±1.5 67.1 ±0.4 4.7 ±0.5 v2t − − − − −
+MMT[7] ✗ t2v 24.6 ±0.4 54.0 ±0.2 67.1 ±0.5 4.0 ±0.0 v2t 24.4 ±0.5 56.0 ±0.9 67.8 ±0.3 4.0 ±0.0 133.36𝑀
+SSB[24] ✗ t2v 27.4 56.3 67.7 𝟑.𝟎 v2t 26.6 55.1 67.5 𝟑.𝟎 −
+QB-Norm[73] ✗ t2v 𝟑𝟑.𝟑 ±0.7 𝟔𝟑.𝟕 ±0.1 76.3 ±0.4 𝟑.𝟎 ±0.0 v2t − − − − 262.73𝑀
+TT-MMT ✗ t2v 24.8 ±0.2 55.9 ±0.7 68.5 ±1.0 4.3 ±0.5 v2t 25.1 ±1.0 57.1 ±0.8 69.9 ±1.1 4.0 ±0.0 133.36𝑀
+TT-CE-L ✗ t2v 26.5 ±0.4 58.0 ±0.8 71.1 ±0.4 4.0 ±0.0 v2t 27.6 ±0.8 58.0 ±0.6 70.0 ±0.5 4.0 ±0.0 66.72𝑀
+TT-CE+ ✗ t2v 29.6 ±0.3 61.6 ±0.5 74.2 ±0.3 𝟑.𝟎 ±0.0 v2t 𝟑𝟐.𝟏 ±0.5 62.7 ±0.5 75.0 ±0.2 𝟑.𝟎 ±0.0 262.73𝑀
+TT-CE-J ✗ t2v 29.8 ±0.1 63.6 ±0.5 𝟕𝟔.𝟕 ±0.7 𝟑.𝟎 ±0.0 v2t 30.6 ±0.8 𝟔𝟓.𝟐 ±0.8 𝟕𝟕.𝟏 ±0.5 𝟑.𝟎 ±0.0 330.28𝑀
+Table8
+MSVD:Comparisontostateoftheartmethods.VTPTmarkscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebestperformingmodel
+wherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Params
+SSB[24] ✓ t2v 28.4 60.0 72.9 4.0 v2t 34.7 59.9 70.0 3.0 −
+Frozen[77] ✓ t2v 33.7 64.7 76.3 3.0 v2t − − − − −
+OA-Trans[80] ✓ t2v 39.1 68.4 80.3 2.0 v2t − − − − −
+CLIP4Clip[81] ✓ t2v 46.2 76.1 84.6 2.0 v2t 56.6 79.7 84.3 1.0 −
+CLIP4Video[74] ✓ t2v 47.0 76.8 85.9 2.0 v2t 58.7 85.6 91.6 1.0 −
+QB-Norm[73] ✓ t2v 47.6 77.6 86.1 2.0 v2t − − − − −
+BVTR[79] ✓ t2v 52.0 82.8 90.0 1.0 v2t − − − − −
+VSE++[82] ✗ t2v 15.4 39.6 53.0 9.0 v2t 21.2 43.4 52.2 9.0 −
+M-Cues[17] ✗ t2v 20.3 47.8 61.1 6.0 v2t 𝟑𝟏.𝟓 51.0 61.5 5.0 −
+MoEE[5] ✗ t2v 21.1 ±0.2 52.0 ±0.7 66.7 ±0.2 5.0 ±0.0 v2t 27.3 ±0.9 55.1 ±1.2 65.0 ±0.8 4.3 ±0.5 131.37𝑀
+CE[6] ✗ t2v 21.5 ±0.5 52.3 ±0.8 67.5 ±0.7 5.0 ±0.0 v2t 26.3 ±1.4 53.7 ±0.4 65.3 ±1.1 4.8 ±0.2 84.04𝑀
+SSB[24] ✗ t2v 23.0 52.8 65.8 5.0 v2t 27.3 50.7 60.8 5.0 −
+QB-Norm[73] ✗ t2v 28.9 ±0.3 62.0 ±0.4 74.8 ±0.3 𝟑.𝟎 ±0.0 v2t − − − − 87.79𝑀
+TT-CE ✗ t2v 22.1 ±0.4 52.2 ±0.5 67.2 ±0.6 5.0 ±0.0 v2t 26.0 ±0.4 53.3 ±0.4 63.9 ±0.1 4.9 ±0.1 84.04𝑀
+TT-CE-L ✗ t2v 22.5 ±0.0 53.7 ±0.3 68.7 ±0.5 5.0 ±0.0 v2t 25.6 ±0.2 55.7 ±0.9 65.9 ±0.5 𝟒.𝟎 ±0.0 27.78𝑀
+TT-CE+ ✗ t2v 25.4 ±0.3 56.9 ±0.4 71.3 ±0.2 4.0 ±0.0 v2t 27.1 ±0.4 55.3 ±1.0 67.1 ±0.2 𝟒.𝟎 ±0.0 87.79𝑀
+TT-CE-J ✗ t2v 25.9 ±0.2 58.1 ±0.1 72.8 ±0.3 4.0 ±0.0 v2t 29.3 ±0.6 𝟓𝟔.𝟕 ±1.4 𝟔𝟖.𝟖 ±1.2 𝟒.𝟎 ±0.0 108.47𝑀
+TT-CE-J(+QB-Norm[73]) ✗ t2v 𝟑𝟎.𝟔 ±0.2 𝟔𝟑.𝟔 ±0.2 𝟕𝟔.𝟓 ±0.2 𝟑.𝟎 ±0.0 v2t − − − − 108.47𝑀
+be as fair as possible, in each comparison we included the results of ourTeachText(abbreviated TT in the tables) applied also to
+the best existing method for that dataset that does not use text-video data for pre-training. In this way, the architecture and the used
+features are identical during inference (e.g. TT-CE has the same architecture and uses the same video and text embeddings as CE).
+We also report results combining our strongest model with QB-Norm[73]for all datasets. Following[73]we applied the QB-Norm
+method on the text-to-video task. We highlight in bold the best performing method.
+In Table6,7,8,9,10,11,12,13we conduct an extensive comparison of our method with other methods from the literature
+fort2vandv2ttasks. We also present the number of parameters of each method where available. We observe that TeachText
+brings a clear improvement, while the total number of parameters remains the same as for the base architecture. We also introduce
+new CE-L and CE-J baselines. These are similar to CE [6] and CE+, but CE-L uses w2v as text embedding and CE-J uses gpt-J as
+text embedding. CE-L architecture has a reduced number of parameters. We observe that these architectures combine well with
+TeachText, showcasing the effectiveness ofTeachTextacross different parameter regimes. Lastly, qualitative results are provided
+in Fig.14.
+16
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Table9
+DiDeMo:Comparisontostateoftheartmethods.VTPTmarkscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebestperformingmodel
+wherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑅@50↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑅@50↑ 𝑀𝑑𝑅↓ Params
+HD-VILA[78] ✓ t2v 28.8 57.4 68.1 − 4.0 v2t − − − − − −
+Frozen[77] ✓ t2v 31.0 59.8 72.4 − 3.0 v2t − − − − − −
+OA-Trans[80] ✓ t2v 34.8 64.4 75.1 − 3.0 v2t − − − − − −
+BVTR[79] ✓ t2v 37.0 62.2 73.9 − 3.0 v2t − − − − − −
+QB-Norm[73] ✓ t2v 43.3 71.4 80.8 − 2.0 v2t − − − − − −
+CLIP4Clip[81] ✓ t2v 43.4 70.2 80.6 − 2.0 v2t 42.5 70.6 80.2 − 2.0 −
+S2VT[83] ✗ t2v 11.9 33.6 − 76.5 13.0 v2t 13.2 33.6 − 76.5 15.0 −
+FSE[84] ✗ t2v 13.9 ±0.7 36.0 ±0.8 − 78.9 ±1.6 11.0 ±0.0 v2t 13.1 ±0.5 33.9 ±0.4 − 78.0 ±0.8 12.0 ±0.0 −
+MoEE[5] ✗ t2v 16.1 ±1.0 41.2 ±1.6 55.2 ±1.6 81.7 ±1.4 8.3 ±0.5 v2t 16.0 ±1.5 41.7 ±1.9 54.6 ±1.7 81.0 ±1.4 8.7 ±0.9 107.26𝑀
+CE[6] ✗ t2v 17.1 ±0.9 41.9 ±0.2 56.0 ±0.5 83.4 ±0.7 8.0 ±0.0 v2t 17.1 ±0.1 41.8 ±0.9 55.2 ±1.0 83.0 ±0.8 7.7 ±0.5 79.29𝑀
+QB-Norm[73] ✗ t2v 24.2 ±0.7 50.8 ±0.7 64.4 ±0.1 − 5.3 ±0.5 v2t − − − − − 99.51𝑀
+TT-CE ✗ t2v 21.0 ±0.6 47.5 ±0.9 61.9 ±0.5 86.4 ±0.8 6.0 ±0.0 v2t 20.3 ±0.6 46.6 ±0.6 59.8 ±1.2 85.7 ±0.6 6.7 ±0.5 79.29𝑀
+TT-CE-L ✗ t2v 22.3 ±0.2 50.1 ±0.9 64.3 ±0.5 86.9 ±0.4 5.3 ±0.5 v2t 21.3 ±0.4 𝟒𝟖.𝟑 ±0.5 62.5 ±0.3 86.6 ±0.1 𝟔.𝟎 ±0.0 43.51𝑀
+TT-CE+ ✗ t2v 21.6 ±0.7 48.6 ±0.4 62.9 ±0.6 86.8 ±0.3 6.0 ±0.0 v2t 21.1 ±0.2 47.3 ±0.2 61.1 ±0.4 86.7 ±0.2 6.3 ±0.5 99.51𝑀
+TT-CE-J ✗ t2v 23.4 ±0.3 50.4 ±0.5 63.8 ±0.7 88.2 ±0.2 5.3 ±0.5 v2t 𝟐𝟐.𝟎 ±0.7 48.0 ±0.6 𝟔𝟐.𝟕 ±0.8 𝟖𝟕.𝟑 ±0.4 𝟔.𝟎 ±0.0 118.81𝑀
+TT-CE-J(+QB-Norm[73]) ✗ t2v 𝟐𝟔.𝟐 ±0.3 𝟓𝟐.𝟔 ±0.8 𝟔𝟔.𝟐 ±1.1 𝟖𝟗.𝟒 ±0.4 𝟓.𝟎 ±0.0 v2t − − − − − 118.81𝑀
+Table10
+LSMDC:Comparisontostateoftheartmethods.VTPTmarkscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebestperformingmodel
+wherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Params
+MMT[7] ✓ t2v 12.9 ±0.1 29.9 ±0.7 40.1 ±0.8 19.3 ±0.2 v2t 12.3 ±0.2 28.6 ±0.3 38.9 ±0.8 20.0 ±0.0 133.16𝑀
+Frozen[77] ✓ t2v 15.0 30.8 40.3 20.0 v2t − − − − −
+HD-VILA[78] ✓ t2v 17.4 34.1 44.1 15.0 v2t − − − − −
+BVTR[79] ✓ t2v 17.9 35.4 44.5 15.0 v2t − − − − −
+OA-Trans[80] ✓ t2v 18.2 34.3 43.7 18.5 v2t − − − − −
+CLIP4Clip[81] ✓ t2v 21.6 41.8 49.8 11.0 v2t 20.8 39.0 48.6 12.0 −
+QB-Norm[73] ✓ t2v 22.4 40.1 49.5 11.0 v2t − − − − −
+JSFus[18] ✗ t2v 9.1 21.2 34.1 36.0 v2t − − − − −
+MoEE[5] ✗ t2v 12.1 ±0.7 29.4 ±0.8 37.7 ±0.2 23.2 ±0.8 v2t 11.9 ±0.5 28.0 ±0.5 37.4 ±0.5 25.5 ±1.5 159.78𝑀
+CE[6] ✗ t2v 12.4 ±0.7 28.5 ±0.8 37.9 ±0.6 21.7 ±0.6 v2t 11.4 ±0.4 28.4 ±0.7 36.5 ±0.5 25.0 ±0.8 116.86𝑀
+MMT[7] ✗ t2v 13.2 ±0.4 29.2 ±0.8 38.8 ±0.9 21.0 ±1.4 v2t 12.1 ±0.1 29.3 ±1.1 37.9 ±1.1 22.5 ±0.4 133.16𝑀
+QB-Norm[73] ✗ t2v 17.8 ±0.4 37.7 ±0.5 47.6 ±0.6 12.7 ±0.5 v2t − − − − 388.24𝑀
+TT-MMT ✗ t2v 13.6 ±0.5 31.2 ±0.4 40.8 ±0.5 17.7 ±0.5 v2t 12.5 ±0.3 31.3 ±0.6 41.0 ±1.1 18.7 ±0.5 133.16𝑀
+TT-CE-L ✗ t2v 14.2 ±0.2 30.6 ±0.3 40.0 ±0.5 20.3 ±0.5 v2t 13.6 ±0.3 30.8 ±0.9 38.9 ±0.8 21.5 ±0.4 87.22𝑀
+TT-CE+ ✗ t2v 17.2 ±0.4 36.5 ±0.6 46.3 ±0.3 13.7 ±0.5 v2t 17.5 ±0.6 36.0 ±1.2 45.0 ±0.5 14.3 ±0.9 388.24𝑀
+TT-CE-J ✗ t2v 19.6 ±0.8 39.6 ±0.5 50.1 ±0.7 10.7 ±0.5 v2t 𝟏𝟗.𝟑 ±0.4 𝟑𝟖.𝟗 ±0.2 𝟒𝟖.𝟒 ±0.6 𝟏𝟏.𝟑 ±0.5 491.98𝑀
+TT-CE-J(+QB-Norm[73]) ✗ t2v 𝟐𝟎.𝟓 ±0.5 𝟒𝟎.𝟕 ±0.3 𝟓𝟏.𝟑 ±0.5 𝟗.𝟕 ±0.5 v2t − − − − 491.98𝑀
+6. Conclusion
+In this paper, we have introduced TeachText, a novel algorithm designed for text-video retrieval tasks. Utilizing a teacher-
+student paradigm, this algorithm effectively leverages multiple text embeddings, allowing for improved performance across diverse
+benchmarks. The key contributions of this work include the introduction ofTeachText, which makes use of multiple text encoders to
+enhance retrieval tasks. Additionally, we present a unique approach to learning the retrieval similarity matrix, distinguishing our work
+from existing techniques. We also demonstrate the utility of our method for dataset denoising, contributing to improved data quality
+for text-video retrieval. Experimental results validate the effectiveness of our method, showing notable improvements on six different
+benchmarks. This research builds upon our previous publication in ICCV 2021. We have further optimized the CE+ architecture,
+adding two new variants that either minimize parameters or utilize GPT-J embeddings for better performance. Additional results
+are provided for the Condensed Movies Dataset, along with an in-depth analysis that includes ablation studies and error analysis.
+Our work also expands upon denoising techniques, offering a thorough evaluation of theTeachVideoapproach. Overall, this paper
+presents significant advancements in the field of text-video retrieval, both in terms of methodological contributions and practical
+applications.
+Declaration of competing interest
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+17
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Table11
+ActivityNet:Comparisontostateoftheartmethods.VTPTmarkscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebestperforming
+modelwherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@50↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@50↑ 𝑀𝑑𝑅↓ Params
+MMT[7] ✓ t2v 28.7 ±0.2 61.4 ±0.2 94.5 ±0.0 3.3 ±0.5 v2t 28.9 ±0.2 61.1 ±0.2 94.3 ±0.4 4.0 ±0.0 127.35𝑀
+HD-VILA[78] ✓ t2v 28.5 57.4 94.0 4.0 v2t − − − − −
+MMCM[76] ✓ t2v 29.0 ±0.5 61.7 ±0.3 94.6 ±0.2 4.0 ±0.0 v2t − − − − −
+SSB[24] ✓ t2v 29.2 61.6 94.7 3.0 v2t 28.7 60.8 94.8 2.0 −
+Frozen[77] ✓ t2v 28.8 60.9 − 3.0 v2t − − − − −
+CLIP4Clip[81] ✓ t2v 40.5 72.4 98.2 2.0 v2t 41.4 73.7 85.3 2.0 −
+QB-Norm[73] ✓ t2v 41.4 71.4 97.6 2.0 v2t − − − − −
+MoEE[5] ✗ t2v 19.7 ±0.3 50.0 ±0.5 92.0 ±0.2 5.3 ±0.5 v2t 18.3 ±0.5 48.3 ±0.8 92.0 ±0.2 6.0 ±0.0 330.42𝑀
+CE[6] ✗ t2v 19.9 ±0.3 50.1 ±0.7 92.2 ±0.6 5.3 ±0.5 v2t 18.6 ±0.3 48.6 ±0.7 92.0 ±0.2 6.0 ±0.0 260.68𝑀
+HSE[57] ✗ t2v 20.5 49.3 − − v2t 18.7 48.1 − − −
+MMT[7] ✗ t2v 22.7 ±0.2 54.2 ±1.0 93.2 ±0.4 5.0 ±0.0 v2t 22.9 ±0.8 54.8 ±0.4 93.1 ±0.2 4.3 ±0.5 127.35𝑀
+SSB[24] ✗ t2v 26.8 58.1 93.5 𝟑.𝟎 v2t 𝟐𝟓.𝟓 57.3 93.5 𝟑.𝟎 −
+QB-Norm[73] ✗ t2v 27.0 ±0.2 60.6 ±0.4 96.8 ±0.0 4.0 ±0.0 v2t − − − − 376.02𝑀
+TT-MMT ✗ t2v 25.0 ±0.3 58.7 ±0.4 95.6 ±0.2 4.0 ±0.0 v2t 24.4 ±0.1 𝟓𝟖.𝟐 ±0.3 95.7 ±0.1 4.0 ±0.0 127.35𝑀
+TT-CE-L ✗ t2v 23.3 ±0.1 56.3 ±0.1 95.5 ±0.1 4.0 ±0.0 v2t 20.7 ±0.2 52.8 ±0.2 94.4 ±0.0 5.0 ±0.0 103𝑀
+TT-CE+ ✗ t2v 23.5 ±0.2 57.2 ±0.5 96.1 ±0.1 4.0 ±0.0 v2t 23.0 ±0.3 56.1 ±0.2 95.8 ±0.0 4.0 ±0.0 376.02𝑀
+TT-CE-J ✗ t2v 24.7 ±0.1 58.3 ±0.2 96.1 ±0.1 4.0 ±0.0 v2t 23.6 ±0.0 56.8 ±0.4 𝟗𝟔.𝟏 ±0.0 4.0 ±0.0 470.11𝑀
+TT-CE-J(+QB-Norm[73]) ✗ t2v 𝟐𝟖.𝟑 ±0.3 𝟔𝟏.𝟔 ±0.1 𝟗𝟔.𝟖 ±0.1 𝟑.𝟎 ±0.0 t2v − − − − 470.11𝑀
+Table12
+VaTeX:Comparisontostateoftheartmethods.VTPTmarkscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebestperformingmodel
+wherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Params
+SSB[24] ✓ t2v 45.9 82.4 90.4 1.0 v2t 61.2 85.2 91.8 1.0 −
+CLIP2Video[74] ✓ t2v 57.3 90.0 95.5 1.0 v2t 76.0 97.7 99.9 1.0 −
+QB-Norm[73] ✓ t2v 58.8 88.3 93.8 1.0 v2t - - - - -
+VSE[85] ✗ t2v 28.0 64.3 76.9 3.0 v2t − − − − −
+Dual[75] ✗ t2v 31.1 67.4 78.9 3.0 v2t − − − − −
+VSE++[82] ✗ t2v 33.7 70.1 81.0 2.0 v2t − − − − −
+HGR[20] ✗ t2v 35.1 73.5 83.5 2.0 v2t − − − − −
+SSB[24] ✗ t2v 44.6 81.8 89.5 𝟏.𝟎 v2t 58.1 83.8 90.9 𝟏.𝟎 −
+CE[6] ✗ t2v 47.9 ±0.1 84.2 ±0.1 91.3 ±0.1 2.0 ±0.0 v2t 60.7 ±1.0 89.0 ±0.4 94.9 ±0.2 𝟏.𝟎 ±0.0 115.56𝑀
+QB-Norm[73] ✗ t2v 54.8 ±0.1 88.2 ±0.1 93.8 ±0.1 𝟏.𝟎 ±0.0 v2t − − − − 223.1𝑀
+TT-CE ✗ t2v 49.7 ±0.1 85.6 ±0.1 92.4 ±0.1 2.0 ±0.0 v2t 62.1 ±0.2 90.0 ±0.1 95.3 ±0.1 𝟏.𝟎 ±0.0 115.56𝑀
+TT-CE-L ✗ t2v 51.5 ±0.1 86.5 ±0.1 92.6 ±0.1 𝟏.𝟎 ±0.0 v2t 65.0 ±0.5 90.3 ±0.5 95.9 ±0.2 𝟏.𝟎 ±0.0 55.07𝑀
+TT-CE+ ✗ t2v 53.2 ±0.2 87.4 ±0.1 93.3 ±0.0 𝟏.𝟎 ±0.0 v2t 64.7 ±0.3 91.5 ±0.3 96.2 ±0.1 𝟏.𝟎 ±0.0 223.1𝑀
+TT-CE-J ✗ t2v 55.4 ±0.2 89.0 ±0.1 94.3 ±0.0 𝟏.𝟎 ±0.0 v2t 𝟔𝟖.𝟕 ±0.6 𝟗𝟐.𝟐 ±0.1 𝟗𝟔.𝟕 ±0.1 𝟏.𝟎 ±0.0 281𝑀
+TT-CE-J(+QB-Norm[73]) ✗ t2v 𝟓𝟔.𝟗 ±0.0 𝟖𝟗.𝟓 ±0.1 𝟗𝟒.𝟖 ±0.0 𝟏.𝟎 ±0.0 v2t − − − − 281𝑀
+Table13
+QuerYD:Comparisontostateoftheartmethods.VTPTmarkscaseswherelargescalevisual-textpretrainingwasused.Weshowinboldthebestperformingmodel
+wherenovisual-textpretrainingisused.
+Model VTPT Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Task 𝑅@1↑ 𝑅@5↑ 𝑅@10↑ 𝑀𝑑𝑅↓ Params
+MoEE[5] ✗ t2v 11.6 ±1.3 30.2 ±3.0 43.2 ±3.1 14.2 ±1.6 v2t 13.0 ±3.1 30.9 ±2.0 43.0 ±2.8 14.5 ±1.8 57.75𝑀
+CE[6] ✗ t2v 13.9 ±0.8 37.6 ±1.2 48.3 ±1.4 11.3 ±0.6 v2t 13.7 ±0.7 35.2 ±2.7 46.9 ±3.2 12.3 ±1.5 30.82𝑀
+QB-Norm[73] ✗ t2v 15.1 ±1.6 38.3 ±2.4 51.2 ±2.8 10.3 ±1.7 v2t − − − − 30.82𝑀
+TT-CE ✗ t2v 14.2 ±1.4 36.6 ±2.0 51.1 ±2.1 9.7 ±1.2 v2t 14.1 ±0.5 34.8 ±3.0 𝟒𝟗.𝟏 ±0.3 𝟏𝟏.𝟑 ±0.5 30.82𝑀
+TT-CE+ ✗ t2v 14.4 ±0.5 37.7 ±1.7 50.9 ±1.6 9.8 ±1.0 v2t 𝟏𝟒.𝟑 ±0.6 𝟑𝟔.𝟑 ±0.9 48.3 ±1.2 𝟏𝟏.𝟑 ±0.5 30.82𝑀
+TT-CE-J ✗ t2v 13.9 ±1.3 38.8 ±2.8 51.6 ±1.8 10.0 ±0.8 v2t 13.9 ±0.5 36.0 ±0.9 48.6 ±1.7 𝟏𝟏.𝟑 ±1.2 30.82𝑀
+TT-CE-J(+QB-Norm[73]) ✗ t2v 𝟏𝟓.𝟒 ±0.9 𝟒𝟎.𝟓 ±1.0 𝟓𝟐.𝟑 ±1.7 𝟗.𝟐 ±1.0 v2t − − − − 30.82𝑀
+Acknowledgements
+This work was supported by EPSRC grant EP/T028572/1 and a gift from Adobe. M.L. was supported by UEFISCDI, under project
+EEA-RO-2018-0496. The authors would like to thank Gyungin Shin, Iulia Duta and Jenny Hu for assistance. S.A would like to ac-
+knowledge the support of Z. Novak, N. Novak and S. Carlson in enabling his contribution.
+During the preparation of this work the authors used GPT-4 in order to slightly rephrase parts of the content. After using this
+tool/service, the authors reviewed and edited the content as needed and take full responsibility for the content of the publication.
+18
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+Data availability
+Code and data are available online as state in the paper, at https://www .robots .ox .ac .uk /vgg /research /teachtext/.
+References
+[1]I.Croitoru,S.-V.Bogolin,M.Leordeanu,H.Jin,A.Zisserman,S.Albanie,Y.Liu,Teachtext:crossmodalgeneralizeddistillationfortext-videoretrieval,in:
+ProceedingsoftheIEEE/CVFInternationalConferenceonComputerVision,2021.
+[2]B.Wang,A.Komatsuzaki,GPT-J-6B:a6billionparameterautoregressivelanguagemodel,in,https://github.com/kingoflolz/mesh-transformer-jax,2021.
+[3]M.Bain,A.Nagrani,A.Brown,A.Zisserman,Condensedmovies:storybasedretrievalwithcontextualembeddings,in:ProceedingsoftheAsianConferenceon
+ComputerVision,2020.
+[4]W.Park,D.Kim,Y.Lu,M.Cho,Relationalknowledgedistillation,in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,
+2019.
+[5]A.Miech,I.Laptev,J.Sivic,Learningatext-videoembeddingfromincompleteandheterogeneousdata,in:arXivpreprint,arXiv:1804.02516,2018.
+[6]Y.Liu,S.Albanie,A.Nagrani,A.Zisserman,Usewhatyouhave:videoretrievalusingrepresentationsfromcollaborativeexperts,in:arXivpreprint,arXiv:
+1907.13487,2019.
+[7]V.Gabeur,C.Sun,K.Alahari,C.Schmid,Multi-modaltransformerforvideoretrieval,in:ProceedingsoftheEuropeanConferenceonComputerVision,2020.
+[8]R.Xu,C.Xiong,W.Chen,J.J.Corso,Jointlymodelingdeepvideoandcompositionaltexttobridgevisionandlanguageinaunifiedframework,in:Proceedings
+oftheAAAIConferenceonArtificialIntelligence,2015.
+[9]J.Sivic,A.Zisserman,VideoGoogle:atextretrievalapproachtoobjectmatchinginvideos,in:ProceedingsoftheIEEE/CVFConferenceonComputerVision
+andPatternRecognition,IEEE,2003.
+[10] I.Laptev,P.Pérez,Retrievingactionsinmovies,in:ProceedingsoftheIEEE/CVFInternationalConferenceonComputerVision,2007.
+[11] Y.-G.Jiang,C.-W.Ngo,J.Yang,Towardsoptimalbag-of-featuresforobjectcategorizationandsemanticvideoretrieval,in:ProceedingsoftheACMInternational
+ConferenceonImageandVideoRetrieval,2007.
+[12] L.Jiang,D.Meng,T.Mitamura,A.G.Hauptmann,Easysamplesfirst:self-pacedrerankingforzero-examplemultimediasearch,in:Proceedingsofthe22ndACM
+InternationalConferenceonMultimedia,2014.
+[13] C.Gan,Y.Yang,L.Zhu,D.Zhao,Y.Zhuang,RecognizinganActionUsingItsName:AKnowledge-BasedApproach,vol.120,Springer,2016,pp.61–77.
+[14] C.Gan,C.Sun,R.Nevatia,Deck:discoveringeventcompositionknowledgefromwebimagesforzero-shoteventdetectionandrecountinginvideos,in:Pro-
+ceedingsoftheAAAIConferenceonArtificialIntelligence,2017.
+[15] Y.Aytar,M.Shah,J.Luo,Utilizingsemanticwordsimilaritymeasuresforvideoretrieval,in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionand
+PatternRecognition,2008.
+[16] J.Dong,X.Li,C.G.Snoek,Word2visualvec:imageandvideotosentencematchingbyvisualfeatureprediction,in:arXivpreprint,arXiv:1604.06838,2016.
+[17] N.C.Mithun,J.Li,F.Metze,A.K.Roy-Chowdhury,Learningjointembeddingwithmultimodalcuesforcross-modalvideo-textretrieval,in:Proceedingsofthe
+ACMInternationalConferenceonMultimediaRetrieval,2018.
+[18] Y.Yu,J.Kim,G.Kim,Ajointsequencefusionmodelforvideoquestionansweringandretrieval,in:ProceedingsoftheEuropeanConferenceonComputerVision,
+2018.
+[19] M.Wray,D.Larlus,G.Csurka,D.Damen,Fine-grainedactionretrievalthroughmultipleparts-of-speechembeddings,in:ProceedingsoftheIEEE/CVFConference
+onComputerVisionandPatternRecognition,2019.
+[20] S.Chen,Y.Zhao,Q.Jin,Q.Wu,Fine-grainedvideo-textretrievalwithhierarchicalgraphreasoning,in:ProceedingsoftheIEEE/CVFConferenceonComputer
+VisionandPatternRecognition,2020.
+[21] A.Miech,D.Zhukov,J.-B.Alayrac,M.Tapaswi,I.Laptev,J.Sivic,Howto100m:learningatext-videoembeddingbywatchinghundredmillionnarratedvideo
+clips,in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,2019.
+[22] A.Miech,J.-B.Alayrac,L.Smaira,I.Laptev,J.Sivic,A.Zisserman,End-to-endlearningofvisualrepresentationsfromuncuratedinstructionalvideos,in:arXiv
+preprint,arXiv:1912.06430,2019.
+[23] B.Korbar,F.Petroni,R.Girdhar,L.Torresani,Videounderstandingasmachinetranslation,in:arXivpreprint,arXiv:2006.07203,2020.
+[24] M.Patrick,P.-Y.Huang,Y.Asano,F.Metze,A.Hauptmann,J.Henriques,A.Vedaldi,Support-setbottlenecksforvideo-textrepresentationlearning,in:arXiv
+preprint,arXiv:2010.02824,2020.
+[25] C.G.Snoek,M.Worring,MultimodalVideoIndexing:AReviewoftheState-of-the-Art,vol.25,Springer,2005,pp.5–35.
+[26] T.Mikolov,K.Chen,G.Corrado,J.Dean,Efficientestimationofwordrepresentationsinvectorspace,in:arXivpreprint,arXiv:1301.3781,2013.
+[27] A.Radford,K.Narasimhan,T.Salimans,I.Sutskever,etal.,Improvinglanguageunderstandingbygenerativepre-training,OpenAI,2018.
+[28] A.Radford,J.Wu,R.Child,D.Luan,D.Amodei,I.Sutskever,Languagemodelsareunsupervisedmultitasklearners,in:Preprint,2019.
+[29] J.Devlin,M.-W.Chang,K.Lee,K.Toutanova,Bert:pre-trainingofdeepbidirectionaltransformersforlanguageunderstanding,in:ProceedingsoftheAssociation
+forComputationalLinguistics,2019.
+[30] A.Burns,R.Tan,K.Saenko,S.Sclaroff,B.A.Plummer,Languagefeaturesmatter:effectivelanguagerepresentationsforvision-languagetasks,in:Proceedings
+oftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,2019.
+[31] Y.Liu,M.Ott,N.Goyal,J.Du,M.Joshi,D.Chen,O.Levy,M.Lewis,L.Zettlemoyer,V.Stoyanov,Roberta:arobustlyoptimizedbertpretrainingapproach,in:
+arXivpreprint,arXiv:1907.11692,2019.
+[32] Z.Lan,M.Chen,S.Goodman,K.Gimpel,P.Sharma,R.Soricut,Albert:alitebertforself-supervisedlearningoflanguagerepresentations,in:arXivpreprint,
+arXiv:1909.11942,2019.
+[33] L.Breiman,N.Shang,BornAgainTrees,vol.1,Citeseer,1996,p.2.
+[34] C.Buciluaˇ,R.Caruana,A.Niculescu-Mizil,Modelcompression,in:ProceedingsoftheACMSIGKDDInternationalConferenceonKnowledgeDiscoveryandData
+Mining,2006.
+[35] G.Hinton,O.Vinyals,J.Dean,Distillingtheknowledgeinaneuralnetwork,in:arXivpreprint,arXiv:1503.02531,2015.
+[36] D.Lopez-Paz,L.Bottou,B.Schölkopf,V.Vapnik,Unifyingdistillationandprivilegedinformation,in:ProceedingsoftheInternationalConferenceonLearning
+Representations,2016.
+[37] V.Vapnik,A.Vashist,ANewLearningParadigm:LearningUsingPrivilegedInformation,vol.22,Elsevier,2009,pp.544–557.
+[38] V.Vapnik,R.Izmailov,Learningusingprivilegedinformation:similaritycontrolandknowledgetransfer16(2015)2023–2049.
+[39] A.Romero,N.Ballas,S.E.Kahou,A.Chassang,C.Gatta,Y.Bengio,Fitnets:hintsforthindeepnets,in:arXivpreprint,arXiv:1412.6550,2014.
+[40] S.Zagoruyko,N.Komodakis,Payingmoreattentiontoattention:improvingtheperformanceofconvolutionalneuralnetworksviaattentiontransfer,in:arXiv
+preprint,arXiv:1612.03928,2016.
+[41] Z.Huang,N.Wang,Likewhatyoulike:knowledgedistillvianeuronselectivitytransfer,in:arXivpreprint,arXiv:1707.01219,2017.
+[42] Y.-L.Li,X.Liu,X.Wu,Y.Li,C.Lu,Hoianalysis:integratinganddecomposinghuman-objectinteraction,in:H.Larochelle,M.Ranzato,R.Hadsell,M.F.Balcan,
+H.Lin(Eds.),AdvancesinNeuralInformationProcessingSystems,vol.33,CurranAssociates,Inc.,2020,pp.5011–5022.
+19
+
+I.Croitoru,S.-V.Bogolin,M.Leordeanuetal. ArtificialIntelligence338(2025)104235
+[43] Y.Cao,M.Long,J.Wang,S.Liu,Deepvisual-semanticquantizationforefficientimageretrieval,in:ProceedingsoftheIEEE/CVFConferenceonComputerVision
+andPatternRecognition,2017.
+[44] Q.Wang,A.B.Chan,Describinglikehumans:ondiversityinimagecaptioning,in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionandPattern
+Recognition,2019.
+[45] P.Bojanowski,R.Lajugie,E.Grave,F.Bach,I.Laptev,J.Ponce,C.Schmid,Weakly-supervisedalignmentofvideowithtext,in:ProceedingsoftheIEEE/CVF
+ConferenceonComputerVisionandPatternRecognition,2015.
+[46] R.Socher,A.Karpathy,Q.V.Le,C.D.Manning,A.Y.Ng,GroundedCompositionalSemanticsforFindingandDescribingImageswithSentences,vol.2,MITPress,
+2014,pp.207–218.
+[47] J.Carreira,A.Zisserman,Quovadis,actionrecognition?Anewmodelandthekineticsdataset,in:ProceedingsoftheIEEE/CVFConferenceonComputerVision
+andPatternRecognition,2017.
+[48] D.Tran,H.Wang,L.Torresani,J.Ray,Y.LeCun,M.Paluri,Acloserlookatspatiotemporalconvolutionsforactionrecognition,in:ProceedingsoftheIEEE/CVF
+ConferenceonComputerVisionandPatternRecognition,2018.
+[49] D.Ghadiyaram,D.Tran,D.Mahajan,Large-scaleweakly-supervisedpre-trainingforvideoactionrecognition,in:ProceedingsoftheIEEE/CVFConferenceon
+ComputerVisionandPatternRecognition,2019.
+[50] A.Paszke,S.Gross,F.Massa,A.Lerer,J.Bradbury,G.Chanan,T.Killeen,Z.Lin,N.Gimelshein,L.Antiga,etal.,Pytorch:animperativestyle,high-performance
+deeplearninglibrary,in:AdvancesinNeuralInformationProcessingSystems,2019.
+[51] D.P.Kingma,J.Ba,Adam:amethodforstochasticoptimization,in:arXivpreprint,arXiv:1412.6980,2014.
+[52] J.Xu,T.Mei,T.Yao,Y.Rui,Msr-vtt:alargevideodescriptiondatasetforbridgingvideoandlanguage,in:ProceedingsoftheIEEE/CVFConferenceonComputer
+VisionandPatternRecognition,2016.
+[53] D.L.Chen,W.B.Dolan,Collectinghighlyparalleldataforparaphraseevaluation,in:ProceedingsoftheAssociationforComputationalLinguistics,2011.
+[54] S.Venugopalan,M.Rohrbach,J.Donahue,R.Mooney,T.Darrell,K.Saenko,Sequencetosequence-videototext,in:ProceedingsoftheIEEE/CVFConference
+onComputerVisionandPatternRecognition,2015.
+[55] L.AnneHendricks,O.Wang,E.Shechtman,J.Sivic,T.Darrell,B.Russell,Localizingmomentsinvideowithnaturallanguage,in:ProceedingsoftheIEEE/CVF
+ConferenceonComputerVisionandPatternRecognition,2017.
+[56] B.Thomee,D.A.Shamma,G.Friedland,B.Elizalde,K.Ni,D.Poland,D.Borth,L.-J.Li,Yfcc100m:TheNewDatainMultimediaResearch,vol.59,ACM,New
+York,NY,USA,2016,pp.64–73.
+[57] B.Zhang,H.Hu,F.Sha,Cross-modalandhierarchicalmodelingofvideoandtext,in:ProceedingsoftheEuropeanConferenceonComputerVision,2018.
+[58] A.Rohrbach,A.Torabi,M.Rohrbach,N.Tandon,C.Pal,H.Larochelle,A.Courville,B.Schiele,MovieDescription,vol.123,Springer,2017,pp.94–120.
+[59] F.CabaHeilbron,V.Escorcia,B.Ghanem,J.CarlosNiebles,Activitynet:alarge-scalevideobenchmarkforhumanactivityunderstanding,in:Proceedingsofthe
+IEEE/CVFConferenceonComputerVisionandPatternRecognition,2015.
+[60] X.Wang,J.Wu,J.Chen,L.Li,Y.-F.Wang,W.Y.Wang,Vatex:alarge-scale,high-qualitymultilingualdatasetforvideo-and-languageresearch,in:Proceedings
+oftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,2019.
+[61] A.-M.Oncescu,J.F.Henriques,Y.Liu,A.Z.Zisserman,S.Albanie,Queryd:avideodatasetwithhigh-qualitytextualandaudionarrations,in:arXivpreprint,
+arXiv:2011.11071,2020.
+[62] J.Hu,L.Shen,S.Albanie,G.Sun,E.Wu,2019,Squeeze-and-excitationnetworks.
+[63] S.Xie,R.Girshick,P.Dollár,Z.Tu,K.He,Aggregatedresidualtransformationsfordeepneuralnetworks,in:ProceedingsoftheIEEE/CVFConferenceon
+ComputerVisionandPatternRecognition,2017.
+[64] D.Mahajan,R.Girshick,V.Ramanathan,K.He,M.Paluri,Y.Li,A.Bharambe,L.vanderMaaten,Exploringthelimitsofweaklysupervisedpretraining,in:
+ProceedingsoftheEuropeanConferenceonComputerVision,2018.
+[65] S.Hershey,S.Chaudhuri,D.P.W.Ellis,J.F.Gemmeke,A.Jansen,C.Moore,M.Plakal,D.Platt,R.A.Saurous,B.Seybold,M.Slaney,R.Weiss,K.Wilson,Cnn
+architecturesforlarge-scaleaudioclassification,in:InternationalConferenceonAcoustics,SpeechandSignalProcessing(ICASSP),2017.
+[66] B.Zhou,A.Lapedriza,A.Khosla,A.Oliva,A.Torralba,Places:A10millionimagedatabaseforscenerecognition,2017.
+[67] G.Huang,Z.Liu,L.VanDerMaaten,K.Q.Weinberger,Denselyconnectedconvolutionalnetworks,in:ProceedingsoftheIEEE/CVFConferenceonComputer
+VisionandPatternRecognition,2017.
+[68] R.Krishna,Y.Zhu,O.Groth,J.Johnson,K.Hata,J.Kravitz,S.Chen,Y.Kalantidis,L.-J.Li,D.A.Shamma,etal.,VisualGenome:ConnectingLanguageand
+VisionUsingCrowdsourcedDenseImageAnnotations,vol.123,Springer,2017,pp.32–73.
+[69] A.Vaswani,N.Shazeer,N.Parmar,J.Uszkoreit,L.Jones,A.N.Gomez,Ł.Kaiser,I.Polosukhin,Attentionisallyouneed,in:AdvancesinNeuralInformation
+ProcessingSystems,2017.
+[70] F.team,Ffmpeg,https://www.ffmpeg.org/,2020.
+[71] J.Tang,K.Wang,Rankingdistillation:learningcompactrankingmodelswithhighperformanceforrecommendersystem,in:ProceedingsoftheACMSIGKDD
+InternationalConferenceonKnowledgeDiscoveryandDataMining,2018.
+[72] W.-J.Ko,G.Durrett,J.J.Li,Domainagnosticreal-valuedspecificityprediction,in:ProceedingsoftheAAAIConferenceonArtificialIntelligence,2019.
+[73] S.-V.Bogolin,I.Croitoru,H.Jin,Y.Liu,S.Albanie,Crossmodalretrievalwithquerybanknormalisation,in:ProceedingsoftheIEEE/CVFConferenceonComputer
+VisionandPatternRecognition,2022.
+[74] H.Fang,P.Xiong,L.Xu,Y.Chen,Clip2video:masteringvideo-textretrievalviaimageclip,in:arXivpreprint,arXiv:2106.11097,2021.
+[75] J.Dong,X.Li,C.Xu,S.Ji,X.Wang,Dualdenseencodingforzero-examplevideoretrieval,in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionand
+PatternRecognition,2019.
+[76] V.Gabeur,A.Nagrani,C.Sun,K.Alahari,C.Schmid,Maskingmodalitiesforcross-modalvideoretrieval,in:ProceedingsoftheIEEE/CVFWinterConferenceon
+ApplicationsofComputerVision,2022.
+[77] M.Bain,A.Nagrani,G.Varol,A.Zisserman,Frozenintime:ajointvideoandimageencoderforend-to-endretrieval,in:ProceedingsoftheIEEE/CVFInternational
+ConferenceonComputerVision,2021.
+[78] H.Xue,T.Hang,Y.Zeng,Y.Sun,B.Liu,H.Yang,J.Fu,B.Guo,Advancinghigh-resolutionvideo-languagerepresentationwithlarge-scalevideotranscriptions,
+in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,2022.
+[79] Y.Ge,Y.Ge,X.Liu,D.Li,Y.Shan,X.Qie,P.Luo,Bridgingvideo-textretrievalwithmultiplechoicequestions,in:ProceedingsoftheIEEE/CVFConferenceon
+ComputerVisionandPatternRecognition,2022.
+[80] J.Wang,Y.Ge,G.Cai,R.Yan,X.Lin,Y.Shan,X.Qie,M.Z.Shou,Object-awarevideo-languagepre-trainingforretrieval,in:ProceedingsoftheIEEE/CVF
+ConferenceonComputerVisionandPatternRecognition,2022.
+[81] H.Luo,L.Ji,M.Zhong,Y.Chen,W.Lei,N.Duan,T.Li,CLIP4Clip:anempiricalstudyofclipforendtoendvideoclipretrieval,in:arXivpreprint,arXiv:
+2104.08860,2021.
+[82] F.Faghri,D.J.Fleet,J.R.Kiros,S.Fidler,Vse++:improvingvisual-semanticembeddingswithhardnegatives,in:arXivpreprint,arXiv:1707.05612,2017.
+[83] S.Venugopalan,H.Xu,J.Donahue,M.Rohrbach,R.Mooney,K.Saenko,Translatingvideostonaturallanguageusingdeeprecurrentneuralnetworks,in:arXiv
+preprint,arXiv:1412.4729,2014.
+[84] M.Zhang,J.Lucas,J.Ba,G.E.Hinton,Lookaheadoptimizer:kstepsforward,1stepback,in:AdvancesinNeuralInformationProcessingSystems,2019.
+[85] R.Kiros,R.Salakhutdinov,R.S.Zemel,Unifyingvisual-semanticembeddingswithmultimodalneurallanguagemodels,in:arXivpreprint,arXiv:1411.2539,
+2014.
+20
+

@@ -1,0 +1,1305 @@
+ArtificialIntelligence338(2025)104245
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+Online learning in sequential Bayesian persuasion: Handling
+✩
+unknown priors
+Martino Bernasconi∗, Matteo Castiglioni, Alberto Marchesi, Nicola Gatti,
+Francesco Trovò
+PolitecnicodiMilano,PiazzaLeonardodaVinci32,Milan,Italy
+A R T I C L E I N F O A B S T R A C T
+Keywords: We study a repeated information designproblem faced by an informed senderwho tries to influence
+Online learning the behavior of a self-interested receiver, through the provision of payoff-relevant information.
+Bayesian persuasion We consider settings where the receiver repeatedly faces a sequential decision making (SDM)
+Sequentialdecisionmaking
+problem. At each round, the sender observes the realizations of random events in the SDM
+problem, which are only partially observable by the receiver. This begets the challenge of how
+to incrementally disclose such information to the receiver to persuadethem to follow (desirable)
+action recommendations. We study the case in which the sender does notknow random events
+probabilities, and, thus, they have to gradually learn them while persuading the receiver. We
+start by providing a non-trivial polytopal approximation of the set of the sender’s persuasive
+information-revelation structures. This is crucial to design efficient learning algorithms. Next,
+we prove a negative result which also applies to the non-sequential case: no learning algorithm
+can be persuasive in high probability. Thus, we relax the persuasiveness requirement, studying
+algorithms that guarantee that the receiver’s regret in following recommendations grows sub-
+linearly. In the full-feedbacksetting—where the sen√der observes the realizations of allthe possible
+random events—, we provide an algorithm with 𝑂̃ ( 𝑇)regret for both the sender and the receiver.
+Instead, in the bandit-feedbacksetting—where the sender only observes the realizations of random
+events actually occurring in the SDM problem—, we design an algorithm that, given an 𝛼∈[1∕2, 1]
+as input, guarantees 𝑂̃ (𝑇𝛼)and 𝑂̃ (𝑇max{𝛼,1−𝛼 2})regrets, for the sender and the receiver respectively.
+This result is complemented by a lower bound showing that such a regret trade-off is tight for
+𝛼∈[1∕2, 2∕3].
+1. Introduction
+Bayesian persuasion[2](a.k.a.information design) is the problem faced by an informed senderwho aims to influence the behavior
+of a self-interested receivervia the strategic provision of payoff-relevant information. This captures the problem of “who gets to know
+what”, which is fundamental in all economic interactions. Bayesian persuasion is ubiquitous in real-world problems, such as, e.g., on-
+✩ A short version of this article appeared in Advances in Neural Information Processing Systems 35: Annual Conference on Neural Information Processing Systems,
+2022[1].
+* Correspondingauthor.
+E-mailaddresses:martino.bernasconideluca@polimi.it(M.Bernasconi),matteo.castiglioni@polimi.it(M.Castiglioni),alberto.marchesi@polimi.it(A.Marchesi),
+nicola.gatti@polimi.it(N.Gatti),francesco1.trovo@polimi.it(F.Trovò).
+https://doi.org/10.1016/j.artint.2024.104245
+Received 17 July 2023; Received in revised form 1 March 2024; Accepted 3 November 2024
+Availableonline6November2024
+0004-3702/©2024ElsevierB.V.Allrightsarereserved,includingthosefortextanddatamining,AItraining,andsimilartechnologies.
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+line advertising[3–6], voting[7–10], traffic routing[11,12], recommendation systems[13], security[14,15], and marketing[16,17].
+Some recent works also address the problem of dealing with uncertain parameters in Bayesian persuasion, boosting its applicability
+in concrete settings[18–23].
+In this paper, we study Bayesian persuasion in settings where the receiver plays in a sequential decision-making(SDM) problem. An
+SDM problem is characterized by a tree structure composed of decisionnodes, where the receiver makes actions, and chancenodes,
+in which partially observablerandom events occur. The sender perfectly observes the realizations of random events, and their goal
+is to incrementally disclose the acquired information to induce the receiver towards outcomes that are desirable for them. This is
+not an easy feat when the sender and receiver have different utilities. To do so, the sender commits to a signaling schemespecifying
+a probability distribution over action recommendations for the receiver at each decision node. Specifically, the sender commits
+to a persuasivesignaling scheme, meaning that the receiver is incentivized to follow recommendations. We consider the case of a
+farsightedreceiver, meaning that they take into account all the possible future events when deciding whether to deviate or not from
+recommendations at each decision node.
+With some notable exceptions (such as, e.g., [24,25]), Bayesian persuasion models available in the literature make the strin-
+gent assumption that both the sender and receiver know the prior, which, in our setting, is defined by the probabilities associated
+with random events in the SDM problem. We relax such an assumption by considering an online learning framework in which the
+sender, without any knowledge of the prior, repeatedly interacts with the receiver and gradually learns the prior while still issuing
+recommendations.
+The model studied in this paper fits many real-world settings. For example, an e-commerce platform that issues customized
+information about products to its users, a recommendation system in a multi-media platforms that has to decide which content to
+suggest in order to keep users entertained (while still turning a profit), and navigation systems. In the following, we provide an in
+depth example on the latter application of a navigation app sending route recommendations to a driver. The app (sender) gets to
+know information about traffic congestion sequentially, as the driver progresses on their route. This is because traffic congestion
+might change during the trip, especially for long routes. Moreover, at any point in time, the app can send recommendations to the
+driver (receiver), who in turn has to take decisions on which routes to choose. The app and the driver might have different utilities. For
+example, the app may aim to minimize overall traffic congestion, while the driver may aim to minimize their travel time. Moreover,
+the driver interacts with the app multiple times, and, thus, the application must provide good recommendations (i.e., persuasive) to
+the receiver, otherwise they would switch to another navigation app.
+1.1. Original contributions
+Our goal is to design online learning algorithms that are no-regret for the sender while being persuasive for the receiver. In
+particular, in Section5, we provide a non-trivial polytopal approximation of the set of the sender’s persuasive signaling schemes. This
+approximation leverages the sequence-form formulation of the SDM problem, which gives a convenient representation of the signaling
+scheme. Intuitively, in this representation, both the sender’s utility and the receiver’s increase in utility after a single deviation are
+linear.
+This representation is crucial in designing efficient (i.e., polynomial-time) learning algorithms, and it also shows how a sender-
+optimal signaling scheme can be found in polynomial time in the offline version of our problem, which may be of independent
+interest. Next, inSection7, we prove a negative result which also applies to the non-sequential case: when the prior is unknown no
+algorithm can be persuasive at each round with high probability. This is not surprising, as it is easy to imagine a sender that is uncertain
+over two instances with different priors in which the sets of persuasive signaling schemes are disjoint. We prove our negative result by
+providing a pair of such instances. In the attempt to provide algorithms that be applied to any prior, we deal with this impossibility by
+relaxing the persuasiveness constraint. In particular, we study learning algorithms guaranteeing that the receiver’s regret in following
+recommendations grows sub-linearly while guaranteeing the same for the sender’s regret. In particular, we design learning algorithms
+for two different settings.
+First, inSection8, we study the full-feedbackcase, where the sender observes the realizat√ions of allthe random events that may
+potentially happen in the SDM problem. In such a setting, we provide an algorithm with 𝑂̃ ( 𝑇)regret for both the sender and the
+receiver. The algorithm keeps track of a confidence set of the set of persuasive signaling schemes and chooses signaling schemes
+optimistically with respect to this set.
+Then, in Section 9, we focus on the bandit-feedbacksetting, where the sender only observes the realizations of random events
+on the path in the tree traversed during the SDM problem. The challenge of this scenario stems from the fact that, when ignoring
+the prior, neither the sender nor the receiver knows the magnitude of the violation of the persuasiveness constraints. Thus, our
+algorithm performs a preliminary uniform exploration phase of the tree. The algorithm keeps track of a high-probability set of
+possible priors. After the exploration phase, the algorithm fixes the set of signaling schemes to use in the remaining steps in which
+it will act optimistically with respect to both the prior and the signaling scheme. In this case, we design an algorithm that achieves
+𝑂̃ (𝑇𝛼)sender’s regret and 𝑂̃ (𝑇max{𝛼,1−𝛼 2})receiver’s regret, for any 𝛼∈[1∕2, 1]given as input. Finally, inSection9.3, we provide a
+lower bound showing that the regrets trade-off achieved by our algorithm is tight for 𝛼∈[1∕2, 2∕3]. This trade-off nature between
+utility and constraint violation is non-standard and might be of independent interest to other online learning problems. Moreover,
+our lower bound essentially proves the need for the exploration phase. Indeed our lower bound is built on instances in which there
+are portions of the tree that are sub-optimal—not being played in the optimal solution—, yet are needed to be explored to know the
+set of persuasive signaling schemes.
+2
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+1.2. Related works
+In the following, we provide a survey of works that are somehow related to ours, discussing their main differences.
+Work byZu etal.[24] The work that is most related to ours is the one byZu etal.[24], who study a (non-sequential) Bayesian
+persuasion problem in which the sender and the receiver do not know the prior and they √are involved in repeated interaction. In
+such a non-sequential model, Zu etal.[24]provide a learning algorithm that achieves 𝑂̃ ( 𝑇)sender’s regret with respect to the
+best-in-hindsight signaling scheme that one can produce when knowing the prior, while at the same time being persuasive across
+all rounds with high probability. This result requires some regularity assumptions over the prior that may not hold in the general
+case and that, in the sequential case, appear to be even more severe. In the attempt to design algorithms that can be applied with
+any prior, we adopt a fundamentally different approach, which involves relaxing the persuasiveness assumption and trading off the
+sender’s and receiver’s regret.
+Bayesian persuasion in Markov decision processes Recently, some works addressed Bayesian persuasion in settings in which the
+sender and the receiver are involved in a sequential interaction, focusing on Markov decision processes (MDPs). In particular, Gan
+etal.[26]andWu etal.[27]show how to efficiently find a sender-optimal signaling policy when the receiver is myopic(i.e., they
+only optimize one-step rewards) in MDPs with infinite and finite horizon, respectively. On the other hand Bernasconi et al. [28]
+studied the problem of persuading farsighted receivers in MDPs. However, both Gan etal.[26]and Bernasconi etal.[28]assume
+that the environment is known, and, thus, they only focus on the (offline) sender’s optimization problem. On the other hand,Wu
+etal.[27]also consider an online learning framework in which the sender has √to learn the prior, as well as their rewards and the
+transition kernel of the MDP. They provide a learning algorithm that achieves 𝑂̃ ( 𝑇)sender’s regret, while at the same time guaran-
+teeing persuasive recommendations to the (myopic) receiver. These works considerably differ from ours, since our model involves a
+farsighted receiver and the fact that the latter may have partial observability over realizations of random events. More in particular,
+we can model any information revelation structure in the sequential problem, like the case in which the receiver can distinguish
+between some nature’s states but not others (seeFig.1for an example). Let us remark thatGan etal.[26]also study a variation of
+their model in which the receiver is farsighted, showing that, in such a setting, the problem of finding a sender-optimal signaling
+policy isNP-hard to approximate. As a result,Gan etal.[26]do notprovide any algorithmic result for their model with a farsighted
+receiver. On the other hand, in our model, we consider farsighted receivers. However, this does not contradict our result, as we have
+a tree-like structure of the game which allows efficient algorithms. Moreover, even if any MDP could be converted into our sequential
+decision model framework, this transformation is not efficient and thus we cannot use our algorithm to solve persuasion problems
+with farsighted receivers in MDPs.
+Other works on sequential Bayesian persuasion models It is also worth citing that other works study sequential versions of Bayesian
+persuasion, though they are not related to ours as much as [26] and [27]. Among these works, Celli et al. [29] study Bayesian
+persuasion with multiple receivers interacting in a sequential game with imperfect information. Differently from ours, their model
+adopts a different notion of persuasiveness, known as ex antepersuasiveness, and it assumes that the prior is known. Very recently,Su
+etal.[30]andNi etal.[31]initiate the study of settings where the sender and the receiver repeatedly interact in a one-shot Bayesian
+persuasion problem, with the sender committing to a sequence of signaling schemes in which, at each round of the interaction, the
+sender’s choice depends on the outcomes of all the previous rounds and is consistent with the receiver’s posterior believes at that
+round. These works assume that the prior is known to both the sender and the receiver, and, thus, they considerably depart from
+ours.
+Bayesian persuasion with unknown receivers’ types Over the last years, some works (see, e.g.,[18,32,33]) addressed the problem of
+relaxing Bayesian persuasion assumptions by considering the case in which the sender does not know receivers’ payoffs. In partic-
+ular, Castiglioni et al. [18,32] consider an online learning framework in which the sender repeatedly interacts with a stream of
+receivers whose types are selected beforehand by an adversary. These latter works use techniques inherited from the online learning
+literature as we do in this paper; however, their adoption is fundamentally different from the one we undertake in this paper.
+Online learning in SDM problems with constraints Another line of research, which uses techniques that are similar to those employed in
+this paper, studies learning in SDM problems in which the learner has to satisfy unknown constraints[34,35]. In particular,Bernasconi
+etal.[35]study the learning problem faced by a single agent in a repeated SDM problem with both rewards and costs. The authors
+study a setting in which the goal of the learner is to maximize long-term rewards while guaranteeing that some cost constraints are
+satisfied in the long term, thus allowing for the constraints to be violated during some rounds. The problem that we study in this
+paper is similar, but it raises considerable additional challenges due to the structure of the persuasiveness constraints.
+2. Preliminaries
+2.1. Sequential decision making problems
+An instance of an SDM problem is defined by a tree structure, utilities, and random events probabilities. The tree structure has
+a set of nodes ∶= ∪ 𝑑∪ 𝑐, where: contains all the terminal nodesin which the problem ends (corresponding to the leaves
+3
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+of the tree),  𝑑 is the set of decision nodesin which the agent acts, while  𝑐 is the set of chance nodeswhere random events occur.
+Given any non-terminal node ℎ ∈⧵, we let 𝐴(ℎ)be the set of arcs outgoing from ℎ. If ℎ ∈ 𝑑, then 𝐴(ℎ)is the set of receiver’s
+actions available at ℎ, while, if ℎ ∈ 𝑐, then 𝐴(ℎ)encodes the possible outcomes of the random event occurring at ℎ. Furthermore,
+the utility function 𝑢 ∶ →[0, 1]defines the agent’s payoff 𝑢(𝑧)when the problem ends in terminal node 𝑧 ∈. Finally, each chance
+node ℎ ∈ 𝑐is characterized by a probability distribution 𝜇 ℎ∈Δ𝐴(ℎ)over the possible outcomes of the corresponding random event,
+with 𝜇 ℎ(𝑎)denoting the probability of action 𝑎 ∈𝐴(ℎ).1
+In an SDM problem, the agent has imperfect information, since they do notperfectly observe the outcomes of random events. Thus,
+the set of decision nodes  𝑑 is partitioned into information sets(infosets for short), where an infoset 𝐼⊆ 𝑑 is a subset of decision
+nodes that are indistinguishable for the agent. We denote the set of infosets as . For every infoset 𝐼∈and pair of nodes ℎ, ℎ′∈𝐼,
+it must be the case that 𝐴(ℎ) =𝐴(ℎ′) =∶𝐴(𝐼), otherwise the agent could distinguish between the two nodes. We assume that the
+agent has perfect recall, which means that they never forget information once acquired. Formally, this is equivalent to assuming that,
+for every infoset 𝐼∈, all the paths from the root of the tree to a node ℎ ∈𝐼 identify the same ordered sequence of agent’s actions.
+2.2. Bayesian persuasion in sequential decision making problems
+We study Bayesian persuasion in SDM(BPSDM) problems. These extend the Bayesian persuasion framework[2]to SDM problems
+by introducing an exogenous agent that acts as a senderby issuing signals to the decision-making agent (the receiver).2By following
+the Bayesian persuasion terminology, the probability distributions 𝜇 ℎfor each chance node ℎare collectively referred to as the prior.
+Thus, the sender observes the realizations of random events occurring in the SDM problem and can partially disclose information to
+influence the receiver’s behavior. Moreover, the sender’s utility function is defined over terminal nodes, denoted as 𝑓 ∶ →[0, 1],
+and their goal is to commit to a publicly known signaling schemethat maximizes their utility in expectation with respect to the prior,
+the signaling scheme, and the receiver’s strategy.
+Formally, a signaling scheme for the sender defines a probability distribution 𝜙 ℎ∈Δ𝑆(ℎ) at each decision node ℎ ∈ 𝑑, where
+𝑆(ℎ) is a finite set of signals available at ℎ. During the SDM problem, when the receiver reaches a node ℎ ∈ 𝑑 belonging to an
+infoset 𝐼∈, the sender draws a signal 𝑠 ∼𝜙 ℎ and communicates it to the receiver. Then, based on the history of signals observed
+from the beginning of the SDM problem (𝑠included), the receiver computes a posteriorbelief over the nodes belonging to the infoset
+𝐼 and plays so as to maximize their expected utility in the SDM sub-problem that starts from 𝐼, taking into account the just acquired
+information.
+As customary in these settings, a simple revelation-principle-style argument allows us to focus on signaling schemes that are direct
+and persuasive[2,36]. In particular, a signaling scheme is direct if signals correspond to action recommendations, namely 𝑆(ℎ) =𝐴(ℎ)
+for all ℎ ∈ 𝑑. A direct signaling scheme is persuasive if the receiver is incentivized to follow action recommendations issued by the
+sender. Moreover, we assume that, if the receiver does not follow action recommendations at some decision node, then the sender
+stops issuing recommendations at nodes later reached during the SDM problem. This is without loss of generality. We refer to[37,38]
+for a discussion on a similar problem in the field of correlation in sequential games.
+2.3. The sequence-form representation
+The sequence formis a commonly-used, compact way of representing (mixed) strategiesin SDM problems[39]. In this work, the
+sequence-form representation will be employed for the receiver’s strategies, and to encode the signaling schemes and priors, as we
+describe in the following.
+Receiver’s strategies Given any ℎ ∈, we let 𝜎 𝑟(ℎ)be the ordered sequenceof the receiver’s actions on the path from the root of the
+tree to node ℎ. By the perfect recall assumption, given any infoset 𝐼∈, it holds that 𝜎 𝑟(ℎ) =𝜎 𝑟(ℎ′) =∶𝜎 𝑟(𝐼)for every pair of nodes
+ℎ, ℎ′∈𝐼. Thus, we can identify sequences with infoset-action pairs, with 𝜎=(𝐼, 𝑎) encoding the sequence of actions obtained by
+appending action 𝑎 ∈𝐴(𝐼)at the end of 𝜎 𝑟(𝐼), for any infoset 𝐼∈. Moreover, ∅denotes the empty sequence. Hence, the receiver’s
+sequences are Σ𝑟∶={(𝐼,𝑎)∣𝐼∈,𝑎∈𝐴(𝐼)}∪{∅}. In the sequence-form representation, mixed strategies are defined by specifying
+the probability of playing each sequence of actions. Thus, a receiver’s strategy is represented by a vector 𝒙∈[0, 1]|Σ𝑟| , where 𝒙[𝜎]
+encodes the realization probability of sequence 𝜎∈Σ𝑟. Furthermore, a sequence-form strategy is well-defined if and only if it satisfies
+the following linear constraints:
+∑
+𝒙[∅]=1 and 𝒙[𝜎 𝑟(𝐼)]= 𝒙[𝜎 𝑟(𝐼)𝑎] ∀𝐼∈.
+𝑎∈𝐴(𝐼)
+We denote by  𝑟 the polytope of all receiver’s sequence-form strategies. We will also need to work with the sets of receiver’s
+strategies in the SDM sub-problem that starts from an infoset 𝐼∈, formally defined as:
+{ }
+ 𝑟,𝐼∶= 𝒙∈ 𝑟∣𝒙[𝜎 𝑟(𝐼)]=1 .
+1 For a finite set 𝑋we denote with Δ𝑋the set of probability distributions over 𝑋.
+2 In Section3, we show that BPSDM reduces to classical Bayesian persuasion when there is no sequentiality.
+4
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Signaling schemes We represent signaling schemes in sequence form by leveraging the fact that the sender can be thought of as a
+perfect-information agent who plays at the decision nodes of the SDM problem since their actions co{rrespond to recommenda}tions for
+the receiver. Thus, since the sender’s infosets correspond to decision nodes, their sequences Σ𝑠∶= (ℎ,𝑎)∣ℎ∈ 𝑑,𝑎∈𝐴(ℎ) ∪{∅}.
+Then, we denote the polytope of (sequence-form) signaling schemes as Φ ⊆[0, 1]|Σ𝑠| , where each signaling scheme is represented as
+a vector 𝝓∈[0, 1]|Σ𝑠| satisfying:
+∑
+𝝓[∅]=1 and 𝝓[𝜎 𝑠(ℎ)]= 𝑎∈𝐴(ℎ)𝝓[𝜎 𝑠(ℎ)𝑎] ∀ℎ∈ 𝑑,
+where, similarly to 𝜎 𝑟(ℎ)for the receiver, 𝜎 𝑠(ℎ)denotes the sender’s sequence identified by ℎ ∈. We also define Π ∶=Φ ∩{0, 1}|Σ𝑠|
+as the set of deterministicsignaling schemes, which are those that recommend a single action with probability one at each decision
+node.
+Priors We also encode prior probability distributions 𝜇 ℎ using the sequence form. Indeed, these can be thought of as elements of a
+fixed strategy played by a (fictitious) perfect-information agent that acts at chance nodes. Thus, for such a chance agent, we define
+Σ𝑐,  𝑐, and 𝜎 𝑐(ℎ)as their counterparts previously introduced for the receiver. Moreover, in the following, we denote by 𝝁⋆∈ 𝑐 the
+(sequence-form) prior, recursively defined as follows:
+𝝁⋆[∅]∶=1 and 𝝁⋆[𝜎 𝑐(ℎ)𝑎]∶=𝝁⋆[𝜎 𝑐(ℎ)]𝜇 ℎ(𝑎) ∀ℎ∈ 𝑐,∀𝑎∈𝐴(ℎ).
+Note the prior distribution over nodes ℎof an infoset 𝐼 is obtained by normalizing the sequence-form prior as follows:
+∑𝝁⋆[𝜎 𝑐(ℎ)]
+,
+𝝁⋆[𝜎 𝑐(ℎ′)]
+ℎ′∈𝐼
+which defines a distribution over nodes ℎ ∈𝐼.
+Ordering of sequences For the sake of presentation, we introduce a partial ordering relation among sequences. Given two sequences
+𝜎=(𝐼, 𝑎) ∈Σ𝑟 and 𝜎′=(𝐽, 𝑏) ∈Σ𝑟, we write 𝜎⪯𝜎′ (read as 𝜎 precedes𝜎′), whenever there exists a path in the tree connecting a
+node in 𝐼 to a node in 𝐽, and such a path includes action 𝑎. We adopt analogous definitions for sequences in Σ𝑠and Σ𝑐.
+2.4. Additional notation
+We introduce some additional notation that will be useful in the proofs. Fig.A.4summarizes the notation used in the paper.
+We denote by Π𝑟 ∶= 𝑟 ∩{0, 1}|Σ𝑟| the set of deterministic sequence-form strategies (a.k.a. pure strategies) of the receiver,
+which are the strategies specifying to play a single action with probability one at each infoset. The set of receiver’s determin-
+istic strategies in the SDM sub-problem that starts from an infoset 𝐼 ∈ is denoted as Π𝑟,𝐼 ∶= 𝑟,𝐼 ∩{0, 1}|Σ𝑟| . Moreover, we
+l{et Σ𝑟,𝐼 ⊆Σ𝑟 be the set of receiver’s seq}uences in the SDM sub-problem that starts from an infoset 𝐼 ∈; formally, Σ𝑟,𝐼 ∶=
+𝜎∈Σ𝑟∣𝜎 𝑟(𝐼)⪯𝜎∧∃𝑧∈(𝐼)∶𝜎⪯𝜎 𝑟(𝑧) .
+Given any infoset 𝐼∈, we let (𝐼) ⊂be the set of terminal nodes 𝑧 ∈such that the path from the root of the tree to 𝑧passes
+through a node in 𝐼. Moreover, given 𝜎=(𝐼, 𝑎)with 𝑎 ∈𝐴(𝐼), we define (𝜎) =(𝐼, 𝑎) ⊂(𝐼)as the set of terminal nodes whose
+corresponding paths include playing action 𝑎at a node in 𝐼. For every infoset 𝐼∈, we also introduce a function ℎ 𝐼 ∶𝑍(𝐼) →𝐼
+such that ℎ 𝐼(𝑧)defines the unique node ℎ ∈𝐼 on the path from the root of the tree to 𝑧.
+Given an infoset 𝐼∈and an action 𝑎 ∈𝐴(𝐼), we define 𝐶(𝐼, 𝑎) ⊆as the set of all the infosets which immediately follow infoset
+𝐼 through action 𝑎, i.e., those infosets 𝐽∈ such that 𝜎 𝑟(𝐽) =(𝐼, 𝑎). Moreover, we let 𝐶(𝐼) ⊆ be the set of all infosets that follow
+, i.e., those infosets 𝐽∈such that there exists𝑎 ∈𝐴(𝐼)with 𝜎=(𝐼, 𝑎)such that 𝜎⪯𝜎 𝑟(𝐽).
+3. Example of BPSDM problem
+Initially, we illustrate a simple instance of the SDM problem to further clarify the notation and the concept introduced in the
+previous section and its relationship with the BPDSM problem.
+Example of BPSDM Fig.1shows a tree whose set of chance nodes is  𝑐={ℎ 0}, while the set of decision nodes is  𝑑={ℎ 1, ℎ 2, ℎ 3}.
+The set of terminal nodes is  ={𝑧 1, … , 𝑧 6}. Moreover, the set of decision nodes  𝑑 is partitioned into the set partition ={𝐼, 𝐽},
+which is made by two infosets 𝐼={ℎ }and 𝐽={ℎ , ℎ }.
+1 2 3
+The sets of sequences are constructed as follows. For the chance, we have that Σ𝑐={(ℎ 0, 𝑎), (ℎ 0, 𝑏), (ℎ 0, 𝑐)}, while for the agent
+we have that Σ𝑟={(𝐼, 𝑑), (𝐼, 𝑒), (𝐽, 𝑓), (𝐽, 𝑔)}. Let us remark that, since the agent cannot distinguish between nodes ℎ and ℎ 3, it
+2
+only has 2sequences originating from such nodes; namely (𝐽, 𝑓)and (𝐽, 𝑔). In the BPSDM problem, the agent plays the role of the
+receiver, while the sender can be thought of as a perfect-information agent selecting action recommendations for the receiver at
+decision nodes. Therefore, the sender’s set of sequences is Σ𝑠={(ℎ 1, 𝑑), (ℎ 1, 𝑒), (ℎ 2, 𝑓), (ℎ 2, 𝑔), (ℎ 3, 𝑓), (ℎ 3, 𝑔)}.
+5
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Fig.1.ExampleofSDMproblemanditssetsofsequencesΣ𝑟,Σ𝑠,andΣ𝑐.
+4. Learning to persuade
+𝝁⋆
+In this work, we relax the strong assumption that both the sender and the receiver know the prior by casting the BPSDM
+problem into an online learning frameworkin which the sender repeatedly interacts with the receiver over a time horizon of length 𝑇.
+At each round 𝑡 ∈[𝑇], the interaction goes as follows3: (i) the sender commits to a signaling scheme 𝝓 𝑡∈Φ; (ii) a vector 𝒚 𝑡∈{0, 1}|Σ𝑐|
+𝝁⋆
+encoding realizations of random events is drawn according to ; (iii) the sender and the receiver play an instance of the (one-shot)
+BPSDM problem (detailed in Section2.2), in which the sender commits to 𝝓 𝑡, random events at chance nodes are realized as defined
+by 𝒚 𝑡, and the receiver sticks to the recommendations issued by the sender; and (iv) the sender observes a feedbackon the realization of
+random events at chance nodes, which can be of two types: full feedbackwhen the sender observes 𝒚 𝑡, which specifies the realizations
+of all the random events at chance nodes that are possibly reachable during the SDM problem; bandit feedback when the sender
+observes the terminal node 𝑧 𝑡∈reached at the end of the SDM problem. The latter is equivalent to observing the realizations of
+random events at the chance nodes that are actually reached during the SDM problem, namely 𝜎 𝑐(𝑧 𝑡).
+Φ⋄(𝝁⋆)be
+By letting the set of persuasive signaling schemes, i.e., such that the receiver is incentivized to follow recommendations
+(a formal definition is provided in Definition2), the goal of the sender is to select a sequence of signaling schemes, namely 𝝓 1, … , 𝝓 𝑇,
+which maximizes their expected utility, while guaranteeing that each signaling scheme 𝝓 𝑡is persuasive, namely 𝝓 𝑡∈Φ⋄(𝝁⋆).
+We measure the performance of a sequence 𝝓 1, … , 𝝓 𝑇 of signaling schemes by comparing it with an optimal (fixed) persuasive
+signaling scheme. Formally, given a signaling scheme 𝝓∈Φ, we first define 𝑈(𝝓, 𝝁⋆), respectively 𝐹(𝝓, 𝝁⋆), as the expected utility
+achieved by the receiver, respectively the sender, whenever the former follows action recommendations. These can be expressed as
+linear functions of 𝝓, which, for any 𝝁∈ 𝑐, are defined as follows:
+∑ ∑
+𝑈(𝝓,𝝁)∶= 𝝁[𝜎 𝑐(𝑧)]𝝓[𝜎 𝑠(𝑧)]𝑢(𝑧), 𝐹(𝝓,𝝁)∶= 𝝁[𝜎 𝑐(𝑧)]𝝓[𝜎 𝑠(𝑧)]𝑓(𝑧).
+𝑧∈ 𝑧∈
+Finally, by letting 𝝓⋆ ∈argmax𝝓∈Φ⋄(𝝁⋆)𝐹(𝝓, 𝝁⋆)be an optimal (fixed) persuasive signaling scheme, the sender’ performance over
+𝑇 rounds is measured by the (cumulative) sender’s regret:
+( )
+∑
+𝑅 𝑇 ∶= 𝑡∈[𝑇] 𝐹(𝝓⋆,𝝁⋆)−𝐹(𝝓 𝑡,𝝁⋆) .
+The goal is to design learning algorithms (for the sender) which select sequences of persuasive signaling schemes such that 𝑅 𝑇
+grows asymptotically sub-linearly in 𝑇, namely 𝑅 𝑇 =𝑜(𝑇).
+5. On the characterization of persuasive signaling schemes
+5.1. A local decomposition of persuasiveness
+Φ⋄(𝝁⋆)as
+In this section, we formally introduce the set of persuasive signaling schemes the set of signaling schemes for which
+the receiver’s expected utility by following recommendations is greater than the one provided by an optimal deviation policy(DP).4In
+addition, we show how to decompose any DP into components defined locally at each infoset, which will be crucial in the following
+Section5.2. Intuitively, a DP for the receiver is specified by two elements: (i) a set of deviation pointsin which the DP prescribes to
+stop following action recommendations; and (ii) the continuation strategiesto be adopted after deviating from recommendations.
+We represent deviation points by vectors 𝝎∈{0, 1}|Σ𝑟| , which are defined so that 𝝎[𝜎] =1 if and only if the DP prescribes to
+deviate upon observing the sequence of action recommendations 𝜎∈Σ𝑟. Moreover, by leveraging the w.l.o.g. assumption that the
+sender stops issuing recommendations after the receiver deviated from them, we focus on DPs such that each path from the root of
+the tree to a terminal node involves only one deviation point. This is standard result when dealing with sequential recommendations
+(see [37]for an example). As a result, the set of all valid vectors 𝝎∈{0, 1}|Σ𝑟| is formally defined as
+{ }
+| ∑
+|
+Ω∶= 𝝎∈{0,1}|Σ𝑟|| | 𝝎[𝜎]≤1 ∀𝑧∈ .
+|𝜎∈Σ𝑟∶𝜎⪯𝜎𝑟(𝑧)
+3 Throughout this work, for 𝑛 ∈ℕ, we denote with [𝑛]the set {1, … , 𝑛}.
+4 For ease of exposition, all the definitions and results in this section are provided for the prior 𝝁⋆. It is straightforward to generalize them to the case of a generic
+𝝁∈ 𝑐.
+6
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+⨉ We represent the continuation strategies of DPs by introducing the set of continuation strategy profiles, denoted as  ∶=
+𝜎=(𝐼,𝑎)∈Σ𝑟 𝑟,𝐼. A continuation strategy profile 𝝆∈, with 𝝆=(𝝆 𝜎)𝜎∈Σ𝑟, defines a strategy 𝝆 𝜎∈ 𝑟,𝐼 for every receiver’s sequence
+𝜎=(𝐼, 𝑎) ∈Σ𝑟. Intuitively, 𝝆 𝜎 is the strategy for the SDM sub-problem starting from infoset 𝐼 that is used by the receiver after
+deviating upon observing sequence 𝜎∈Σ𝑟. As a result, any pair (𝝎, 𝝆) ∈Ω × specifies a valid DP; formally:
+Definition 1 (Deviation policy). Given a vector 𝝎∈Ωand a profile 𝝆∈, the (𝝎, 𝝆)-DPprescribes to follow sender’s recommendations
+until action 𝑎is recommended at infoset 𝐼 for some sequence 𝜎=(𝐼, 𝑎)such that 𝝎[𝜎] =1; from that point on, it prescribes to play
+according to strategy 𝝆 𝜎.
+We denote by 𝑈𝝎→𝝆(𝝓, 𝝁⋆)the receiver’s expected utility obtained with a (𝝎, 𝝆)-DP, so that we can state the following formal
+definition of persuasive signaling schemes.
+Definition 2 (Persuasiveness). A signaling scheme 𝝓∈Φis 𝜖-persuasive, namely 𝝓∈Φ⋄ 𝜖(𝝁⋆), if
+max 𝑈𝝎→𝝆 (𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )≤𝜖. (1)
+(𝝎,𝝆)∈Ω×
+Moreover, a signaling scheme 𝝓∈Φis persuasive, namely 𝝓∈Φ⋄(𝝁⋆), if it is 0-persuasive.
+Intuitively, the above definition states that a signaling scheme is 𝜖-persuasive if the receiver’s expected utility by following rec-
+ommendations is at most 𝜖less than the one obtained by an optimal DP, which is a DP maximizing receiver’s expected utility.
+Our local decomposition of DPs is based on suitably defined, simple deviation policies, which we call single-point DPs(SPDPs).
+These are special cases of DPs that stop following the sender’s action recommendations only when a specific single infoset is reached
+and a particular action is recommended therein. SPDPs are formally defined as follows:
+Definition 3 (Single-point deviation strategy). Given a receiver’s sequence 𝜎=(𝐼, 𝑎) ∈Σ𝑟and a receiver’s strategy 𝝆 𝜎∈ 𝑟,𝐼for the SDM
+sub-problem starting from infoset 𝐼, the (𝜎, 𝝆 𝜎)-SPDPprescribes to follow sender’s recommendations until action 𝑎is recommended
+at infoset 𝐼; from that point on, the strategy prescribes to play according to 𝝆 𝜎.
+We denote by 𝑈 𝜎→𝝆𝜎(𝝓, 𝝁⋆)the receiver’s expected utility obtained by following an (𝜎, 𝝆 𝜎)-SPDP. The following theorem provides
+the key result underlying our decomposition.5 It shows that the difference between the utility achieved by a (𝝎, 𝝆)-DP and that
+obtained by following recommendations can be decomposed into the sum over all the sequences 𝜎∈Σ𝑟 of analogous differences
+defined for the (𝜎, 𝝆 𝜎)-SPDPs, where each difference is weighted by 𝝎[𝜎].
+Theorem 1. Given a signaling scheme 𝝓∈Φand a (𝝎, 𝝆)-DP, it holds:
+( )
+∑
+𝑈𝝎→𝝆(𝝓,𝝁⋆)−𝑈(𝝓,𝝁⋆)= 𝜎∈Σ𝑟𝝎[𝜎] 𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆)−𝑈(𝝓,𝝁⋆) .
+5.2. A polytopal approximation of the set of persuasive signaling schemes
+Φ⋄ 𝜖(𝝁⋆)
+In the following, we show how to exploit Theorem 1 to provide an approximate characterization of the set using a
+polynomially-sized polytope. First, we state a corollary of Theorem1showing that persuasiveness can be bounded by suitably defined
+SPDPs. Formally, we have6:
+Corollary 1. Given a signaling scheme 𝝓∈Φ, the following holds:
+[ ]
+∑ +
+(𝝎,𝝆m )∈a Ωx ×𝑈𝝎→𝝆 (𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )≤ 𝝆𝜎m ∈a x 𝑟,𝐼𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ ) .
+𝜎=(𝐼,𝑎)∈Σ𝑟
+By exploiting Corollary1, we introduce the following definition of 𝜖-persuasive polytope(Lemma1justifies the term polytope), as
+the set of signaling schemes for which there is no (𝜎, 𝝆 𝜎)-SPDP that achieves a receiver’s utility that exceeds by more than 𝜖∕|Σ𝑟|that
+achieved by following the recommendations.
+Definition 4 (Persuasive polytope). The 𝜖-persuasive polytopeis defined as:
+{ }
+|
+Λ𝜖(𝝁⋆ )∶= 𝝓∈Φ| |𝝆𝜎m ∈a x 𝑟,𝐼𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )≤𝜖∕|Σ𝑟| ∀𝜎∈Σ𝑟 .
+5 All the proofs are provided in AppendixB, AppendixC, AppendixD, and AppendixE.
+6 Given any 𝑥 ∈ℝ, we let [𝑥]+∶=max(𝑥, 0).
+7
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Moreover, we denote by Λ(𝝁⋆)the 0-persuasive polytope.
+Λ𝜖(𝝁⋆)is
+As we show in the following lemma, an efficiently-representable polytope.
+Λ𝜖(𝝁⋆)can
+Lemma 1. The set be described using a polynomial number of linear constraints.
+The following lemma shows that the 𝜖-persuasive polytope is contained in Φ⋄ 𝜖(𝝁⋆), and that the set of persuasive signaling schemes
+is contained in the former. Formally:
+Φ⋄(𝝁⋆) ≡Λ(𝝁⋆) ⊆Λ𝜖(𝝁⋆) ⊆Φ⋄ 𝜖(𝝁⋆).
+Lemma 2. It is always the case that
+Λ(𝝁⋆) Φ⋄(𝝁⋆).
+Lemma2also implies that the polytope exactly characterizes the set of persuasive signaling schemes Thus, by
+adding the maximization of the sender’s expected utility 𝐹(𝝓, 𝝁⋆) on top of the linear constraints describing Λ(𝝁⋆), we obtain a
+polynomially-sized linear program for finding an optimal sender’s signaling scheme in any instance of the BPSDM problem in which
+𝝁⋆
+is known.
+𝝁⋆
+Theorem 2. The BPSDM problem can be solved in polynomial time when the prior is known.
+6. Relation to non-sequential Bayesian persuasion
+Now, we clarify the relationship between the BPSDM problem we study in this paper and the classical Bayesian persuasion
+framework introduced byKamenica and Gentzkow[2]. In particular, we show that any instance of the classical Bayesian persuasion
+problem can be mapped to an instance of the BPSDM problem.
+A Bayesian persuasion problem instance is defined by a set of 𝑘 ∶=||actions for the receiver, a set of signals for the sender,
+and a set Θ of 𝑑∶=|Θ| possible outcomes of a (single) random event (called states of nature in the classical Bayesian persuasion
+terminology). The receiver’s payoff function is 𝑢R∶Θ × →[0, 1], while the sender’s one is 𝑢S∶Θ × →[0, 1]. The sender observes
+the realized state of nature, which is drawn according to a commonly-known prior distribution 𝜇∈Δ . Then, they partially disclose
+Θ
+information about the state by committing to a signaling scheme 𝜑 ∶Θ →Δ, which is a randomized mapping from states of nature
+to signals for the receiver. Thus, the interaction between the sender and the receiver is as follows.
+(i) The sender commits to a publicly known signaling scheme 𝜑.
+(ii) The sender observes the state of nature 𝜃∼𝜇.
+(iii) The sender samples a signal 𝑠 ∼𝜑(𝜃, ⋅)and sends it to the receiver.
+(iv) The receiver computes their posterior belief over the states Θ.
+(v) The receiver plays an action 𝑎 ∈that maximizes their expected payoff.
+The posterior beliefs that the receiver computes in step (iv) after observing a signal 𝑠 ∈ are defined by a probability distribution
+𝜉 𝑠∈Δ Θsuch that:
+𝜇(𝜃)𝜑(𝜃,𝑠)
+𝜉 𝑠(𝜃)∶=∑ 𝜃′∈Θ𝜇(𝜃′)𝜑(𝜃′,𝑠),
+and, thus, after observing signal 𝑠the receiver plays an action
+∑
+𝑎∈argmax 𝜉 𝑠(𝜃)𝑢𝖱 (𝜃,𝑎′).
+𝑎′∈
+𝜃∈Θ
+A revelation-principle-style argument[2]allows the sender to focus on direct and persuasive signaling schemes, where the latter
+property means that ≡, with signals corresponding to actions recommendations for the receiver. A persuasive signaling scheme
+𝜑 ∶Θ →Δ is such that the receiver is always incentivized to follow action recommendations; formally:
+∑ ∑
+𝜇(𝜃)𝜑(𝜃,𝑎)𝑢R(𝜃,𝑎)≥ 𝜇(𝜃)𝜑(𝜃,𝑎)𝑢R(𝜃,𝑎′) ∀𝑎,𝑎′∈. (2)
+𝜃∈Θ 𝜃∈Θ
+Mapping between classical, non-sequential Bayesian persuasion to BPSDM Given an instance of the classical Bayesian persuasion prob-
+lem[2], a corresponding (equivalent) instance of our BPSDM problem can be constructed as follows.
+(1) There is a unique chance node ℎ which is the root of the tree defining the SDM problem.
+0
+(2) At the chance node, there are 𝑑possible outcomes (namely 𝐴(ℎ ) ≡Θ), each corresponding to a state of nature 𝜃∈Θand having
+0
+probability 𝜇(𝜃)of occurring, so that with a slight abuse of notation we can write 𝝁⋆[∅] =1and 𝝁⋆[𝜃] =𝜇(𝜃)for all 𝜃∈Θ.
+(3) The receiver has a unique infoset 𝐼, which contains one decision node for each possible outcome at the chance node.
+(4) At infoset 𝐼, the receiver has a set 𝐴(𝐼) ≡of available actions.
+8
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Fig.2.InstanceofBPSDMproblemcorrespondingtoagiveninstanceofBayesianpersuasionproblem.
+(5) Terminal nodes are determined by the state of nature, receiver’s action pairs, so that each 𝜃 𝑖∈Θand 𝑎 𝑗∈define a corre-
+sponding terminal node 𝑧 𝑖,𝑗 in the SDM problem.
+See Fig.2for an example of the mapping. The following theorem formally states that our definition of persuasiveness (Definition2)
+instantiated to the BPSDM problem instances described above is equivalent to the definition of persuasiveness for classical Bayesian
+persuasion problems (Equation(2)). This establishes that our framework encompasses classical Bayesian persuasion problems as a
+special case.
+Theorem 3. Given any Bayesian persuasion instance, a signaling scheme is persuasive (Equation(2)) if and only if it is persuasive (Defini-
+tion2) in the corresponding instance of the BPSDM problem.
+Proof. It is sufficient to prove the equivalence between Equation (1) for 𝜖=0 and Equation (2) applied to the BPSDM problem
+instance representing the given Bayesian persuasion instance. To do that, we employ Theorem 1 and Lemma 6 in such a BPSDM
+problem instance, so that, using the notation introduced in this section, it is straightforward to see that Equation(1)reads as follows:
+∑ ∑
+max 𝜑(𝜃,𝑎)𝜇(𝜃)𝑢R(𝜃,𝑎′)− 𝜑(𝜃,𝑎)𝜇(𝜃)𝑢R(𝜃,𝑎)≤0 ∀𝑎∈.
+𝑎′∈
+𝜃∈Θ 𝜃∈Θ
+By rearranging the terms, we get Equation(2), which concludes the proof. □
+7. Always being persuasive is impossible: a relaxation is needed
+In this section, we prove that it is impossible to design an algorithm that returns a sequence of persuasive signaling schemes for
+a generic BPSDM problem.
+Theorem 4 (Impossibility of persuasiveness). There exists a constant 𝛾∈(0, 1)such that no algorithm can guarantee to output a sequence
+𝝓 1, … , 𝝓 𝑇 of signaling schemes such that, with probability at least 𝛾, all the signaling schemes 𝝓 𝑡are persuasive.
+Notice that this result is not in contrast with the work byZu etal.[24]which provides a no-regret algorithm that outputs sequences
+of signaling schemes that are guaranteed to be persuasive with high probability. Indeed, Zu etal.[24]require regularity assumptions
+over the prior, while in our result the prior can be any. Theorem4motivates the introduction of a less restrictive requirement on the
+signaling schemes. In particular, we look for algorithms that output signaling schemes 𝝓 1, … , 𝝓 𝑇, such that the expected utility loss
+incurred by the receiver by following recommendations rather than playing an optimal DP is small. To capture such a requirement,
+we introduce the following definition of (cumulative) receiver’s regret:
+∑ ∑
+𝑉 𝑇 ∶= 𝑡∈[𝑇] (𝝎,𝝆m )∈a Ωx ×𝑈𝝎→𝝆(𝝓 𝑡,𝝁⋆)− 𝑡∈[𝑇]𝑈(𝝓 𝑡,𝝁⋆).
+Therefore our goal becomes that of designing algorithms guaranteeing that the cumulative receiver’s regret grows sub-linearly in
+𝑇, namely 𝑉 𝑇 =𝑜(𝑇), while continuing to ensure that 𝑅 𝑇 =𝑜(𝑇).
+In Sections8and9, we design algorithms achieving sub-linear 𝑉 𝑇 and 𝑅 𝑇 for the learning problem described in Section4. The
+algorithms implement two functions: (i) SelectStrategy(), which, at each 𝑡 ∈[𝑇], draws a signaling scheme 𝝓 𝑡∈Φon the basis
+of the internal state of the algorithm; and (ii) Update(𝑜 𝑡), which modifies the internal state based on the observation 𝑜 𝑡 received as
+feedback. Each algorithm alternates these two functions as the interaction between the sender and the receiver unfolds as described
+in Section4. Specifically, under full feedback the sender observes 𝒚 𝑡 and calls Update(𝒚 𝑡), while in the bandit feedback it observes
+𝑧 𝑡and calls Update(𝑧 𝑡).
+8. Learning with full feedback
+In this section, we will discuss the online problem faced by the sender that wants to optimize online its utility 𝐹(𝝓, 𝝁⋆)while
+𝝁⋆
+learning the unknown prior . We start by providing a learning algorithm (Algorithm1) working with full feedback, i.e., when the
+sender observes the realizations of allthe possible random events. The main idea of the algorithm is to choose signaling schemes 𝝓 𝑡
+that belong to suitable sets Λ𝛽𝑡(𝝁̂ 𝑡)which are designed to be “close” to the set Φ⋄(𝝁⋆)of persuasive signaling schemes. At each round
+9
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Algorithm 1 Full-feedback algorithm.
+functionSelectStrategy():
+𝝓 𝑡←arg max 𝐹(𝝓, 𝝁̂ 𝑡)
+return𝝓𝝓 𝑡∈Λ𝛽𝑡(𝝁̂𝑡)
+functionUpdate(𝒚 𝑡):
+∑𝑡
+𝝁̂ 𝑡+1[𝜎] ← 𝒚 𝜏[𝜎]∕𝑡 ∀𝜎∈Σ𝑐
+√𝜏=1
+𝜖 𝑡+1← log(2𝑇 2| 𝑡Σ𝑐|∕𝛿)
+𝛽 𝑡+1←2|||Σ𝑟|𝜖
+𝑡+1
+𝑡 ∈[𝑇], Algorithm1{defines the desired set as f}ollows. First, it maintains an estimate 𝝁̂ 𝑡 of 𝝁⋆ ; formally, it defines a radius 𝜖 𝑡 such
+that the event ∶= ‖𝝁̂ 𝑡−𝝁⋆‖ ∞≤𝜖 𝑡 ∀𝑡∈[𝑇] holds with probability at least 1 −𝛿. Second, it defines a parameter 𝛽 𝑡 such that,
+conditionally to the realization of the event , the following two conditions hold: (i) the decision space Λ𝛽𝑡(𝝁̂ 𝑡)contains the optimal
+signaling scheme 𝝓⋆ ; (ii) Λ 2𝛽𝑡(𝝁⋆)contains the signaling scheme 𝝓 𝑡. Intuitively, the first condition is needed to have a low sender’s
+regret, while the second one yields approximately persuasive signaling schemes.7
+The polytopal approximation that we provide in Section5.2plays a crucial role in the complexity of Algorithm1. Specifically, it
+a sell to Λw 𝛽s (i 𝝁̂t t 𝑡)o os ve ele rc Φt t ⋄ 𝛽h 𝑡(e 𝝁̂ d 𝑡)es ii sr e nd e c𝝓 es𝑡 si an r yp o dl uy en o tom ti hal e t fi am ce t tb hy a to p thti em laiz ti tn eg r io sv ne or t th kne os wet n Λ t𝛽 o𝑡 ( a𝝁̂ d𝑡 m), iw t ah nic eh ffi ca cn ie b ne t rd eo pn re e se effi ntc ai te in ontl .y F. oT rh me au ls lye : of the
+𝑡
+Theorem 5. Given any 𝛿∈(0, 1), with probability at least 1 −𝛿, Algorithm1guarantees:
+( √ ) ( √ )
+( ) ( )
+𝑅 = || 𝑇log 𝑇|Σ𝑐|∕𝛿 , 𝑉 = |Σ𝑟||| 𝑇log 𝑇|Σ𝑐|∕𝛿 .
+𝑇 𝑇
+Moreover, the algorithm runs in polynomial time.
+9. Learning with bandit feedback
+Algorithm 2 Bandit-feedback algorithm.
+functionSelectStrategy():
+if𝑡 ≤𝑁then ⊳First Phase
+𝜎 Σ𝑠= ∋(ℎ 𝜎, 𝑎 ←) ← 𝑠a (ℎrg )min𝜎∈Σ𝑐𝐶 𝑡[𝜎]
+′ 𝜎
+Choose 𝝓 𝑡∈Φ ∶𝝓 𝑡[𝜎′] =1
+else ⊳Second Phase
+𝝓 𝑡←arg 𝝓∈Λm 𝛽𝑁ax (𝝁̂𝑁)𝝁m ∈a 𝑡x (𝛿)𝐹(𝝓, 𝝁)
+return𝝓
+𝑡
+functionUpdate(𝑧 𝑡):
+Build path 𝒑 𝑡∈{0, 1}|Σ𝑐|from 𝜎 𝑐(𝑧 𝑡)
+Sample 𝝅 𝑡∼𝝓 𝑡s.t. 𝒑 𝑡[𝜎] =1 ⇒𝜎∈Σ↓(𝝅 𝑡)
+for𝜎∈Σ𝑐do
+if𝜎∈Σ↓(𝝅 𝑡))then
+[𝜎] ←[𝜎] ∪{𝑡}
+𝝁𝐶 𝑡𝑡 ++ 11 [[ 𝜎𝜎 ]] ←← √| 𝐶 𝑡+1[ 1𝜎 [𝜎] ]| 𝜏∈∑
+̂ [𝜎]𝒑 𝜏[𝜎]
+𝑡+1𝜖 (𝑡 𝛿+ )1 [ ←𝜎] {← 𝝁| √𝝁lo [g 𝜎2(4 𝐶 ]𝑇 𝑡+ −| 1Σ [𝑐 𝜎 𝝁̂| ]∕ 𝑡𝛿 +) 𝑡+1[𝜎]∀𝜎∈Σ𝑐}
+ | || 1[𝜎]|≤𝜖
+𝛽 𝑡+1←2|||Σ𝑐| |Σ𝑐|lo 2g (( 𝑡4 +𝑇 1| )Σ𝑐|∕𝛿)
+In this section, we build on Algorithm1to deal with bandit feedback, i.e., when at each round 𝑡 ∈[𝑇]the sender only observes the
+terminal node 𝑧 𝑡reached at the end of the SDM problem. The main difficulties of such a setting can be summarized by the following
+observations. First, the feedback 𝑧 𝑡only reveals partial information about the prior, and such information also depends on the selected
+signaling scheme 𝝓 𝑡. Second, even if the sender plays a signaling scheme 𝝓∈Φfor an arbitrarily large number of rounds, there is
+no guarantee that they collect enough information to tell whether 𝝓∈Φ⋄ 𝜖(𝝁⋆)or notfor some 𝜖>0. Indeed, the persuasiveness of
+a signaling scheme depends on allreceiver’s utilities in the SDM problem, and some parts of the tree may not be reached during a
+7 See Lemmas9and10in AppendixDfor the formal statements of these properties.
+10
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+sufficiently large number of rounds by committing to 𝝓. Thus, any algorithm for the bandit-feedback setting must guarantee a suitable
+level of exploration over the entire tree, so as to keep track of the entity of the violation of persuasiveness constraints.
+We design a two-phase algorithm, whose pseudo-code is provided in Algorithm 2. The algorithm takes as input the number
+𝑁∈[𝑇]of rounds devoted to the first phaseguaranteeing the necessary amount of exploration, as detailed in Section9.1. During this
+phase, the SelectStrategy()procedure implements an efficient deterministic uniform exploration policy, which builds an unbiased
+estimator 𝝁̂ 𝑁 of 𝝁⋆ . This allows us to restrict the space of feasible signaling schemes used in the subsequent phase to those that are
+approximately persuasive, i.e., those in the set Λ𝛽𝑁(𝝁̂ 𝑁). In Section9.2, we discuss the second phaseof the algorithm, composed by
+the rounds 𝑡 >𝑁, during which the algorithm focuses on the minimization of sender’s regret by exploiting the optimism in face of
+uncertaintyprinciple. Finally, in Section9.3, we provide a lower bound on the trade-off between the sender’s and receiver’s regrets,
+matching the upper bounds achieved by Algorithm2for a large portion of the trade-off frontier. This result formally motivates the
+necessity of the uniform exploration which is performed in the first phase of the algorithm.
+9.1. Minimizing the receiver’s regret
+At each round 𝑡 ∈[𝑇], the sender observes a terminal node 𝑧 𝑡∈that uniquely determines a path in the tree defining the SDM
+problem. We encode such a path using a vector 𝒑 𝑡∈{0, 1}|Σ𝑐| such that 𝒑 𝑡[𝜎] =1if and only if the chance sequence 𝜎∈Σ𝑐 lies on
+the path from the root of the tree to 𝑧 𝑡, namely 𝜎⪯𝜎 𝑐(𝑧 𝑡). If the sender commits to a signaling scheme 𝝓 𝑡∈Φ, then it is easy to see
+that, for every 𝜎=(ℎ, 𝑎) ∈Σ𝑐, the element 𝒑 𝑡[𝜎]is distributed as a Bernoulli of parameter 𝝓 𝑡[𝜎 𝑠(ℎ)]𝝁⋆[𝜎]. The crucial observation
+behind the design of our estimator is that, if the sender commits to a deterministic signaling scheme 𝝅 𝑡∈Πat some round 𝑡 ∈[𝑇],
+then for all the chance sequences 𝜎∈Σ𝑐 that are compatiblewith 𝝅 𝑡, i.e., that can be observed when 𝝅 𝑡is played, we have that 𝒑 𝑡[𝜎]
+is distributed as a Bernoulli of parameter 𝝁⋆[𝜎]. Formally, a sequence 𝜎∈Σ𝑐 is compatible with 𝝅 𝑡 if there exists a chance node
+ℎ ∈ 𝑐 and an outcome 𝑎 ∈𝐴(ℎ)satisfying 𝜎=(ℎ, 𝑎)and 𝝅 𝑡[𝜎 𝑠(ℎ)] =1. This observation leads to the following result:
+Lemma 3. For every deterministic signaling scheme 𝝅∈Π, let
+{ }
+Σ↓(𝝅)∶= 𝜎=(ℎ,𝑎)∈Σ𝑐∣𝑎∈𝐴(ℎ)∧𝝅[𝜎 𝑠(ℎ)]=1 .
+[ ]
+It holds 𝔼 𝒑 𝑡[𝜎]|𝝅 𝑡=𝝅 =𝝁⋆[𝜎]for every 𝝅∈Πand 𝜎∈Σ↓(𝝅).
+Notice that, since in the rounds 𝑡 ≤𝑁, we only employ deterministic strategies we have that 𝔼[𝒑 𝑡[𝜎]] =𝜇⋆[𝜎], where the expecta-
+tion is only of the random chance events. Thus, during the first phase, Algorithm2builds the desired estimator 𝝁̂ 𝑁 of 𝝁⋆ as follows.
+At each round 𝑡 ≤𝑁, after observing the feedback 𝑧 𝑡, the algorithm samples a deterministic signaling scheme 𝝅 𝑡∈Πaccording to 𝝓 𝑡
+(the one selected at 𝑡), so that all the sequences 𝜎∈Σ𝑐 such that 𝒑 𝑡[𝜎] =1(or, equivalently, 𝜎⪯𝜎 𝑐(𝑧 𝑡)) belong to Σ↓(𝝅 𝑡).8Then, for
+every 𝜎∈Σ↓(𝝅 𝑡), the algorithm updates the estimator component 𝝁̂ 𝑡[𝜎]according to 𝒑 𝑡[𝜎]. Since the probability of visiting a sequence
+𝜎∈Σ𝑐 depends on 𝝓 𝑡 (and, thus, can be arbitrarily small), the first 𝑁 rounds must be carefully used to ensure that each sequence
+is explored at least 𝑁∕|Σ𝑐|times. To explore a specific sequence 𝜎∈Σ𝑐, we choose a signaling scheme 𝝓 𝑡 such that 𝜎∈Σ↓(𝝅 𝑡)for
+every deterministic 𝝅 𝑡∼𝝓 𝑡. The procedure described above is needed for minimizing the receiver’s regret, since, in the second phase,
+the algorithm selects signaling schemes 𝝓 𝑡 from Λ𝛽𝑁(𝝁̂ 𝑁). In particular, as shown by the following lemma, Algorithm2guarantees
+that the receiver’s regret is upper bounded by 2𝛽 𝑁 at each round 𝑡 >𝑁, since it defines 𝜖 𝑡[𝜎]for each sequence 𝜎∈Σ𝑐 so that the
+event ̃ ∶={|𝝁⋆[𝜎]−𝝁̂ 𝑡[𝜎]|≤𝜖 𝑡[𝜎]∀(𝑡,𝜎)∈[𝑇]×Σ𝑐}holds with probability at least 1 −𝛿∕2.
+Lemma 4. Under the event ̃ , Algorithm2guarantees that 𝝓 𝑡∈Λ 2𝛽𝑁(𝝁⋆)at each round 𝑡 >𝑁.
+9.2. Minimizing the sender’s regret
+𝝓⋆
+Algorithm2also needs to guarantee a small sender’s regret. To do so, we would like that is a valid pick for the algorithm,
+i.e., it belongs to Λ𝛽𝑁(𝝁̂ 𝑡). However, differently from the full-feedback setting, stopping exploration after the first 𝑁 round does not
+guarantee optimal rates. To fix this issue, in the second phase, the algorithm selects 𝝓 𝑡 optimistically by maximizing the sender’s
+expected utility 𝐹(𝝓, 𝝁)over both 𝝓∈Λ𝛽𝑁(𝝁̂ 𝑁)and 𝝁∈ 𝑡(𝛿), where  𝑡(𝛿)is a suitably-defined confidence set centered around 𝝁̂ 𝑡
+such that {𝝁⋆∈ 𝑡(𝛿)} ≡̃ , and, thus, it holds with high probability. This guarantees that max𝝁∈𝑡(𝛿)𝐹(𝝓⋆, 𝝁) ≥𝐹(𝝓⋆, 𝝁⋆). Formally:
+Lemma 5. If the event ̃ holds, then, for every round 𝑡 >𝑁, it holds that 𝝓⋆ ∈Λ𝛽𝑁(𝝁̂ 𝑡)and max𝝁∈𝑡(𝛿)𝐹(𝝓⋆, 𝝁) ≥𝐹(𝝓⋆, 𝝁⋆).
+Thus, 𝐹(𝝓 𝑡, 𝝁⋆) ≈𝐹(𝝓 𝑡, 𝝁̂ 𝑡) ≥max𝝁∈𝑡(𝛿)𝐹(𝝓⋆, 𝝁̂) ≥𝐹(𝝓⋆, 𝝁⋆)holds in the limit, implying that 𝐹(𝝓 𝑡, 𝝁⋆)converges to 𝐹(𝝓⋆, 𝝁⋆)
+after sufficiently many rounds. Formally:
+8 The sampling of 𝝅 𝑡∈Πaccording to 𝝓 𝑡can be done efficiently by a straightforward modification of the recursive procedure in[40,41].
+11
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Fig.3.Trade-off between 𝑅 𝑇 and 𝑉 𝑇 in the bandit feedback. (For interpretation of the colors in the figure(s), the reader is referred to the web version of this article.)
+Theorem 6. Given any 𝛿∈(0, 1)and 𝑁∈[𝑇], Algorithm2guarantees:
+√ √
+⎛ ( ) ⎞ ⎛ ( ) ⎞
+𝑇| 𝛿Σ𝑐| 𝑇| 𝛿Σ𝑐| |Σ 𝑁𝑐|
+𝑅 𝑇 =⎜ ⎜𝑁+ log |Σ𝑐|𝑇⎟ ⎟,𝑉 𝑇 =⎜ ⎜𝑁+𝑇|||Σ𝑟| log ⎟ ⎟,
+⎝ ⎠ ⎝ ⎠
+with probability at least 1 −𝛿. Moreover, the algorithm runs in polynomial time.
+In contrast to the case with full feedback, the optimization problem solved by Algorithm2belongs to the class of bilinear problems,
+which areNP-hard in general[42]. However, in Theorem6we prove that our specific problem can be solved in polynomial time.
+Furthermore, notice that Theorem6takes as input the number 𝑁of rounds devoted to the first phase. Given an 𝛼≥1∕2, by choosing
+any 𝑁=⌊𝑇𝛼⌋we get bounds of 𝑅 𝑇 =̃ (𝑇𝛼)and 𝑉 𝑇 =̃ (𝑇max{𝛼,1−𝛼 2}).
+9.3. The lower bound frontier
+We conclude by showing that the trade-offs between 𝑉 𝑇 and 𝑅 𝑇 achieved by Algorithm2are essentially tight. Previously, we
+provided an intuition as to why the algorithm needs to uniformly explore the entire tree of the SDM problem. Here, we provide a
+lower bound that corroborates such a statement. In particular, the following theorem shows that, for any 𝛼∈[1∕2, 1], to guarantee
+(𝑇𝛼), Ω(𝑇1−𝛼∕2).9
+a sender’s regret of the order of it is necessary to suffer a receiver’s regret of the order of
+Theorem 7. For any 𝛼∈[1∕2, 1], there exists a constant 𝛾∈(0, 1)such that no algorithm guarantees both 𝑅 𝑇 =𝑜(𝑇𝛼)and 𝑉 𝑇 =𝑜(𝑇1−𝛼∕2)
+with probability greater than 𝛾.
+Fig.3shows on the horizontal axis the order of the 𝑇 term in 𝑅 𝑇, while, on the vertical axis, it shows the order of the 𝑇 in 𝑉 𝑇.
+The shaded area over the blue line shows the achievable trade-offs, while the marked red line shows the performances proved in
+Theorem6. Thus, we show that Algorithm2matches the lower bound for 𝛼∈[1∕2, 2∕3]. However, when 𝛼∈[2∕3, 1], the guarantees
+proved in Theorem6diverge from the ones proved in the lower bound. This is due to the 𝑁=⌊ √𝑇𝛼⌋component in the receiver’s regret
+that becomes dominant when 𝛼≥2∕3. We conjecture that it is possible to reduce this term to 𝑁, hence matching the lower bound
+of Theorem7. The reason for such a gap between the lower and upper bounds is that, during the first phase, Algorithm2utilizes
+signaling schemes without taking into account their persuasiveness, thus incurring in large receiver’s regret during the first steps.
+We leave addressing the question of whether it is possible to design exploration strategies by only using approximately-persuasive
+signaling schemes as future work.
+10. Conclusions and future work
+In this paper, we address the complex information design problem encountered by an informed sender seeking to influence the
+behavior of a self-interested receiver through the provision of payoff-relevant information in a sequential game. Our focus is on
+scenarios where the prior is unknown and needs to be learned online. Previous research in the state-of-the-art has explored specific
+structures over the prior that enable the design of persuasive no-regret algorithms. However, we prove that when the prior can vary
+freely, disregarding the prior entirely renders it impossible to guarantee the property of persuasiveness. This finding holds even in non-
+sequential games. To deal with any prior distribution, we introduce a relaxation of the persuasiveness concept. Specifically, we require
+that the cumulative violation of the persuasiveness constraint of the receiver grows at a sublinear rate. We present two algorithms
+√
+9 For 𝛼≤1∕2, a simple reduction from a standard multi-armed bandit problem provides a lower bound of Ω( 𝑇)on both sender’s regret 𝑅 𝑇 and receiver’s regret
+𝑉 𝑇.
+12
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+tailored to the full√-feedback and bandit-feedback settings, respectively. More precisely, in the full-feedback setting, we provide an
+algorithm with 𝑂̃ ( 𝑇)regret for both the sender and the receiver, and, in the bandit-feedback setting, we design an algorithm that,
+given an 𝛼∈[1∕2, 1]as input, guarantees 𝑂̃ (𝑇𝛼)and 𝑂̃ (𝑇max{𝛼,1−𝛼 2})regrets, for the sender and the receiver respectively. We also
+provide a lower bound showing that such a regret trade-off is tight for 𝛼∈[1∕2, 2∕3].
+In the future, we will investigate the tightness of our bounds for 𝛼∈(2∕3, 1]. In particular, we conjecture that our lower bound
+is tight and therefore that the problem admits an algorithm with a regret upper bound better than the algorithm we provide in this
+paper, for specific values of the trade off between the regret of the sender and the receiver. We will also investigate extensions of our
+model where, e.g., the number of receivers is larger than one.
+CRediT authorship contribution statement
+Martino Bernasconi:Investigation, Writing – original draft, Writing – review & editing.Matteo Castiglioni:Investigation, Writ-
+ing – original draft, Writing – review & editing.Alberto Marchesi:Investigation, Writing – original draft, Writing – review & editing.
+Nicola Gatti:Supervision, Funding acquisition.Francesco Trovò:Supervision.
+Declaration of competing interest
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Acknowledgements
+This work was supported by the Italian MIUR PRIN 2022 Project “Targeted Learning Dynamics: Computing Efficient and Fair Equi-
+libria through No-Regret Algorithms”, by the FAIR (Future Artificial Intelligence Research) project, funded by the NextGenerationEU
+program within the PNRR-PE-AI scheme (M4C2, Investment 1.3, Line on Artificial Intelligence), and by the EU Horizon project ELIAS
+(European Lighthouse of AI for Sustainability, No. 101120237).
+AppendixA. Notation table
+Symbol Description
+SequentialDecisionMaking
+, 𝑑, 𝑐 Terminal, decision and chance nodes, respectively.
+∶=∪ 𝑑∪ 𝑐 Tree nodes.
+𝑢(𝑧) Agent’s utility at leaf 𝑧 ∈
+𝑓(𝑧) Sender’s utility at leaf 𝑧 ∈
+ Receiver’s infosets
+𝐴(𝐼) Actions from infoset 𝐼∈
+Σ𝑟 Set of receiver’s sequences
+ 𝑟 Set of receiver’s sequence form strategies
+ 𝑟,𝐼 Set of receiver’s sequence form strategies from infoset 𝐼∈
+BayesianPersuasioninSequentialDecisionMaking
+Φ Set of sender’s signaling schemes
+Φ⋄ 𝜖(𝝁⋆) 𝜖-persuasive signaling schemes w.r.t.prior 𝝁⋆
+𝑈(𝝓,𝝁⋆) Receiver’s utility of following the signaling scheme 𝝓
+𝐹(𝝓,𝝁⋆) Sender’s utility of following the signaling scheme 𝝓
+Ω Receiver’s deviation points
+ Set of receiver’s continuation policies
+𝑈𝝎→𝝆(𝝓,𝝁⋆) Receiver’s utility of (𝝎, 𝝆)deviation policy, for (𝝎, 𝝆) ∈Ω ×
+𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆) R 𝜎e =ce (i 𝐼v ,e 𝑎r )’ s u Σti 𝑟li aty do f ( 𝜎𝜎 ∈, 𝝆 𝜎) 𝑟,𝐼single point deviation policy, for
+∈ n 𝝆
+Λ𝜖(𝝁⋆) 𝜖-persuasive polytope
+Fig.A.4.Summaryofnotation.
+AppendixB. Proofs omitted from Section5
+Let us remark that all the results in Section5can be straightforwardly generalized to the case of a generic 𝝁∈ 𝑐, as needed for
+𝝁⋆
+the proofs of the results in Sections8and9. For ease of exposition, we state and prove the results of Section5for the prior .
+First, we prove a preliminary lemma that allows us to express the receiver’s expected utility difference between using a (𝜎, 𝝆 𝜎)-
+SPDP and following action recommendations by only considering the terminal nodes under the infoset in which the SPDP prescribed
+to deviate. A similar result for the case of correlated strategies can be found in[43, AppendixA].
+13
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Lemma 6. Given 𝝓∈Φ, for every (𝜎, 𝝆 𝜎)-SPDP with 𝜎=(𝐼, 𝑎) ∈Σ𝑟and 𝝆 𝜎∈ 𝑟,𝐼, it holds:
+∑
+𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )= 𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝆 𝜎[𝜎 𝑟(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧)
+𝑧∈𝑍(𝐼)
+∑
+− 𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧).
+𝑧∈𝑍(𝜎)
+Proof. We define the following three disjoint events for any (𝜎, 𝝆 𝜎)-SPDP, where 𝜎=(𝐼, 𝑎).
+(C1): A terminal node 𝑧 ∈(𝜎)is reached.
+(C2): A terminal node 𝑧 ∈(𝐼, 𝑎′)for some 𝑎′≠𝑎 ∈𝐴(𝐼)is reached.
+(C3): A terminal node 𝑧 ∈∕(𝐼)is reached.
+Next, under each event, we define the probability 𝑝 𝜎→𝝆𝜎(𝑧)of reaching a terminal node 𝑧:
+(C1): Since 𝑧 ∈(𝜎), the node 𝑧is reached by means of the continuation strategy 𝝆 𝜎. Thus:
+𝑝( 𝜎1 →) 𝝆𝜎(𝑧)∶=𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝁⋆ [𝜎 𝑐(𝑧)]𝝆 𝜎[𝜎 𝑟(𝑧)].
+(C2): Since 𝑧 ∈(𝐼, 𝑎′)for 𝑎′≠𝑎 ∈𝐴(𝐼), the node 𝑧can be reached either by deviating and then committing to the continuation
+strategy 𝝆 𝜎 or by following recommendations. Moreover, these two cases are exclusive, and, thus, we can write:
+𝑝( 𝜎2 →) 𝝆𝜎(𝑧)∶=𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝁⋆ [𝜎 𝑐(𝑧)]𝝆 𝜎[𝜎 𝑟(𝑧)]+𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)].
+(C3): Since 𝑧 ∈∕(𝐼), the node 𝑧is reached by following recommendations:
+𝑝( 𝜎3 →) 𝝆𝜎(𝑧)∶=𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)].
+We observe that 𝑝( 𝜎2 →) 𝝆𝜎(𝑧) =𝑝( 𝜎1 →) 𝝆𝜎(𝑧) +𝑝( 𝜎3 →) 𝝆𝜎(𝑧), and, thus, we can write 𝑈 𝜎→𝝆𝜎(𝝓, 𝝁⋆)as:
+∑ ∑ ∑
+𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )∶= 𝑝( 𝜎1 →) 𝝆𝜎(𝑧)𝑢(𝑧)+ 𝑝( 𝜎2 →) 𝝆𝜎(𝑧)𝑢(𝑧)+ 𝑝( 𝜎3 →) 𝝆𝜎(𝑧)𝑢(𝑧)
+𝑧∈(𝜎) 𝑧∈(𝐼,𝑎′)∶ 𝑧∈∕(𝐼)
+𝑎′≠𝑎∈𝐴(𝐼)
+∑ ∑
+≤ 𝑝(1) (𝑧)𝑢(𝑧)+ 𝑝(3) (𝑧)𝑢(𝑧).
+𝜎→𝝆𝜎 𝜎→𝝆𝜎
+𝑧∈(𝐼) 𝑧∈∕(𝜎)
+∑
+Furthermore, by using the definition of 𝑝( 𝜎3 →) 𝝆𝜎(𝑧), we can write 𝑈(𝝓, 𝝁) ∶= 𝑧∈𝑢(𝑧)𝑝( 𝜎3 →) 𝝆𝜎(𝑧). Thus:
+∑ ∑
+𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )= 𝑝( 𝜎1 →) 𝝆𝜎(𝑧)𝑢(𝑧)− 𝑝( 𝜎3 →) 𝝆𝜎(𝑧)𝑢(𝑧),
+𝑧∈(𝐼) 𝑧∈(𝜎)
+which is the statement of the lemma by substituting the definitions of 𝑝( 𝜎1 →) 𝝆𝜎(𝑧)and 𝑝( 𝜎3 →) 𝝆𝜎(𝑧). □
+Now, we exploit Lemma6to prove the following local decomposition of a DP into SPDPs.
+Theorem 1. Given a signaling scheme 𝝓∈Φand a (𝝎, 𝝆)-DP, it holds:
+( )
+∑
+𝑈𝝎→𝝆(𝝓,𝝁⋆)−𝑈(𝝓,𝝁⋆)= 𝜎∈Σ𝑟𝝎[𝜎] 𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆)−𝑈(𝝓,𝝁⋆) .
+Proof. For any terminal node 𝑧 ∈, let 𝑝𝝎→𝝆(𝑧; 𝝓, 𝝁⋆)be the probability of reaching node 𝑧when the receiver employs the (𝝎, 𝝆)-DP
+under the signaling scheme 𝝓and the prior 𝝁⋆ . It holds:
+∑
+𝑝𝝎→𝝆 (𝑧;𝝓,𝝁⋆ )∶= 𝝎[𝜎]𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝆 𝜎[𝜎 𝑟(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]
+𝜎=(𝐼,𝑎)∈Σ𝑟∶𝜎⪯𝜎𝑟(𝑧)
+( )
+∑
++𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)] 1− 𝝎[𝜎] .
+𝜎∈Σ𝑟∶𝜎⪯𝜎𝑟(𝑧)
+The sum in the first term in the definition of 𝑝𝝎→𝝆(𝑧; 𝝓, 𝝁⋆)accounts for the probabilities of reaching 𝑧when the receiver reaches
+infoset 𝐼, is recommended to play action 𝑎, and deviates by following the continuation strategy 𝝆 𝜎 thereafter, for all the sequences
+𝜎=(𝐼, 𝑎)that precede the sequence 𝜎 𝑟(𝑧)reaching 𝑧. Instead, the second term∑ in the definition of 𝑝𝝎→𝝆(𝑧; 𝝓, 𝝁⋆)accounts for the
+probability of reaching 𝑧by following recommendations. Thus, 𝑈𝝎→𝝆(𝝓, 𝝁⋆) = 𝑧∈𝑍𝑝𝝎→𝝆(𝑧; 𝝓, 𝝁⋆)𝑢(𝑧).
+14
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+𝑈𝝎→𝝆(𝝓, 𝝁⋆),
+By rearranging the terms in we get to the following result:
+[
+∑ ∑
+𝑈𝝎→𝝆 (𝝓,𝝁⋆ )=𝑈(𝝓,𝝁⋆ )+ 𝝎[𝜎]𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝆 𝜎[𝜎 𝑟(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧)
+𝑧∈ 𝜎=(𝐼,𝑎)∶𝜎⪯𝜎𝑟(𝑧)
+]
+∑
+− 𝝎[𝜎]𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧)
+𝜎∈Σ𝑟∶𝜎⪯𝜎𝑟(𝑧)
+∑ ∑
+=𝑈(𝝓,𝝁⋆ )− 𝝎[𝜎] 𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧)
+∑ 𝜎∈Σ ∑𝑟 𝑧∈(𝜎)
++ 𝝎[𝜎] 𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝆 𝜎[𝜎 𝑟(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧). (B.1)
+𝜎∈Σ𝑟 𝑧∈(𝐼)
+Thus, by combining Lemma6with Equation(B.1)we get that:
+∑ [ ]
+𝑈𝝎→𝝆 (𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )= 𝝎[𝜎] 𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ ) ,
+𝜎∈Σ𝑟
+which concludes the proof. □
+Corollary 1. Given a signaling scheme 𝝓∈Φ, the following holds:
+[ ]
+∑ +
+(𝝎,𝝆m )∈a Ωx ×𝑈𝝎→𝝆 (𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )≤ 𝝆𝜎m ∈a x 𝑟,𝐼𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ ) .
+𝜎=(𝐼,𝑎)∈Σ𝑟
+Proof. By using Theorem1, we derive the following:
+∑ ( )
+(𝝎,𝝆m )∈a Ωx ×𝑈𝝎→𝝆 (𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )= (𝝎,𝝆m )∈a Ωx 𝜎∈Σ𝑟𝝎[𝜎] 𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )
+×
+∑ [ ]
+≤ (𝝎,𝝆m )∈a Ωx 𝜎∈Σ𝑟𝝎[𝜎] 𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ ) +
+×
+∑ [ ]
+≤m 𝝆∈a x 𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ ) +
+𝜎∈Σ𝑟
+[ ]
+∑ +
+= 𝝆𝜎m ∈a x 𝑟,𝐼𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ ) .
+𝜎∈Σ𝑟
+This concludes the proof. □
+Λ𝜖(𝝁⋆)can
+Lemma 1. The set be described using a polynomial number of linear constraints.
+Λ𝜖(𝝁⋆)can
+Proof. In order to prove that the set be described by means of linear constraints, we employ duality arguments related
+to the maxproblem in the definition of Λ𝜖(𝝁⋆)(Definition4).
+By Lemma6, for every sequence 𝜎=(𝐼, 𝑎) ∈Σ𝑟, we can rewrite the expression in the left-hand side of the inequality characterizing
+Λ𝜖(𝝁⋆)in
+Definition4as follows:
+{ }
+∑ ∑
+max 𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝆 𝜎[𝜎 𝑟(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧) − 𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧),
+𝝆𝜎∈𝑟,𝐼
+𝑧∈𝑍(𝐼) 𝑧∈𝑍(𝜎)
+so that Λ𝜖(𝝁⋆)can be expressed as the set of all 𝝓∈Φsuch that the above expression has value less than or equal to 𝜖∕|Σ𝑟|for every
+𝜎∈Σ𝑟. Observe that the expression in the maxoperator is a linear function of 𝝆 𝜎, and that the set  𝑟,𝐼 is a polytope by definition.
+Thus, for every 𝜎=(𝐼, 𝑎) ∈Σ𝑟, the maximization above can be equivalently rewritten as the following linear program:
+( )
+𝒙𝐼,𝑎 ⊤ 𝒄(𝝓,𝝁⋆
+max ) s.t. (B.2a)
+𝒙𝐼,𝑎≥𝟎
+𝑭 𝐼𝒙𝐼,𝑎 =𝒇 𝐼 (B.2b)
+where 𝒙𝐼,𝑎 is a vector of variables indexed over sequences Σ𝑟,𝐼∪{𝜎 𝑟(𝐼)}. Notice that 𝑐(𝝓, 𝝁⋆) ∈ℝ|Σ𝑟,𝐼| is a vector of coefficients such
+that the component corresponding to each 𝜎′∈Σ𝑟,𝐼 is
+∑
+𝑐(𝝓,𝝁⋆ )[𝜎′]∶= 𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧),
+𝑧∈(𝐼)∶𝜎𝑟(𝑧)=𝜎′
+15
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+while 𝑐(𝝓, 𝝁⋆)[𝜎 𝑟(𝐼)] ∶=0. Moreover, 𝑭 𝐼 ∈{−1, 0, 1}(1+|𝐶(𝐼)|)×|Σ𝑟,𝐼| is a matrix of coefficients whose components are defined as
+follows: [𝑭 𝐼]𝐼 ∅,𝜎𝑟(𝐼)∶=1and [𝑭 𝐼]𝐼 ∅,𝜎′∶=0for all sequences 𝜎′∈Σ𝑟,𝐼, where 𝐼 ∅is a fictitious infoset indexing the first row, while,
+for every infoset 𝐽∈𝐶(𝐼)following 𝐼 (this included) and sequence 𝜎′∈Σ𝑟,𝐼∪{𝜎 𝑟(𝐼)}:
+⎧ ⎪−1 if 𝜎′=𝜎 𝑟(𝐽)
+[𝑭 𝐼]𝐽,𝜎′∶=⎨1 if 𝜎′=(𝐽,𝑎′)forsome𝑎′∈𝐴(𝐽).
+⎪
+⎩0 otherwise
+Finally, 𝒇 𝐼 ∈{0, 1}1+|𝐶(𝐼)| is a vector whose components are all zero apart from that one corresponding to the sequence 𝜎 𝑟(𝐼),
+which is one (see also[39]).
+The dual linear program of Problem(B.2)reads as:
+min𝒚𝐼,𝑎 [𝐼 ] s.t. (B.3a)
+𝒚𝐼,𝑎 ∅
+𝑭⊤ 𝐼𝒚𝐼,𝑎≥𝒄(𝝓,𝝁⋆ ), (B.3b)
+where 𝒚𝐼,𝑎 is a vector of dual variables indexed over 𝐶(𝐼) ∪{𝐼 ∅}. For ease of notation, we let OPT𝐼,𝑎 be the optimal value of
+Problem(B.3)instantiated for the sequence 𝜎=(𝐼, 𝑎).
+By strong duality, we have that the optimal value of the primal (Problem(B.2)) is equal to the optimal value of the dual (Prob-
+Λ𝜖(𝝁⋆)as
+lem(B.3)), and this allows us to readily rewrite the set follows:
+{ }
+| ∑ 𝜖
+Λ𝜖(𝝁⋆ )= 𝝓∈Φ| |OPT𝐼,𝑎− 𝑧∈𝑍(𝜎)𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧)≤ ∀𝜎=(𝐼,𝑎)∈Σ𝑟 . (B.4)
+|Σ𝑟|
+Moreover, we can remove OPT𝐼,𝑎in Equation(B.4)since it appears inthe right-hand side of a ≤inequality and Problem(B.3)is
+a minproblem. Thus, the set Λ𝜖(𝝁⋆)can be written as follows:
+{
+| ∑ 𝜖
+Λ𝜖(𝝁⋆ )= 𝝓∈Φ| |∃𝒚𝐼,𝑎 ∈ℝ1+|𝐶(𝐼)| ∶𝒚𝐼,𝑎 [𝐼 ∅]− 𝑧∈𝑍(𝜎)𝝓[𝜎 𝑠(𝑧)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧)≤
+|Σ𝑟|
+}
+∧𝑭⊤ 𝐼𝒚𝐼,𝑎≥𝒄(𝝓,𝝁⋆ ) ∀𝜎=(𝐼,𝑎)∈Σ𝑟 , (B.5)
+which is comprised of a polynomial number of inequalities and variables, concluding the proof.
+Let us also notice that, by expanding the constraints of Problem(B.3), one can easily check that they can be equivalently rewritten
+recursively, as follows. For every sequence 𝜎′=(𝐽, 𝑎′) ∈Σ𝑟,𝐼, Constraints(B.3b)can be rewritten as:
+∑ ∑
+𝒚𝐼,𝑎 [𝐽]≥ 𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝁⋆ [𝜎 𝑐(𝑧)]𝑢(𝑧)+ 𝒚𝐼,𝑎 [𝐾], (B.6)
+𝑧∈(𝐼)∶𝜎𝑟(𝑧)=(𝐽,𝑎′) 𝐾∈𝐶(𝐽,𝑎′)
+while, for sequence 𝜎 𝑟(𝐼), Constraint(B.3b)can be written as 𝒚𝐼,𝑎[𝐼 ∅] ≥𝒚𝐼,𝑎[𝐼]. Intuitively, at any optimal solution to Problem(B.3),
+we can interpret the value of the dual variable 𝒚𝐼,𝑎[𝐼 ] as the receiver’s expected utility obtained by playing the best possible
+∅
+continuation strategy after being recommended action 𝑎at infoset 𝐼. Indeed, the first term in the right-hand-side of Equation(B.6)
+is the utility immediately obtainable after playing 𝑎′ at infoset 𝐽, while the second term recursively encodes the utilities obtained
+(non-immediately) following 𝑎′at 𝐽. □
+Φ⋄(𝝁⋆) ≡Λ(𝝁⋆) ⊆Λ𝜖(𝝁⋆) ⊆Φ⋄ 𝜖(𝝁⋆).
+Lemma 2. It is always the case that
+Φ⋄(𝝁⋆) ≡Λ(𝝁⋆). 𝝓∈Φ⋄(𝝁⋆).
+Proof. First, we prove that Suppose that Then, Definition2implies
+𝑈𝝎→𝝆 (𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )≤0,
+for every 𝝎∈Ωand 𝝆∈. Thus, by Theorem1we have that:
+∑ ( )
+𝝎[𝜎] 𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ ) ≤0,
+𝜎∈Σ𝑟
+for every 𝝎∈Ωand 𝝆∈, which implies that:
+𝝆𝜎m ∈a x 𝑟,𝐼𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )≤0 ∀𝜎∈Σ𝑟,
+𝝓∈Λ(𝝁⋆),
+and proving the first part of the statement.
+Λ(𝝁⋆) ⊆Φ⋄(𝝁⋆) Λ(𝝁⋆) ≡Φ⋄(𝝁⋆).
+On the other hand, is directly implied by Corollary1. Thus, Moreover, from Definition 4it
+Λ(𝝁⋆) ⊆Λ𝜖(𝝁⋆).
+trivially follows that
+16
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Fig.C.5.Tree structure used in the proof of Theorem4. Black round nodes are decision nodes  𝑑. White round nodes are the chance nodes  𝑐, while graysquare
+nodes are the terminal nodes .
+Finally, we prove that Λ𝜖(𝝁⋆) ⊆Φ⋄ 𝜖(𝝁⋆). Given 𝜖>0, let 𝝓∈Λ𝜖(𝝁⋆). By Corollary1, it holds:
+[ ]
+∑ +
+(𝝎,𝝆m )∈a Ωx ×𝑈𝝎→𝝆 (𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )≤ 𝝆𝜎m ∈a x 𝑟,𝐼𝑈 𝜎→𝝆𝜎(𝝓,𝝁⋆ )−𝑈(𝝓,𝝁⋆ )
+𝜎=(𝐼,𝑎)∈Σ𝑟
+∑ 𝜖
+≤ =𝜖,
+𝜎=(𝐼,𝑎)∈Σ𝑟|Σ𝑟|
+which implies that 𝝓∈Φ⋄ 𝜖(𝝁⋆). This concludes the proof. □
+𝝁⋆
+Theorem 2. The BPSDM problem can be solved in polynomial time when the prior is known.
+Proof. It is easy to check that the problem can be written as the following linear program:
+max 𝐹(𝝓,𝝁⋆ ),
+𝝓∈Λ(𝝁⋆)
+Λ(𝝁⋆)is
+where the objective function is linear and a polytope that can be represented by a polynomial number of linear inequalities,
+by Lemma1. □
+AppendixC. Proofs omitted from Section7
+Theorem 4 (Impossibility of persuasiveness). There exists a constant 𝛾∈(0, 1)such that no algorithm can guarantee to output a sequence
+𝝓 1, … , 𝝓 𝑇 of signaling schemes such that, with probability at least 𝛾, all the signaling schemes 𝝓 𝑡are persuasive.
+Proof. We define two instances i and j of the BPSDM problem based on the tree structure presented in Fig. C.5. In instance i,
+respectively j, the prior is defined as follows:
+⎧𝝁⋆[(ℎ ,𝑐)]=1+𝜖
+⎪ 1 2
+⎪𝝁⋆[(ℎ ,𝑑)]=1−𝜖
+i∶=⎨ 1 2 ,
+⎪ ⎪ ⎩𝝁𝝁⋆ ⋆[ [( (ℎ ℎ2 2, ,𝑒 𝑓) )] ]= =1 2 1 2− +𝜖 𝜖
+⎧𝝁⋆[(ℎ ,𝑐)]=1−𝜖
+⎪ 1 2
+⎪𝝁⋆[(ℎ ,𝑑)]=1+𝜖
+j∶=⎨ 1 2 .
+⎪ ⎪ ⎩𝝁𝝁⋆ ⋆[ [( (ℎ ℎ2 2, ,𝑒 𝑓) )] ]= =1 2 1 2+ −𝜖 𝜖
+Moreover, for both instances 𝑢(𝑧 ) =𝑢(𝑧 ) =1 and 𝑢(𝑧 ) =𝑢(𝑧 ) =0. A direct computation shows that, in instance i, it holds
+∑ 1 3 2 4 ∑
+𝑉 𝑇i=2𝜖 𝑇 𝑡=1𝝓 𝑡[(ℎ 0, 𝑏)], while one can similarly compute that 𝑉 𝑇j=2𝜖 𝑇 𝑡=1𝝓 𝑡[(ℎ 0, 𝑎)]. Let ℙiand ℙjbe the probability measures of
+instance iand j, respectively. Assume that ℙj[𝑉j≤0] ≥1 −𝛿. Then, we know from the Pinsker inequality that:
+𝑇
+[ ] √
+∑𝑇
+1
+ℙi 𝝓 𝑡[(ℎ 0,𝑎)]≤0 ≥1− 2(i,j)−𝛿,
+𝑡=1
+where (i, j)is the Kullback-Leibler divergence between instance iand j. By using the Kullback-Leibler decomposition (see, e.g., [44]
+for more details), we can state that:
+(i,j)=2𝑇(𝐵 1∕2+𝜖,𝐵 1∕2−𝜖),
+where (𝐵 1∕2+𝜖, 𝐵 1∕2−𝜖) ≤16𝜖2 is the Kullback-Leibler divergence between a Bernoulli of parameter 1∕2 +𝜖 and one of parameter
+1∕2 −𝜖. Thus:
+17
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+[ ]
+∑𝑇 √
+ℙi 𝝓 𝑡[(ℎ 0,𝑎)]≤0 ≥1−4𝜖 𝑇−𝛿.
+𝑡=1
+∑
+Moreover, in instance i, we have that 𝑉 𝑇i=2𝜖 𝑇 𝑡=1𝝓 𝑡[(ℎ 0, 𝑏)], which implies:
+[ ] √
+ℙi 𝑉i≥2𝜖𝑇 ≥1−4𝜖 𝑇−𝛿.
+𝑇
+By setting 𝜖= √1 , we have that:
+16 𝑇
+[ √ ]
+1
+ℙi 𝑉i≥ 𝑇 ≥0.75−𝛿.
+𝑇 8
+Thus, any algorithm that guarantees with high probability 𝑅 𝑇 ≤0in instance jfails with high probability in instance i. This proves
+the claim. □
+AppendixD. Proofs omitted from Section8
+Before presenting the proofs of the results in Section8, we introduce some preliminary lemmas.
+Lemma 7. Given any 𝝓∈Φ and 𝝁, 𝝁′∈ 𝑐, if it is the case that 𝝓∈Λ𝜖(𝝁) and ‖𝝁−𝝁′‖ ∞≤𝛾, then it holds that 𝝓∈Λ𝜖′(𝝁′) with
+𝜖′=2|||Σ𝑟|𝛾+𝜖.
+Proof. For every (𝜎, 𝝆 𝜎)-SPDP with 𝜎=(𝐼, 𝑎), the following inequalities hold:
+𝑈 𝜎→𝝆𝜎(𝝓,𝝁′)−𝑈 ∑(𝝓,𝝁′)
+∑
+= 𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝆 𝜎[𝜎 𝑟(𝑧)]𝝁′[𝜎 𝑐(𝑧)]𝑢(𝑧)− 𝝓[𝜎 𝑠(𝑧)]𝝁′[𝜎 𝑐(𝑧)]𝑢(𝑧)
+(𝐼) 𝑧∈𝑍(𝜎)
+∑ ( )
+≤ 𝝓[(ℎ 𝐼(𝑧),𝑎)]𝝆 𝜎[𝜎 𝑟(𝑧)] 𝝁′[𝜎 𝑐(𝑧)]−𝝁[𝜎 𝑐(𝑧)] 𝑢(𝑧)
+(𝐼)
+∑ ( ) 𝜖
+− 𝑧∈(𝜎)𝝓[𝜎 𝑠(𝑧)] 𝝁′[𝜎 𝑐(𝑧)]−𝝁[𝜎 𝑐(𝑧)] 𝑢(𝑧)+
+|Σ𝑟|
+𝜖 𝜖
+≤2||‖𝝁−𝝁′‖ + ≤2||𝛾+ ,
+∞ |Σ𝑟| |Σ𝑟|
+where in the first inequality we added and subtracted the difference 𝑈 𝜎→𝝆𝜎(𝝓, 𝝁) −𝑈(𝝓, 𝝁)and used the fact that 𝝓∈Λ𝜖(𝝁), while
+the second-to-last inequality follows from Hölder’s inequality. Since 𝑈 𝜎→𝝆𝜎(𝝓, 𝝁′) −𝑈(𝝓, 𝝁′) ≤2||𝛾+ |Σ𝜖 ∶= |Σ𝜖′ holds for every
+𝑟| 𝑟|
+(𝜎, 𝝆 𝜎)-SPDP, we have that 𝝓∈Λ𝜖′(𝝁′)with 𝜖′=|||Σ𝑟|𝛾+𝜖, concluding the proof. □
+Lemma 8. Given any 𝛿∈(0, 1), Algorithm1guarantees that ℙ[] ≥1 −𝛿, where:
+{ }
+∶= ‖𝝁̂ 𝑡−𝝁⋆‖ ∞≤𝜖 ∀𝑡∈[𝑇] ,
+𝑡
+and 𝜖 𝑡is chosen according to Algorithm1.
+Proof. Let  𝑡(𝛿)be defined as follows:
+{ √ }
+𝝁| log(2𝑇 2| 𝑡Σ𝑐|∕𝛿)
+ 𝑡(𝛿)∶= | ||𝝁[𝜎]−𝝁̂ 𝑡[𝜎]|≤ ∀𝜎∈Σ𝑐 .
+Clearly, ℙ[] =ℙ[𝝁⋆∈ 𝑡(𝛿) ∀𝑡 ∈[𝑇]]. By Hoeffding’s inequality, we have that:
+( √ )
+log(2𝑇 2| 𝑡Σ𝑐|∕𝛿) 𝑇|𝛿
+ℙ |𝝁⋆ [𝜎]−𝝁̂ 𝑡[𝜎]|≤ ≥1− Σ𝑐|.
+By a union bound over 𝜎∈Σ𝑐 and 𝑡 ∈[𝑇], we get that:
+( √ )
+log(2𝑇 2| 𝑡Σ𝑐|∕𝛿)
+ℙ |𝝁⋆ [𝜎]−𝝁̂ 𝑡[𝜎]|≤ ∀𝜎∈Σ𝑐 ∀𝑡∈[𝑇] ≥1−𝛿.
+This concludes the proof of the lemma. □
+Lemma 9. If the event  holds, Algorithm1guarantees that 𝝓⋆ ∈Λ𝛽𝑡(𝝁̂ 𝑡)for all 𝑡 ∈[𝑇].
+18
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Proof. By definition, we have that 𝝓⋆ ∈Λ(𝝁⋆). Moreover, since we conditioned on , we have that:
+‖𝝁⋆ −𝝁̂ 𝑡‖ ∞≤𝜖 ∀𝑡∈[𝑇].
+𝑡
+Thus, we can exploit Lemma7, which, by letting 𝛽 𝑡∶=2|||Σ𝑟|𝜖 𝑡, gives that 𝝓⋆ ∈Λ𝛽𝑡(𝝁̂ 𝑡). □
+Lemma 10. If the event  holds, Algorithm1guarantees that 𝝓 𝑡∈Λ 2𝛽𝑡(𝝁⋆)for all 𝑡 ∈[𝑇].
+P bero to hf e. caG si ev e thn h o ‖w ⋆A −lgo 𝝁̂r 𝑡i ‖th ≤m 𝑡1 fow ro ar lk ls 𝑡, ∈we h ]a v Te t uh sa t 𝝓 𝑡 L∈ emΛ m𝛽𝑡 a(𝝁̂ 7𝑡) w. eO n t th ae o tt hh ae tr 𝝓ha 𝑡n ∈d Λ, s 2i 𝛽n 𝑡(c 𝝁e w ),e c ho en rd ei t 𝛽io 𝑡n ise d eo fin eth de e sv ie nn tt  , i rt m ofu ost
+a t 𝝁 𝜖 [𝑇 . h , b y ob in ⋆ w d n a h e p o f
+Lemma9. □
+Theorem 5. Given any 𝛿∈(0, 1), with probability at least 1 −𝛿, Algorithm1guarantees:
+( √ ) ( √ )
+( ) ( )
+𝑅 = || 𝑇log 𝑇|Σ𝑐|∕𝛿 , 𝑉 = |Σ𝑟||| 𝑇log 𝑇|Σ𝑐|∕𝛿 .
+𝑇 𝑇
+Moreover, the algorithm runs in polynomial time.
+Proof. First, we bound the computational complexity of the algorithm, then we separately analyze the sender’s regret 𝑅 𝑇 and the
+receiver’s regret 𝑉 𝑇.
+Complexity.With an argument analogous to the one used for the proof of Theorem2, we have that the optimization problem solved
+bySelectStrategy()in Algorithm1is a polynomially-sized linear problem (Lemma1). Hence, it can be solved in polynomial time.
+Sender’s regret.If the event  holds, which happens with probability at least 1 −𝛿, then:
+𝝁⋆ [𝜎]−𝜖 𝑡≤𝝁̂ 𝑡[𝜎]≤𝝁⋆ [𝜎]+𝜖 𝑡,
+for every sequence 𝜎∈Σ𝑐 and round 𝑡 ∈[𝑇]. This implies that, for every 𝝓∈Φ, we have:
+𝐹(𝝓,𝝁⋆ )−||𝜖 𝑡≤𝐹(𝝓,𝝁̂ 𝑡)≤𝐹(𝝓,𝝁⋆ )+||𝜖 𝑡.
+Moreover, under the event , we have that 𝝓⋆ ∈Λ𝛽𝑡(𝝁̂ 𝑡)and, thus, 𝐹(𝝓⋆, 𝝁̂ 𝑡) ≤𝐹(𝝓 𝑡, 𝝁̂ 𝑡)as 𝝓 𝑡is computed by optimizing 𝐹(⋅, 𝝁̂ 𝑡)
+over Λ𝛽𝑡(𝝁̂ 𝑡). By putting all the above results together, we get that, under event , the following holds:
+𝐹(𝝓⋆,𝝁⋆ )≤𝐹(𝝓⋆,𝝁̂ 𝑡)+||𝜖 𝑡≤𝐹(𝝓 𝑡,𝝁̂ 𝑡)+||𝜖 𝑡≤𝐹(𝝓 𝑡,𝝁⋆ )+2||𝜖 𝑡.
+∑ √
+By rearranging the terms, taking the sum over 𝑡 ∈[𝑇], and using 𝑇 𝑡=1√1 𝑡≤2 𝑇, we get:
+∑𝑇 ( ) ∑𝑇 √
+𝑅 𝑇 ∶= 𝐹(𝝓⋆,𝝁⋆ )−𝐹(𝝓 𝑡,𝝁⋆ ) ≤2|| 𝜖 𝑡≤2|| 2log(2𝑇|Σ𝑐|∕𝛿)𝑇,
+𝑡=1 𝑡=1
+which holds under the event , and, thus, with probability at least 1 −𝛿.
+R the ac te i 𝝓ve 𝑡r ∈’s Φre ⋄ 2g 𝛽r 𝑡e (t 𝝁. ⋆If ) .t h Te h ie sv ie mn pt l iesh to hl ad ts ,, wth ita hn k ps r oto b aL be im litm y a at1 l0 eaw ste 1 h −av 𝛿e , tt hh ea t f o𝝓 l𝑡 lo∈ wΛ in2 g𝛽 𝑡 h(𝝁 o⋆ ld) s. :Thus, by using Lemma2, we can conclude
+∑𝑇 √
+𝑉 ≤2 𝛽 𝑡≤4|Σ𝑟||| 2log(2𝑇|Σ𝑐|∕𝛿)𝑇,
+𝑇
+𝑡=1
+which concludes the proof. □
+AppendixE. Proofs omitted from Section9
+Lemma 3. For every deterministic signaling scheme 𝝅∈Π, let
+{ }
+Σ↓(𝝅)∶= 𝜎=(ℎ,𝑎)∈Σ𝑐∣𝑎∈𝐴(ℎ)∧𝝅[𝜎 𝑠(ℎ)]=1 .
+[ ]
+It holds 𝔼 𝒑 𝑡[𝜎]|𝝅 𝑡=𝝅 =𝝁⋆[𝜎]for every 𝝅∈Πand 𝜎∈Σ↓(𝝅).
+Proof. Let 𝝅 𝑡 be the pure strategy sampled from 𝝓 𝑡. Hence, for any sequence 𝜎 we have that the event of reaching node ℎ is a
+Bernoulli with parameter:
+19
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+𝔼[𝒑 𝑡[𝜎]|𝝅=𝝅 𝑡]=𝝅 𝑡[𝜎]𝝁⋆ [𝜎].
+Thus, by definition, if 𝜎∈Σ↓(𝝅 𝑡)we have that 𝝅 𝑡[𝜎] =1and the statement holds. □
+Lemma 11. Given any 𝛿∈(0, 1), Algorithm2guarantees that with probability at least 1 −𝛿∕2:
+∑𝑇 ∑ √ √
+𝜖 𝑡[𝜎 𝑐(𝑧)]𝝓 𝑡[𝜎 𝑠(𝑧)]≤ log(4𝑇|Σ𝑐|∕𝛿)|Σ𝑐|𝑇 +|| log(2∕𝛿)𝑇,
+𝑡=𝑁+1𝑧∈
+where the terms 𝜖 𝑡[𝜎]for 𝜎∈Σ𝑐 and 𝑡 ∈[𝑇]are defined according to Algorithm2.
+Proof. First, let us consider the deterministic signaling scheme 𝝅 𝑡∈Πsampled by the algorithm according to 𝝓 𝑡 at round 𝑡 ∈[𝑇].
+For convenience, in the following we report the definition of 𝜖 𝑡[𝜎](according to Algorithm2) for each 𝜎∈Σ𝑐 and 𝑡 ∈[𝑇]:
+√
+𝜖 𝑡[𝜎]∶= log( 24 𝐶𝑇 𝑡| [Σ 𝜎𝑐 ]|∕𝛿) ,
+where 𝐶 𝑡[𝜎]represents the number of rounds 𝑡′≤𝑡in which it is the case that 𝜎∈Σ↓(𝝅 𝑡′). Then, the following chain of inequalities
+holds:
+∑𝑇 ∑
+𝜖 𝑡[𝜎 𝑐(𝑧)]𝝅 𝑡[𝜎 𝑠(𝑧)] (E.1a)
+𝑡=𝑁+1𝑧∈
+⎛ ⎞
+∑𝑇 ∑ ⎜ ∑ ⎟
+= ⎜ ⎜𝜖 𝑡[𝜎] 𝝅 𝑡[𝜎′]⎟ (E.1b)
+⎟
+𝑡=𝑁+1 𝜎∈Σ𝑐∶ ⎜ 𝜎′∈Σ𝑠∶ ⎟
+∃𝑧∈∶𝜎=𝜎𝑐(𝑧)⎝ ∃𝑧∈∶𝜎=𝜎𝑐(𝑧)∧𝜎′=𝜎𝑠(𝑧) ⎠
+∑𝑇 ∑
+≤ 𝜖 𝑡[𝜎]𝝅 𝑡[𝜎 𝑠(ℎ)] (E.1c)
+𝑡=𝑁+1𝜎=(ℎ,𝑎)∈Σ𝑐
+∑ ∑
+= 𝜖 𝑡[𝜎] (E.1d)
+𝜎=(ℎ,𝑎)∈Σ𝑐 𝑡∈[𝑇]∶
+𝑡≥𝑁+1∧𝝅𝑡[𝜎𝑠(ℎ)]=1
+√
+∑ 𝐶∑𝑇[𝜎] log(4𝑇|Σ𝑐|∕𝛿)
+= (E.1e)
+2𝑡
+𝜎∈Σ𝑐𝑡=𝐶𝑁+1[𝜎]
+∑ √
+≤ log(4𝑇|Σ𝑐|∕𝛿)𝐶 𝑇[𝜎] (E.1f)
+𝜎∈Σ𝑐
+√
+≤ log(4𝑇|Σ𝑐|∕𝛿)|Σ𝑐|𝑇, (E.1g)
+where Equation(E.1c)follows by the definition of sequence-form signaling scheme of the sender, Equation(E.1d)follows by exchang-
+ing the sums over 𝜎∈Σ𝑐 and 𝑡 ∈[𝑇] ∑and recallin√g that 𝝅 𝑡is a deterministic signaling scheme, Equation(E.1e)holds by definition of
+𝜖, while Equation(E.1f)comes from 𝑇 𝑡=1 ∑√1 𝑡≤2 ∑𝑇. Finally, Equation(E.1g)follows from the Cauchy-Schwarz inequality.
+Next, we provide a similar bound on 𝑇 𝑡=𝑁+1 𝑧∈𝜖 𝑡[𝜎 𝑐(𝑧)]𝝓 𝑡[𝜎 𝑠(𝑧)]. We do this by exploiting the Azuma-Hoeffding inequal-
+ity [45]. Indeed, we have that 𝔼[𝝅 𝑡[𝜎]| 𝑡−1] =𝝓 𝑡[𝜎], where  𝑡−1 is the filtration generated up to time 𝑡 −1 from the interaction
+between the algorithm and the BPSDM problem. Thus, with probability at least 1 −𝛿∕2the following holds:
+∑𝑇 ∑ ∑𝑇 ∑ √
+𝜖 𝑡[𝜎 𝑐(𝑧)]𝝓 𝑡[𝜎 𝑠(𝑧)]≤ 𝜖 𝑡[𝜎 𝑐(𝑧)]𝝅 𝑡[𝜎 𝑐(𝑧)]+|| log(2∕𝛿)𝑇.
+𝑡=𝑁+1𝑧∈ 𝑡=𝑁+1𝑧∈
+By combining the equation above with Equation(E.1f), we obtain:
+∑𝑇 ∑ √ √
+𝜖 𝑡[𝜎 𝑐(𝑧)]𝝓 𝑡[𝜎 𝑠(𝑧)]≤ log(4𝑇|Σ𝑐|∕𝛿)|Σ𝑐|𝑇 +|| log(2∕𝛿)𝑇.
+𝑡=𝑁+1𝑧∈
+This concludes the proof. □
+Lemma 4. Under the event ̃ , Algorithm2guarantees that 𝝓 𝑡∈Λ 2𝛽𝑁(𝝁⋆)at each round 𝑡 >𝑁.
+20
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+̃
+Proof. The proof is similar to the one of Lemma10. If the event holds, then we have that:
+‖𝝁⋆ −𝝁̂ 𝑁‖ ∞≤ 𝜎m ∈a Σx 𝑐𝜖 𝑡[𝜎]∶=𝜖 𝑁.
+Moreover, 𝝓 𝑡∈Λ𝛽𝑁(𝝁̂ 𝑁)a √nd we can use Lemma7to conclude that 𝝓 𝑡∈Λ𝛽𝑁+2𝜖𝑁|Σ𝑟|||(𝝁⋆)for all 𝑡 >𝑁. The proof follows from
+𝛽 𝑁≥2𝜖 𝑁|||Σ𝑟|, since 𝜖 𝑁≤ log(4𝑇| 2Σ 𝑁𝑐|∕𝛿)|Σ𝑐| . □
+Lemma 5. If the event ̃ holds, then, for every round 𝑡 >𝑁, it holds that 𝝓⋆ ∈Λ𝛽𝑁(𝝁̂ 𝑡)and max𝝁∈𝑡(𝛿)𝐹(𝝓⋆, 𝝁) ≥𝐹(𝝓⋆, 𝝁⋆).
+𝝓⋆ ∈Λ(𝝁⋆)and, ̃
+Proof. Since under the event , it holds that:
+‖𝝁⋆ −𝝁̂ 𝑁‖ ∞≤ 𝜎m ∈a Σx 𝑐𝜖 𝑡[𝜎]∶=𝜖 𝑁,
+we can use Lemma7to √ conclude that 𝝓⋆ ∈Λ 2|Σ𝑐|||𝜖𝑁(𝝁̂ 𝑁). The proof of the first statement is concluded by observing that 𝛽 𝑁 ≥
+2|Σ𝑟|||𝜖 𝑁, since 𝜖 𝑁≤ log(4𝑇| 2Σ 𝑁𝑐|∕𝛿)|Σ𝑐| . The second statement directly follows from the observation that, under the event ̃ , it holds
+𝝁⋆∈ 𝑡(𝛿). □
+Theorem 6. Given any 𝛿∈(0, 1)and 𝑁∈[𝑇], Algorithm2guarantees:
+√ √
+⎛ ( ) ⎞ ⎛ ( ) ⎞
+𝑇| 𝛿Σ𝑐| 𝑇| 𝛿Σ𝑐| |Σ 𝑁𝑐|
+𝑅 𝑇 =⎜ ⎜𝑁+ log |Σ𝑐|𝑇⎟ ⎟,𝑉 𝑇 =⎜ ⎜𝑁+𝑇|||Σ𝑟| log ⎟ ⎟,
+⎝ ⎠ ⎝ ⎠
+with probability at least 1 −𝛿. Moreover, the algorithm runs in polynomial time.
+Proof. First, we bound the computational complexity of the algorithm, then we separately analyze the sender’s regret 𝑅 𝑇 and the
+receiver’s regret 𝑉 𝑇.
+Complexity.First, observe that 𝐹(𝝓, 𝝁)is a linear function in 𝝁and it only has positive terms. Thus, for every 𝝓∈Φ, the maximum over
+ 𝑡(𝛿)in the optimization problem solved during the second phase of theSelectStrategy()procedure is reached on the boundary
+of  𝑡(𝛿), so that larger entries of 𝝁provide larger objective values. Formally, we define:
+𝝁 𝑡∈arg max 𝐹(𝝓,𝝁),
+𝝁∈𝑡(𝛿)
+which is independent of 𝝓. Then, for every 𝜎∈Σ𝑐, we have that 𝝁 𝑡[𝜎] =𝝁̂ 𝑡[𝜎] +𝜖 𝑡[𝜎]. Thus, we can compute the signaling scheme
+𝝓 𝑡with a linear program as follows:
+𝝓 𝑡← max 𝐹(𝝓,𝝁 𝑡), (E.2)
+𝝓∈Λ𝛽𝑡(𝝁̂𝑡)
+and, similarly to the proof of Theorem 5, we have that the optimization problem in Equation (E.2)is a polynomially-sized linear
+program by Lemma1. Hence, it can be solved in polynomial time.
+Sender’s regret.Under the event ̃ , which happens with probability at least 1 −𝛿∕2, we have that |𝝁⋆[𝜎] −𝝁̂ 𝑡[𝜎]| ≤𝜖 𝑡[𝜎]for all 𝑡 >𝑁.
+Thus,
+‖𝝁⋆ −𝝁̂ 𝑡‖ ∞≤ 𝜎m ∈a Σx 𝑐𝜖 𝑡[𝜎]∶=𝜖 𝑁. (E.3)
+Then, we can conclude that, under event ̃ , it holds 𝝁⋆[𝜎] +2𝜖 𝑡[𝜎] ≥𝝁 𝑡[𝜎]. This in turn implies:
+∑
+𝐹(𝝓 𝑡,𝝁 𝑡)≤𝐹(𝝓 𝑡,𝝁⋆ )+2 𝜖 𝑡[𝜎 𝑐(𝑧)]𝝓 𝑡[𝜎 𝑠(𝑧)].
+𝑧∈
+By Lemma5, we have that, under event ̃ , it holds 𝝓⋆ ∈Λ𝛽𝑁(𝝁̂ 𝑁). Hence, 𝐹(𝝓⋆, 𝝁 𝑡) ≤𝐹(𝝓 𝑡, 𝝁 𝑡)as 𝝓 𝑡is computed as the optimum
+over Λ𝛽𝑁(𝝁 𝑡). Moreover, by Lemma5we also have that 𝐹(𝝓⋆, 𝝁⋆) ≤𝐹(𝝓⋆, 𝝁 𝑡), which implies:
+∑
+𝐹(𝝓⋆,𝝁⋆ )≤𝐹(𝝓⋆,𝝁 𝑡)≤𝐹(𝝓 𝑡,𝝁 𝑡)≤𝐹(𝝓 𝑡,𝝁⋆ )+2 𝜖 𝑡[𝜎 𝑐(𝑧)]𝝓 𝑡[𝜎 𝑠(𝑧)].
+𝑧∈
+Then, we can decompose the sender’s regret as:
+∑𝑁 ( ) ∑𝑇 ( )
+𝑅 𝑇 = 𝐹(𝝓⋆,𝝁⋆ )−𝐹(𝝓 𝑡,𝝁⋆ ) + 𝐹(𝝓⋆,𝝁⋆ )−𝐹(𝝓 𝑡,𝝁⋆ )
+𝑡=1 𝑡=𝑁+1
+21
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+∑𝑇 ∑
+≤𝑁+2 𝜖 𝑡[𝜎 𝑐(𝑧)]𝝓 𝑡[𝜎 𝑠(𝑧)].
+𝑡=𝑁+1𝑧∈
+By using Lemma11and a union bound, we can conclude that with probability at least 1 −𝛿:
+(√ √ )
+𝑅 ≤𝑁+2 log(4𝑇|Σ𝑐|∕𝛿)|Σ𝑐|𝑇 +|| log(2∕𝛿)𝑇 .
+𝑇
+R Λe 2c 𝛽e 𝑁iv (𝝁er ⋆’s r ⊆eg Φre 2t 𝛽. 𝑁B (y ⋆L )e .m Hm ena c4 e, u wn itd he r rt oh be ae bv ie lin tyt  ã t, lw eae th 1a v −e 𝛿t :hat 𝝓 𝑡∈Λ 2𝛽𝑁(𝝁⋆)for all 𝑡 ≥𝑁. Moreover, by Lemma2, it holds that
+) ⋄ 𝝁 , p s
+√
+|Σ𝑐|log( 24 𝑁𝑇|Σ𝑐|∕𝛿)
+𝑉 ≤𝑁+2𝑇𝛽 𝑁=𝑁+4𝑇|||Σ𝑟| .
+𝑇
+This concludes the proof. □
+Theorem 7. For any 𝛼∈[1∕2, 1], there exists a constant 𝛾∈(0, 1)such that no algorithm guarantees both 𝑅 𝑇 =𝑜(𝑇𝛼)and 𝑉 𝑇 =𝑜(𝑇1−𝛼∕2)
+with probability greater than 𝛾.
+Proof. We define two instances iand jof a BPSDM problem whose tree structures are as in Fig.C.5. In both instances, we have that
+𝑓(𝑧 ) =𝑓(𝑧 ) =1and 𝑓(𝑧 ) =𝑓(𝑧 ) =0for the sender, while 𝑢(𝑧 ) =𝑢(𝑧 ) =1and 𝑢(𝑧 ) =𝑢(𝑧 ) =0for the receiver. Moreover, in
+1 2 3 4 1 3 2 4
+both instances we have that for the chance node ℎ it holds 𝝁⋆[(ℎ , 𝑐)] =𝝁⋆[(ℎ , 𝑑)] =1∕2. Instead, the two instances differ in the
+1 1 1
+probabilities of chance node ℎ , which are defined as follows:
+2
+{
+𝝁⋆[(ℎ ,𝑒)]=1−𝜖
+i∶= 2 2 ,
+𝝁⋆[(ℎ ,𝑓)]=1+𝜖
+{ 2 2
+𝝁⋆[(ℎ ,𝑒)]=1+𝜖
+j∶= 2 2 .
+𝝁⋆[(ℎ ,𝑓)]=1−𝜖
+2 2
+Simple calculations show that, in instance j, we have that the regret of the sender is:
+∑𝑇
+𝑅j = 𝝓 𝑡[(ℎ 0,𝑏)]
+𝑇
+𝑡=1
+Hence, if we require that (in high probability with respect to the measure ℙj of instance j) the sender’s regret is smaller than a
+threshold 𝐾, then:
+[ ]
+∑𝑇
+ℙj 𝝓 𝑡[(ℎ 0,𝑏)]≤𝐾 ≥1−𝛿.
+𝑡=1
+The Pinsker’s inequality states that:
+[ ] √
+∑𝑇
+1
+ℙi 𝝓 𝑡[(ℎ 0,𝑏)]≤𝐾 ≥1−𝛿− 2(j,i),
+𝑡=1
+where (j, i)is the Kullback-Leibler divergence between instance jand instance i. By the well-known decomposition theorem of the
+divergence, we know that:
+[ ] [ ]
+∑𝑇 ∑𝑇
+(j,i)=𝔼j 𝝓 𝑡[(ℎ 0,𝑏)] (𝐵 1∕2+𝜖,𝐵 1∕2−𝜖)≤16𝜖2𝔼j 𝝓 𝑡[(ℎ 0,𝑏)] ,
+𝑡=1 𝑡=1
+where (𝐵 1∕2+𝜖, 𝐵 1∕2−𝜖) is the Kullba[ ∑ck-Leibler diver]gence between two Bernoulli random variable with parameter 1∕2 +𝜖 and
+1∕2 −𝜖. Now, we can upper bound 𝔼j 𝑇 𝑡=1𝝓 𝑡[(ℎ 0,𝑏)] in terms of the probability ℙjwith the reverse Markov inequality, as follows:
+[ ] [ ]
+∑𝑇 ∑𝑇
+𝔼j 𝝓 𝑡[(ℎ 0,𝑏)] ≤ℙj 𝝓 𝑡[(ℎ 0,𝑏)]≥𝐾 (𝑇 −𝐾)+𝐾
+𝑡=1 𝑡=1
+≤𝛿(𝑇 −𝐾)+𝐾.
+Thus, we can conclude that:
+[ ]
+∑𝑇 √
+ℙi 𝝓 𝑡[(ℎ 0,𝑏)]≤𝐾 ≥1−𝛿−2𝜖 2(𝛿(𝑇 −𝐾)+𝐾). (E.4)
+𝑡=1
+22
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+Now, we consider the receiver’s regret in instance i, which can be computed as:
+∑𝑇
+𝑉 𝑇i=𝜖 𝝓 𝑡[(ℎ 0,𝑏)].
+𝑡=1
+This, together with Equation(E.4), allows us to conclude that:
+[ ] √
+ℙi 𝑉i≥𝜖(𝑇 −𝐾) ≥1−𝛿−2𝜖 2(𝛿(𝑇−𝐾)+𝐾).
+𝑇
+𝐾=𝑇𝛼 𝜖=𝑇−𝛼∕2
+By setting and , we can conclude that if
+8 8
+[ ]
+[ 𝑇𝛼] ∑𝑇 𝑇𝛼
+ℙj 𝑅j ≤ ≥ℙj 𝝓 𝑡[(ℎ 0,𝑎)]≤ ≥1−𝛿,
+𝑇 8 8
+𝑡=1
+then
+[ ] √
+𝑇1−𝛼∕2 2
+ℙi 𝑉i≥ ≥1− −𝛿≥0.91−𝛿,
+𝑇 16 16
+𝑇1−𝛼∕2 −𝑇𝛼∕2 ≥𝑇1−𝛼∕2 𝛿≤𝑇𝛼−1
+where we used that for 𝑇 ≥1and that we can assume . □
+8 64 16 4
+Data availability
+No data was used for the research described in the article.
+References
+[1]M.Bernasconi,M.Castiglioni,A.Marchesi,N.Gatti,F.Trovò,Sequentialinformationdesign:learningtopersuadeinthedark,in:NeurIPS,2022.
+[2]E.Kamenica,M.Gentzkow,Bayesianpersuasion,Am.Econ.Rev.101(6)(2011)2590–2615.
+[3]P.BroMiltersen,O.Sheffet,Sendmixedsignals:earnmore,workless,in:EC,2012,pp.234–247.
+[4]FeldmanM.EmekY,I.Gamzu,R.PaesLeme,M.Tennenholtz,Signalingschemesforrevenuemaximization,TEAC2(2)(2014)1–19.
+[5]A.Badanidiyuru,K.Bhawalkar,H.Xu,Targetingandsignalinginadauctions,in:SODA,2018,pp.2545–2563.
+[6]M.Castiglioni,G.Romano,A.Marchesi,N.Gatti,Signalinginpostedpriceauctions,in:AAAI,2022.
+[7]R.Alonso,O.Câmara,Persuadingvoters,Am.Econ.Rev.106(11)(2016)3590–3605.
+[8]Y.Cheng,H.Y.Cheung,S.Dughmi,E.Emamjomeh-Zadeh,L.Han,S.Teng,Mixtureselection,mechanismdesign,andsignaling,in:IEEE56thAnnualSymposium
+onFoundationsofComputerScience,FOCS2015,Berkeley,CA,USA,17–20October,2015,2015,pp.1426–1445.
+[9]M.Castiglioni,GattiN.CelliA,Persuadingvoters:it’seasytowhisper,it’shardtospeakloud,in:AAAI,2020,pp.1870–1877.
+[10] M.Castiglioni,N.Gatti,Persuadingvotersindistrict-basedelections,in:AAAI,2021,pp.5244–5251.
+[11] U.Bhaskar,KoY.K.ChengY,C.Swamy,HardnessresultsforsignalinginBayesianzero-sumandnetworkroutinggames,in:EC,2016,pp.479–496.
+[12] M.Castiglioni,A.Celli,A.Marchesi,N.Gatti,SignalinginBayesiannetworkcongestiongames:thesubtlepowerofsymmetry,in:AAAI,2021,pp.5252–5259.
+[13] Y.Mansour,A.Slivkins,V.Syrgkanis,Z.S.Wu,Bayesianexploration:incentivizingexplorationinBayesiangames,in:EC,2016,p.661.
+[14] Z.Rabinovich,A.X.Jiang,M.Jain,H.Xu,Informationdisclosureasameanstosecurity,in:AAMAS,2015,pp.645–653.
+[15] H.Xu,R.Freeman,V.Conitzer,S.Dughmi,M.Tambe,SignalinginBayesianStackelberggames,in:AAMAS,2016,pp.150–158.
+[16] Y.Babichenko,S.Barman,AlgorithmicaspectsofprivateBayesianpersuasion,in:ITCS,2017.
+[17] O.Candogan,Persuasioninnetworks:publicsignalsandk-cores,in:EC,2019,pp.133–134.
+[18] M.Castiglioni,A.Celli,A.Marchesi,N.Gatti,OnlineBayesianpersuasion,in:NeurIPS,2020,pp.16188–16198.
+[19] M.Castiglioni,A.Marchesi,A.Celli,N.Gatti,Multi-receiveronlineBayesianpersuasion,in:ICML,2021,pp.1314–1323.
+[20] Y.Zu,K.Iyer,H.Xu,Learningtopersuadeonthefly:robustnessagainstignorance,in:EC,2021,pp.927–928.
+[21] Y.Babichenko,I.Talgam-Cohen,H.Xu,K.Zabarnyi,Regret-minimizingBayesianpersuasion,in:EC,2021,p.128.
+[22] M.Castiglioni,A.Marchesi,N.Gatti,Bayesianpersuasionmeetsmechanismdesign:goingbeyondintractabilitywithtypereporting,in:AAMAS,2022.
+[23] M.Bernasconi,M.Castiglioni,A.Celli,A.Marchesi,F.Trovò,N.Gatti,OptimalratesandefficientalgorithmsforonlineBayesianpersuasion,in:International
+ConferenceonMachineLearning,in:PMLR,2023,pp.2164–2183.
+[24] Y.Zu,K.Iyer,H.Xu,Learningtopersuadeonthefly:robustnessagainstignorance,in:EC,2021,pp.927–928.
+[25] M.K.Camara,J.D.Hartline,A.Johnsen,Mechanismsforano-regretagent:beyondthecommonprior,in:2020Ieee61stAnnualSymposiumonFoundationsof
+ComputerScience(Focs),IEEE,2020,pp.259–270.
+[26] J.Gan,R.Majumdar,G.Radanovic,A.Singla,Bayesianpersuasioninsequentialdecision-making,in:AAAI,2022.
+[27] J.Wu,Z.Zhang,Z.Feng,Z.Wang,Z.Yang,M.I.Jordan,etal.,Sequentialinformationdesign:Markovpersuasionprocessanditsefficientreinforcementlearning,
+arXivpreprintarXiv:2202.10678,2022.
+[28] M.Bernasconi,M.Castiglioni,A.Marchesi,M.Mutti,Persuadingfarsightedreceiversinmdps:thepowerofhonesty,in:NeurIPS,2023.
+[29] A.Celli,S.Coniglio,N.Gatti,PrivateBayesianpersuasionwithsequentialgames,AAAI34(02)(2020)1886–1893.
+[30] S.T.Su,V.G.Subramanian,G.Schoenebeck,Bayesianpersuasioninsequentialtrials,in:WebandInternetEconomics:17thInternationalConference,WINE
+2021,Potsdam,Germany,December14–17,2021,Proceedings,Springer,2022,pp.22–40.
+[31] B.Ni,W.Shen,P.Tang,Sequentialpersuasionusinglimitedexperiments,arXivpreprintarXiv:2303.10619,2023.
+[32] M.Castiglioni,A.Marchesi,A.Celli,N.Gatti,Multi-receiveronlineBayesianpersuasion,in:ICML,vol.139,2021,pp.1314–1323.
+[33] M.Castiglioni,A.Marchesi,N.Gatti,Bayesianpersuasionmeetsmechanismdesign:goingbeyondintractabilitywithtypereporting,in:AAMAS2022.Interna-
+tionalFoundationforAutonomousAgentsandMultiagentSystems(IFAAMAS),2022,pp.226–234.
+[34] M.Bernasconi-de-Luca,F.Cacciamani,S.Fioravanti,N.Gatti,A.Marchesi,F.Trovò,Exploitingopponentsunderutilityconstraintsinsequentialgames,in:
+NeurIPS2021,2021,pp.13177–13188.
+[35] M.Bernasconi,F.Cacciamani,M.Castiglioni,A.Marchesi,N.Gatti,F.Trovò,Safelearningintree-formsequentialdecisionmaking:handlinghardandsoft
+constraints,in:ICML2022,vol.162,in:PMLR,2022,pp.1854–1873.
+23
+
+M.Bernasconi,M.Castiglioni,A.Marchesietal. ArtificialIntelligence338(2025)104245
+[36] BabichenkoY.ArieliI,PrivateBayesianpersuasion,J.Econ.Theory182(2019)185–217.
+[37] B.VonStengel,F.Forges,Extensive-formcorrelatedequilibrium:definitionandcomputationalcomplexity,Math.Oper.Res.33(4)(2008)1002–1022.
+[38] D.Morrill,R.D’Orazio,R.Sarfati,M.Lanctot,J.R.Wright,A.R.Greenwald,etal.,Hindsightandsequentialrationalityofcorrelatedplay,in:AAAI,vol.35,2021,
+pp.5584–5594.
+[39] D.Koller,N.Megiddo,B.VonStengel,Efficientcomputationofequilibriaforextensivetwo-persongames,GamesEcon.Behav.14(2)(1996)247–259.
+[40] G.Farina,A.Celli,A.Marchesi,N.Gatti,Simpleuncoupledno-regretlearningdynamicsforextensive-formcorrelatedequilibrium,arXivpreprintarXiv:2104.
+01520,2021.
+[41] G. Farina, R. Schmucker, T. Sandholm, Bandit linear optimization for sequential decision making and extensive-form games, in: AAAI, vol. 35, 2021,
+pp.5372–5380.
+[42] C.J.Hillar,L.H.Lim,Mosttensorproblemsarenp-hard,J.ACM60(6)(2013)1–39.
+[43] A.Celli,A.Marchesi,G.Farina,N.Gatti,No-regretlearningdynamicsforextensive-formcorrelatedequilibrium,in:NeurIPS,vol.33,2020,pp.7722–7732.
+[44] T.Lattimore,C.Szepesvári,BanditAlgorithms,CambridgeUniversityPress,2020.
+[45] N.Cesa-Bianchi,G.Lugosi,Prediction,Learning,andGames,CambridgeUniversityPress,2006.
+24
+

@@ -1,0 +1,707 @@
+ArtificialIntelligence338(2025)104243
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+Separate but equal: Equality in belief propagation for single-cycle
+✩
+graphs
+Erel Cohen, Ben Rachmut, Omer Lev, Roie Zivan∗
+DepartmentofIndustrialEngineeringandManagement,Ben-GurionUniversityoftheNegev,Beersheba,Israel
+A R T I C L E I N F O A B S T R A C T
+Keywords: Belief propagation is a widely used, incomplete optimization algorithm whose main theoretical
+Belief propagation properties hold only under the assumption that beliefs are not equal. Nevertheless, there is
+Distributed constraints substantial evidence to suggest that equality between beliefs does occur. A published method
+Distributedproblemsolving
+to overcome belief equality, which is based on the use of unary function-nodes, is commonly
+assumed to resolve the problem.
+In this study, we focus on min-sum, the version of belief propagation that is used to solve constraint
+optimization problems. We prove that for the case of a single-cycle graph, belief equality can only
+be avoided when the algorithm converges to the optimal solution. Under any other circumstances,
+the unary function method will notprevent equality, indicating that some of the existing results
+presented in the literature are in need of reassessment. We differentiate between belief equality,
+which refers to equal beliefs in a single message, and assignment equality, which prevents the
+coherent assignment of values to the variables, and we provide conditions for both.
+1. Introduction
+The belief propagation algorithm [11,21]is an incomplete inference algorithm for solving problems that can be represented by
+graphical models. One major domain to which it can be applied is constraint optimization [3], a general model for centralized and
+distributed problem-solving, which has a wide range of applications in artificial intelligence and multi-agent systems [13,5].
+In belief propagation, each node in the graph acts as an agent within a distributed algorithm. In the standard synchronous version,
+this means that at each iteration of the algorithm, the node receives messages from all its neighboring nodes, performs computations,
+and sends messages to its neighbors. The agents maintain (and propagate) beliefs regarding the costs1 they will incur for assigning
+various possible values to their variables.
+Min-sum is a version of belief propagation that has drawn considerable attention[15,14,1], including being proposed for multi-
+agent applications such as sensor systems [18,16]and task allocation for rescue teams in disaster areas [13]. When solving maxi-
+mization problems, the algorithm is referred to as max-sum. This name is commonly used in the distributed constraint optimization
+community even when the problem solved is a minimization problem (see, e.g.,Zivan etal.[22],Cohen etal.[2]). For convenience
+✩ This paper is an extension of our AAAI 2023 paper.
+* Correspondingauthor.
+E-mailaddresses:erelco@post.bgu.ac.il(E.Cohen),rachmut@post.bgu.ac.il(B.Rachmut),omerlev@bgu.ac.il(O.Lev),zivanr@bgu.ac.il(R.Zivan).
+1 In this paper, without loss of generality, we consider costs and not utilities. Thus, the problem that the algorithm aims to solve is a minimization problem, and
+violatingaconstraintincursafinitecost.
+https://doi.org/10.1016/j.artint.2024.104243
+Received 10 May 2023; Received in revised form 22 October 2024; Accepted 23 October 2024
+Availableonline8November2024
+0004-3702/©2024PublishedbyElsevierB.V.
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+of presentation, we will focus solely on the min-sum version of belief propagation. However, the results that we present apply to
+other versions of belief propagation as well.
+Belief propagation is known to converge to the optimal solution when solving problems represented by an acyclic graph[6,14].
+When problems are represented by graphs that include cycles, the beliefs may fail to converge, and the resulting assignments that are
+considered optimal under those beliefs may be of low quality [21,4,22]. This occurs because cyclic information propagation leads to
+computation of inaccurate and inconsistent information[11].
+When solving problems represented by graphs with a single cycle, it is known that belief propagation is not guaranteed to con-
+verge. However, when it does converge, the result is the optimal solution [19,6]. Moreover, the conditions for convergence of belief
+propagation on a single cycle are known: Forney et al. [6] show the resemblance between the operations of the algorithm on a
+single-cycle graph and its operations when solving a chain structured graph. Every propagated belief corresponds to a sum of costs,
+where each cost is the result of the assignment of a set of values. After a sufficient number of iterations, the algorithm starts a periodic
+traversal of the lowest-cost sequence of assignments (a minimal route). The algorithm converges to the optimal solution if and only
+if this periodic route is consistent, i.e., if nodes in the chain structured graph that represent the same variable are assigned consistent
+values. If, on the other hand, the route includes different values assigned to nodes representing the same variable, the algorithm will
+oscillate.
+Recent work by Zivan etal.[23]proposed the use of a backtrack cost tree (BCT), which reveals the cost components that were
+summed in order to generate a propagated belief. They prove (among other results) that after a sufficient number of iterations, the
+bottom layers of all BCTs of the beliefs included in a single message are identical.
+There is a major caveat to all the above claims: they were proved under the assumption that there is no equality between beliefs,
+i.e., that the sum of costs for different values that can be assigned to a single variable are never identical, such that the best assignment
+at a particular stage is always clear. However, there is considerable theoretical and empirical evidence to indicate that when no steps
+are taken to ensure that this assumption holds, equal beliefs actually occur quite often. Thus, there is a clear motivation to enforce the
+condition of “no equality”, in order for the results that were obtained under this assumption to stand. Two attempts to prevent belief
+equality have been published. The first is value propagation, commonly used within complete inference algorithms such as DPOP[12],
+but also used in versions of max-sum, e.g., Rogers etal.[14],Zivan etal.[22]. However, although this method is useful when the
+algorithm converges, it does not overcome pathologies that are triggered by belief equality during the algorithm’s run, e.g., when
+solving graph coloring problems[22]. The second method for avoiding belief equality was presented by Farinelli etal.[4]. These
+authors proposed the addition of unary constraints with randomly selected costs, which are orders of magnitude smaller than the
+problem’s constraint costs. These are intended to reduce the probability of belief equality to a negligible level. We shall demonstrate
+in this paper that while this method is effective when the algorithm converges to the optimal solution, e.g., when it is used to solve
+acyclic graphs, it does not prevent belief equality when there is as much as a single cycle in the graph and the algorithm oscillates.
+In this paper, we extend the theory on belief propagation in general, and on min-sum in particular, by means of the following
+contributions:
+1. We establish conditions that lead to belief equality and assignment equality of min-sum on graphs with a single cycle.
+2. We prove that the unary constraint tie breaking method presented by Farinelli etal.[4]does not prevent ties even in a single-cycle
+graph.
+Our results provide the first theoretical evidence that equalities cannot be avoided using the standard methods when applying
+min-sum to graphs that include cycles. This finding indicates that new theoretical analysis will be needed to tackle such settings. Our
+empirical results demonstrate that when the algorithm does not converge to the optimal solution, the rate of occurrence of assignment
+equality is high.
+The rest of the paper is organized as follows: We first provide background information on graphical models and belief propagation,
+and we present the existing theoretical knowledge regarding the convergence properties of belief propagation. Next, we present
+preliminaries followed by our theoretical results. Then, we conduct an empirical evaluation in which we examine how often the
+algorithm fails to converge, and for these cases, we determine the rates of belief equality and assignment equality. We end with
+conclusions and suggestions for future work.
+2. Background
+In this section we present background information on the graphical models to which our results apply. In addition, we present
+the preliminaries of constraint optimization problems (COPs) and the version of belief propagation used to solve them – the min-sum
+algorithm. We also discuss the conditions for convergence on single-cycle graphs, as presented in Forney etal.[6].
+2.1. Graphical models
+Graphical models, such as Bayesian networks or constraint networks, are widely used representation frameworks for representing
+and solving optimization problems. The graph structure is used to capture dependencies between variables [10]. Our work extends
+the theory established by Weiss[19], who sought to determine the maximum a posteriori (MAP) assignment using the max-product
+version of belief propagation. The relationship between MAP assignment and constraint optimization is well established [10,4]. Thus,
+results that apply to the use of the max-product method to determine the MAP assignment also apply to the use of max/min-sum to
+2
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+solve constraint optimization problems – and vice versa [15]. Without loss of generality, we focus here on constraint optimization,
+since it is more common in the AI literature. Our results apply to any version of a problem that can be represented by a graphical
+model and solved by belief propagation, as do the results of Weiss[19].
+2.2. Constraint optimization
+A constraint optimization problem, or 𝐶𝑂𝑃, is a tuple ⟨, , ⟩in which  is a finite set of variables {𝑋 1, 𝑋 2, … , 𝑋 𝑚}and is
+a set of domains {𝐷 1, 𝐷 2, … , 𝐷 𝑚}, such that each domain 𝐷 𝑖contains the finite set of values that can be assigned to variable 𝑋 𝑖. We
+denote an assignment of value 𝑥 ∈𝐷 𝑖 to 𝑋 𝑖 by an ordered pair ⟨𝑋 𝑖, 𝑥⟩. is a set of relations (constraints), where each constraint
+𝑅 𝑗 ∈ defines a non-negative cost for every possible combination of values assigned to a set of variables, and it takes the form
+𝑅 Fo𝑗 r∶ e𝐷 ac𝑗 × b𝐷 in𝑗 r× … n× s𝐷 tra𝑗𝑘 in→ 𝑅ℝ 𝑖+ ∪ th{ e0 r} e. A b ai n ca or ry ec so pn ost nr da iin nt gr ce ofe sr ts t ao le ex a 𝑇c 𝑖t 𝑗ly t iw tho dv ia mri ea nb sl ie os a sn |d i 𝑖s o ×f |t 𝐷he |fo ir nm 𝑅 h𝑖 i𝑗 ch∶ 𝐷 ev𝑖 e× ry𝐷 e𝑗 n→ tryℝ i+ ∪ { c0 o} s. t2
+h1 a2 y co t 𝑗, is r t b w n 𝐷 | 𝑗 w s a .
+Specifically, the entry 𝑒 𝑥,𝑦 is the cost incurred when 𝑋 𝑖 is assigned the value 𝑥 and 𝑋 𝑗 is assigned the value 𝑦. A binary COPis a
+COP in which all constraints are binary. The cost of a partial assignment(PA) is the sum of all constraints applicable to PA. A complete
+assignment(or a solution) is a partial assignment that includes all the variables of the COP. An optimal solutionis a complete assignment
+with minimal cost. For simplicity, we concentrate solely on binary COPs.
+2.3. Min-sum belief propagation
+Min-sum operates on a factor graph, which is a bipartite graph in which the nodes represent variables and constraints [9]. Each
+variable-node, representing a variable of the original COP, is connected to all function-nodes that represent the constraints that involve
+it. Similarly, each function-node is connected to all variable-nodes that are involved in the constraint it represents. Variable-nodes
+and function-nodes take an active role in min-sum, i.e., they can send and receive messages, and can perform computations. Min-sum
+can be applied to both distributed settings, where each node’s role is performed by an autonomous agent (in such cases, the problem
+is referred to as a 𝐷𝐶𝑂𝑃, i.e., a distributed COP), and to centralized settings, in which the activities of all nodes are managed by a
+single entity.
+In min-sum a message sent to – or from – variable-node 𝑋(for simplicity, we use the same notation for a variable and the variable-
+node that represents it) is a vector of size |𝐷 𝑋|containing a cost for each value in 𝐷 𝑋. Before the first iteration, all nodes assume
+that all messages they received previously (at iteration 0) corresponded to a vector of zeros. A message sent from variable-node 𝑋 to
+function-node 𝐹 at iteration 𝑖 ≥1is formalized as follows:
+∑
+𝑄𝑖 𝑋→𝐹 = 𝑅𝑖 𝐹− ′1 →𝑋−𝛼, (1)
+𝐹′∈𝐹𝑋,𝐹′≠𝐹
+where 𝑄𝑖 𝑋→𝐹 is the message that variable-node 𝑋 intends to send to function-node 𝐹 at iteration 𝑖, 𝐹 𝑋 is the set of function-node
+neighbors of variable-node 𝑋, and 𝑅𝑖−1 is the message that was sent to variable-node 𝑋 by function-node 𝐹′ at iteration 𝑖 −1.
+𝐹′→𝑋
+The term 𝛼is a constant that is subtracted from each of the beliefs included in the message (i.e., for each 𝑥 ∈𝐷 𝑋) in order to prevent
+the costs carried by messages from growing arbitrarily large during the algorithm’s run.
+A message 𝑅𝑖 is sent from function-node 𝐹 to variable-node 𝑋at iteration 𝑖and includes a belief for each value 𝑥 ∈𝐷 𝑋. It is
+𝐹→𝑋
+formulated as follows:
+𝑅𝑖 𝐹→𝑋= 𝑃𝑚 𝐴𝑖 −𝑛 𝑋𝑐𝑜𝑠𝑡(⟨𝑋,𝑥⟩,𝑃𝐴 −𝑋), (2)
+where 𝑃𝐴 −𝑋 is a possible combination of values assigned to the variables involved in 𝐹 excluding 𝑋. The term 𝑐𝑜𝑠𝑡(⟨𝑋, 𝑥⟩, 𝑃𝐴 −𝑋)
+represents the cost of a partial assignment 𝑎 ={⟨𝑋, 𝑥⟩, 𝑃𝐴 −𝑋}, which is given by:
+∑
+𝑓(𝑎)+ (𝑄𝑖 𝑋− ′1 →𝐹)𝑥′, (3)
+𝑋′∈𝑋𝐹,𝑋′≠𝑋,⟨𝑋′,𝑥′⟩∈𝑎
+where 𝑓(𝑎)is the original cost in the constraint represented by 𝐹 for the partial assignment 𝑎, 𝑋 𝐹 is the set of variable-node neighbors
+of 𝐹, and (𝑄𝑖 𝑋− ′1 →𝐹)𝑥′ is the cost that was received in the message sent from variable-node 𝑋′ at iteration 𝑖 −1, for the value 𝑥′ that
+is assigned to 𝑋′in 𝑎. Variable-node 𝑋selects its value 𝑥̂∈𝐷 𝑋 following iteration 𝑘as follows:
+∑
+𝑥̂=argmin (𝑅𝑘 𝐹→𝑋)𝑥. (4)
+𝑥∈𝐷𝑋 𝐹∈𝐹𝑋
+2.4. Single-cycle factor graphs
+For a single-cycle factor graph, we know that if belief propagation converges, it converges to the optimal solution[6,19]. Moreover,
+when the algorithm does not converge, it periodically changes its set of assignments. To explain this behavior, Forney etal.[6]show
+2 We say that a variable is involvedin a constraint if it is one of the variables to which the constraint refers.
+3
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.1.Asinglecyclefactorgraphwiththreenodes,whereeachvariablehasadomainsizeofthree.(Forinterpretationofthecolorsinthefigure(s),thereaderis
+referredtothewebversionofthisarticle.)
+the similarity of the performance of the algorithm on a cycle to its performance on a chain-structured graph, whose nodes are similar
+to the nodes in the cycle, but whose length is equal to the number of iterations performed by the algorithm. Consider a sequence of
+messages starting at the first node of the chain and heading towards the other end. Each message conveys beliefs accumulated from
+the costs added by function-nodes. Specifically, each function-node adds a cost to each belief, which is the constraint cost of a pair of
+values assigned to its neighboring variable-nodes. Each such sequence of cost accumulations (i.e., each route) must become periodic
+at some point, and the minimal belief is generated by the minimal periodic route. If this periodic route is consistent, i.e., if the set
+of assignments implied by the costs within it contains the same value for each variable, the algorithm converges and the implied
+assignment is the optimal solution; otherwise, it does not converge[6]. Our results demonstrate that there are cases in which ties
+cannot be avoided. Specifically, when the algorithm oscillates, under some conditions, the minimal repeated route that the algorithm
+follows includes more than one value from each variable’s domain, and the beliefs for these values periodically become equal. This
+phenomenon cannot be avoided using the unary constraint method proposed inFarinelli etal.[4].
+Example 1. Fig.1presents a single-cycle factor graph with three variable-nodes 𝑋 , 𝑋 and 𝑋 and three function-nodes 𝐹 , 𝐹
+1 2 3 12 23
+and 𝐹 . Each variable has three values in its domain (𝑎, 𝑏and 𝑐) and thus the dimensions of the cost tables held by the function-nodes
+31
+are 3 ×3. At every synchronous iteration, each of the nodes sends two messages, one to each of its neighbors. Each message consists
+of a vector of beliefs (costs) of size 3, one for each of the values of the variable involved (either sending or receiving). At the first
+iteration, all messages sent by all variable-nodes contain zero costs. The messages sent by the function-nodes represent, for each
+possible value of each of their neighboring variable-nodes, the minimal cost they can offer for that value, according to the cost table.
+For example, at the first iteration, function-node 𝐹 sends the message ⟨121, 2, 49⟩to variable-node 𝑋 , since these are the minimal
+12 2
+entries in each of the rows of its cost table. At the second iteration, variable-node 𝑋 sends the same message to function-node 𝐹 .
+2 23
+At the third iteration, 𝐹 sends the message ⟨186, 5, 65⟩to 𝑋 , which is derived as follows: for every row in the cost table, the beliefs
+23 3
+in the message received from 𝑋 at the previous iteration are added, e.g., 121is added to 65, 2is added to 456and 49is added to
+2
+206. Thus, 186, which is the minimal of the three, is the first belief to be included in the message that will be sent to 𝑋 . The beliefs
+3
+5and 65are selected similarly. At the same iteration, 𝑋 receives from its other neighbor, 𝐹 , the message ⟨191, 60, 4⟩. If 𝑋 needs
+3 31 3
+to select an assignment at this iteration, it sums the two vectors that it has received, resulting in ⟨377, 65, 69⟩, and thus it selects the
+value 𝑏since this results in the minimal cost.
+Example 2. Fig.2presents the same factor graph as that presented in Fig.1with the addition of unary constraints (as suggested
+in [4]). Each vector of unary constraints adjacent to a variable-node specifies a very small additional cost for each of its value
+assignments, 𝑎, 𝑏and 𝑐respectively.
+2.5. Convergence of min-sum
+The convergence of min-sum has been the focus of a number of studies in the graphical models and multi-agent systems communi-
+ties. With the exception of the studies on tree-structured graphs and single-cycle graphs, in which the conditions for convergence have
+been well established[11,19,6], most of the attempts to identify the conditions for convergence of the algorithm on general graphs,
+with an arbitrary number of cycles, have suggested applying some revisions to the original algorithm in order to trigger convergence.
+Ihler etal.[8]analyze belief propagation (BP) from the unique point of view that each message sent at each iteration conveys a
+noisy version of the true belief. Thus, analyzing the error trends can shed light on the convergence of the algorithm. A number of studies
+have investigated how the convergence of BP is related to physical properties and system dynamics. Tatikonda and Jordan[17]study
+the relationship between the convergence of BP and Gibbs measures. Similar to the approach suggested in[20,23], they make use of
+the unwrapped tree. However, they use Gibbs measures to establish conditions for convergence. Heskes[7]studies the convergence
+of BP by identifying its similarity to a Bethe free energy function, a tractable approximation to the exact variational Gibbs-Helmholtz
+free energy equation. The approximation method simulates a function of beliefs with certain properties that guarantee convergence.
+None of the aforementioned studies addresses the possibility of belief or assignment equality.
+4
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.2.Asinglecyclefactorgraphwiththreenodes,whereeachvariablehasadomainsizeofthree,withunaryconstraints.
+In the DCOP literature, there have been a number of attempts to revise the factor-graph structure in order to guarantee convergence.
+One approach involves removing edges from the factor graph until it is reduced to a tree-structured graph[14]. Here, the authors
+use the unary constraints tie breaking method that they proposed in[4], which is indeed effective when convergence is guaranteed.
+The resulting algorithm, referred to as bounded max-sum, enables calculation of a bound on the distance between the quality of the
+reported solution and the cost of the optimal solution. In [22], the authors attempt to guarantee convergence without removing edges
+from the factor graph by transforming the factor graph into a directed acyclic graph. In common with other studies, the study invokes
+the unary constraints method for preventing ties.
+3. Preliminaries
+Our analysis will provide insights regarding the construction of beliefs from costs incurred by constraints on a single-cycle graph.
+Let us address the problem in which there are 𝑛 variable-nodes in a single-cycle graph. We shall mark the state of the algorithm
+at time 𝑡 (that is, after 𝑡 iterations) as 𝑠⃗𝑡 . This state includes the value assignments selected by all variable-nodes in the graph at
+time 𝑡. The value assignments at time 𝑡 >0are selected according to the messages R that are sent to the variable-nodes from their
+function-node neighbors at time 𝑡 −1.
+For every pair of constrained variables, 𝑋 𝑖 and 𝑋 𝑗, for each 𝑥 ∈𝐷 𝑖, 𝑥′∈𝐷 𝑗, we denote the cost incurred (according to the
+constraint) for assigning 𝑥to 𝑋 𝑖and 𝑥′to 𝑋 𝑗 as 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=𝑥′). This is the cost specified by the corresponding entry in the cost table
+held by the function-node representing the constraint between 𝑋 𝑖and 𝑋 𝑗.
+Forney etal.[6]proved that when belief propagation is applied to a single-cycle graph, there is a time 𝑡 and a positive integer
+0
+𝑣such that for any 𝑡 ≥𝑡 , the state 𝑠𝑡=𝑠𝑡+𝑣 ; i.e., starting at time 𝑡 , the algorithm produces the same state every 𝑣iterations. Forney
+0 0
+etal.[6]further proved that if the algorithm converges, i.e., if 𝑣 =1, then the single repeated state is the optimal solution. Intuitively,
+the optimality of the solution follows from the optimality of belief propagation on trees in general and on chains in particular[11].
+If we were to select an arbitrarily long chain representing the solution process of belief propagation on the single-cycle graph, then
+it would include the assignment that is derived from the repeated set periodically for the number of iterations that we chose. If this
+assignment were not optimal, it would mean that there is a different assignment that is an optimal solution for this chain, and thus,
+the optimality of the algorithm on chain structured graphs would be contradicted.
+𝑏𝑘 BCT(𝑏𝑘
+Definition 1. (proposed in[23]) A backtrack cost tree (BCT) for a belief (i.e., )) is a hierarchical structure that specifies
+the constraint costs that were summed in order to generate 𝑏𝑘 at iteration 𝑘. A belief is generated by summing costs (beliefs) that are
+sent in messages R. Thus, if 𝑏𝑘 is a belief sent in message R at iteration 𝑘, then for 𝑘 >1, it is the sum of the beliefs that were sent in
+the messages at iteration 𝑘 −2, together with an additional cost 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=𝑥′), which is an entry in the cost table of the function-node
+that sends the message R that includes 𝑏𝑘 . Similarly and recursively, each belief 𝑏𝑘−2that was sent in a message at iteration 𝑘 −2and
+was used to generate 𝑏𝑘 , was generated by summing the beliefs sent at iteration 𝑘 −4(assuming 𝑘 >3) together with an entry in the
+𝑏𝑘−2.
+cost table of the function-node that sends the message that includes This backtrack process continues until we reach iteration
+1and all the costs that were summed in order to generate 𝑏𝑘 are revealed.
+In a single-cycle graph, each BCT is a chain (see example in Fig.3, showing a BCT for the cost sent from 𝐹 to 𝑋 at iteration 12
+31 1
+for value assignment 𝑏, when solving the problem presented in Fig.1). The BCT starts by specifying the cost sent from function-node
+𝐹 to variable-node 𝑋 at the second iteration. It proceeds by specifying the accumulated cost from previous iterations plus the entry
+12 2
+that is added at the current iteration. It is apparent that in a chain-structured BCT representing the process on a single-cycle factor
+graph, only the function-nodes add to the costs of the BCT, while variable-nodes simply pass on the costs they receive. The following
+definition allows us to focus on the cost table entries that are summed in a BCT.
+Definition 2. The route of 𝐵𝐶𝑇(𝑏𝑘)in a single-cycle graph is the ordered list of cost table entries 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=𝑥′)that are summed by
+the algorithm in order to generate belief 𝑏𝑘 . We denote the route of 𝐵𝐶𝑇(𝑏𝑘)by 𝑟 𝑏𝑘.
+5
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.3.BCTandrouteofthebeliefsenttovariable-node𝑋 1forvalue𝑏,accordingtothegraphinFig.1.
+The bottom of Fig.3depicts the route that corresponds to the BCT presented at the top of the figure. It shows the series of costs
+that are summed in order to generate the belief sent from 𝐹 to 𝑋 at the 12’th iteration for value assignment 𝑏. We say that the
+31 1
+route visitsa cost table entry when this entry is added to the route. We will denote the set of entries that were added to a route 𝑟(i.e.,
+the entries that the route 𝑟is composed of) by 𝐸 𝑟. For simplicity, we will say that an entry 𝑒is included in 𝑟when 𝑒 ∈𝐸 𝑟.
+When a variable-node in a single-cycle graph selects a value for its variable, it sums the beliefs received in the messages R sent to
+it at the last iteration. Thus, at every time 𝑡 ∈ℕ, for each value 𝑥in its domain, the variable-node receives two beliefs, and there is
+𝑟𝑐 𝑥𝑤
+a route for each of them. One route is accumulated from messages arriving in the clockwise direction, which we denote by , and
+𝑟𝑐 𝑥𝑐𝑤
+the other is accumulated from messages in a counterclockwise direction, denoted by .
+For each route, there is a corresponding assignment that is implied by it. That is, if the 𝑘’th cost in the route is 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=𝑥′), this
+implies that the 𝑘’th and (𝑘 +1)’th value assignments in the implied assignment are 𝑋 𝑖=𝑥and 𝑋 𝑗=𝑥′respectively.
+Definition 3. Let the route of the BCT of the minimal belief in a message be theminimal routeand its corresponding assignment be
+theminimal assignment.
+FollowingForney etal.[6], we know that there is a time 𝑡 such that for any time 𝑡 >𝑡 , the minimal route corresponds to the
+0 0
+minimal normalized sequence of entries (an interval) that repeats itself periodically. When the size of the periodic interval is equal to
+the number of function-nodes in the graph, this means that the algorithm has converged and the minimal assignment is the optimal
+solution (since the assignment of every variable is always the same, whenever the route “visits” it).
+We will refer to the set of cost table entries 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=𝑥′) that are included in the minimal route after 𝑡 0 as the set 𝑀, and the
+assignment implied by a single interval of the periodic route that follows 𝑡 and visits each of the members in 𝑀 as 𝐴𝑀 . In the
+0
+factor graph presented in Fig.1, the minimal route (as depicted at the bottom of Fig.3) includes all the entries in the cost table that
+are highlighted in yellow. Consider a route on the factor graph depicted in Fig.2that includes all members in 𝑀 (highlighted in
+yellow). Each member 𝑚 ∈𝑀 is an entry in a cost table of some function-node 𝐹, and there is a value assignment implied by 𝑚for
+the variable-node that follows 𝐹 according to the route’s order. For this value assignment, there is a corresponding unary constraint
+that is added to the accumulated cost. For example, for a clockwise route, if the entry ⟨𝑏, 𝑏⟩of the cost table of 𝐹 is added to the
+23
+route, this implies that the cost 0.0022for 𝑋 =𝑏is also added to the accumulated cost. Thus, every time the route includes this entry
+3
+in 𝑀, the cost of the route is incremented by 3.0022. In other words, if two routes include the same cost table entries, then the unary
+costs added to them are the same as well.
+The following observation will assist in establishing our results.
+Observation 1. In any given route 𝑟, for every two consecutive cost table entries in 𝑟, 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=𝑥′)and 𝐶 (𝑋𝑗=𝑦,𝑋𝑠=𝑦′), 𝑥′=𝑦.
+This observation is inferred directly from the definition of a message 𝑅in Formulas(2)and(3). The process is demonstrated in
+Example1.
+The implication of this observation is that the number of possible routes of length 𝑚, assuming that each variable has a domain
+size 𝑑, is 2𝑛𝑑𝑚 and not 2𝑛𝑑2𝑚 , since there are 𝑛different starting points and two possible directions in which to proceed. Then, for
+every function-node, there are 𝑑options to choose from.
+4. Conditions for belief and value assignment equality
+We first define belief equality and value assignment equality, and then establish the conditions that trigger them.
+Definition 4. We use the termbelief equalityto refer to the case where a message includes two or more identical beliefs (costs).
+6
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Definition 5. We use the termvalue assignment equality(orassignment equality) to refer to the case where, at some iteration,
+the sum of beliefs received by a variable-node is identical for two or more of its values.
+To illustrate the difference between the two, consider a variable-node 𝑋 𝑖 representing a variable with two values in its domain,
+𝑎and 𝑏. At some iteration 𝑡, 𝑋 𝑖 receives two messages from its neighboring function-nodes, ⟨0, 2⟩and ⟨0, 0⟩. The first of these does
+not involve belief equality, but the second does. The sum of the two messages is 0for 𝑎and 2for 𝑏; thus, variable 𝑖does not exhibit
+value assignment equality at this iteration. Now, consider another iteration 𝑡′≠𝑡in which 𝑋 𝑖receives the messages ⟨0, 2⟩and ⟨2, 0⟩.
+In this case, neither of the messages exhibits belief equality, but they do result in value assignment equality since the sum of the
+messages produces a value of 2for 𝑎and 2for 𝑏, and thus, the variable is indifferent regarding the two possible assignments. It is
+easy to see that if all messages received by a variable-node at a single iteration entail belief equality for the same set of values, then
+there must be assignment equality for these values at that iteration as well. For example, if 𝑋 𝑖 receives messages ⟨0, 0⟩and ⟨0, 0⟩at
+iteration 𝑡, then obviously, both belief equality and value assignment equality exist. Note that when there are more than two values
+in a domain, belief equality in each of the messages received at an iteration does not necessarily imply that there is value assignment
+equality, e.g., if 𝐷 𝑖 includes values 𝑎, 𝑏and 𝑐, and at some iteration 𝑡, the messages received are ⟨0, 0, 2⟩and ⟨0, 3, 3⟩, then there is
+belief equality in both messages, but there is no assignment equality, since the sum of the messages is 0for 𝑎, 3for 𝑏and 5for 𝑐.
+In order to study the cause of the belief equality phenomenon (i.e., messages that include identical costs for at least two value
+assignments), we analyze the components from which these beliefs were constructed. That is, we determine which entries in the
+constraint cost tables are summed in the process of generating equal beliefs. Since we can use the unary constraint method proposed
+inFarinelli etal.[4], we assume that belief equality is possible if and only if the components of the routes of a BCT are identical. In
+any other case – when the components that are summed are not identical – there is a difference between beliefs, and therefore, there
+is a minimal belief in each message.
+Lemma 1. When the algorithm does not converge, there must be at least one function-node 𝐹 with two cost table entries in 𝑀(the set of cost
+table entries in the minimal route, which the algorithm visits at every iteration 𝑡 >𝑡 ).
+0
+Proof. When it is not the case that there is at least one function-node with two cost table entries in 𝑀, then, in the minimal
+assignment, there is a single value assignment for each variable, and this means that the algorithm converges. □
+Proposition 1. When the algorithm does not converge, and assuming there are no tied beliefs, then any two entries in 𝑀 that belong to the
+cost table of the same function-node cannot be on the same row or column of the cost table, i.e., cannot imply the same value assignments.3
+Proof. Assume that the proposition is false. For a function-node 𝐹 𝑖𝑗 representing the constraint between 𝑋 𝑖 and 𝑋 𝑗, consider the
+message that is sent from 𝐹 𝑖𝑗 to 𝑋 𝑗. In this message, there is a minimal belief corresponding to the assignment 𝑋 𝑖=𝑥. Thus, the
+relevant entries to extend this route (i.e., the route that implies that 𝑋 𝑖=𝑥) are the entries in the vector 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=⋅), of which only
+one is minimal. Thus, if more than one of the entries in 𝐶 (𝑋𝑖=𝑥,𝑋𝑗=⋅)are included in 𝑀, this contradicts the minimal route property.
+Since the algorithm operates in both directions, a similar argument rules out the possibility that there are two entries in 𝑀 whose
+implied assignments would result in the same value being assigned to 𝑋 𝑗. □
+Proposition 2. In the minimal periodic route that begins after 𝑡 , in every periodic interval, each cost table entry that is included in 𝑀 is
+0
+visited exactly once, i.e., it will be visited again only after all other members of 𝑀 have been visited exactly once.
+Proof. Assume that the proposition does not hold, and thus, it is possible that an entry in 𝑀 will be visited twice before another
+entry in 𝑀 is visited. Then, there must be an entry 𝑒in some function-node cost table (e.g., 𝐶 𝑋𝑖=𝑥,𝑋𝑗=𝑦), where entry 𝑒is included
+in 𝑀, such that the route includes more than one entry that directly follows it. In other words, there must be at least two entries, 𝑒′
+and 𝑒′′, such that the entry that immediately follows 𝑒in the minimal route will alternate between 𝑒′ and 𝑒′′ (e.g., 𝑒′=𝐶 𝑋𝑗=𝑗,𝑋𝑘=𝑧;
+𝑒′′=𝐶 𝑋𝑗=𝑗,𝑋𝑘=𝑧′). However, this would mean that 𝑒′ and 𝑒′′ are both included in 𝑀 despite having the same value assignment for
+one of their variables, and this would contradict Proposition1. □
+A corollary that immediately follows from Proposition2is that the number of entries in each function-node cost table that are
+visited in a periodic interval of the minimal route is equal to the number of values that belong to the same domain and are assigned
+to the same variable in 𝐴𝑀 . We denote this number by 𝑑̄ . We note that 𝑣 >1if and only if 𝑑̄>1, but it is not always the case that
+𝑣 =𝑑̄ . Moreover, the size of a periodic interval after 𝑡 is 2𝑑̄𝑛, where 𝑛is the number of variable-nodes in the single-cycle graph.
+0
+Proposition 3. Belief equality exists if and only if there are two beliefs in a single message, 𝑏and 𝑏′, with corresponding routes 𝑟 𝑏and 𝑟 𝑏′,
+such that 𝐸 𝑟𝑏=𝐸 𝑟 𝑏′.
+3 As Fig.1shows, yellow cells (which are the members of 𝑀) included in the cost table of the same function-node do not occupy the same row or column.
+7
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Proof. Assume that there exist two beliefs 𝑏and 𝑏′that are included in the same message, with corresponding routes 𝑟 𝑏and 𝑟 𝑏′, such
+that 𝐸 𝑟𝑏=𝐸 𝑟 𝑏′. Obviously, the sum of entries in these two routes is identical.
+Assume that there is belief equality. Thus, there are two equal beliefs that are included in the same message. Since we use the
+unary constraints method ofFarinelli etal.[4], it must hold that the two routes are composed of the same cost table entries, in order
+to generate equal sums of their components. □
+Proposition 4. Value assignment equality exists if and only if, at some iteration of the algorithm 𝑡 >0, there are two values in the same
+domain, 𝑥and 𝑥′, 𝑥 ≠𝑥′, with corresponding routes 𝑟𝑐 𝑥𝑤 , 𝑟𝑐 𝑥𝑐𝑤 , 𝑟𝑐 𝑥𝑤 and 𝑟𝑐 𝑥𝑐 ′𝑤 , such that 𝐸 𝑟𝑐 𝑥𝑤∪𝐸 𝑟𝑐 𝑥𝑐𝑤=𝐸 𝑟𝑐 𝑥𝑤 ∪𝐸 𝑟𝑐 𝑥𝑐 ′𝑤.
+′ ′
+Proof. The arguments are similar to those stated in the proof of Proposition3, with the costs for assigning 𝑥and 𝑥′composed of the
+clockwise and the counter-clockwise beliefs. □
+4.1. Immediate convergence
+In the next part of our discussion, we assume that 𝑡 =0, i.e., that the algorithm immediately begins to traverse a minimal route.
+0
+Note that we do not assume that the algorithm converges, i.e., that 𝑣 =1, but rather that the minimal periodic route of size 2𝑑̄𝑛for
+each period begins right away.
+Theorem 1. When the algorithm runs on a single-cycle graph and does not converge (i.e., 𝑑̄>1), and when 𝑡 =0, for any natural number
+0
+𝑘, after 2𝑘𝑑̄𝑛iterations, all beliefs sent, which correspond to the values that are assigned in 𝐴𝑀 , are equal.
+Proof. We know from Proposition2that after 𝑡 , every 2𝑑̄𝑛 iterations, the minimal route visits each of the entries in 𝑀 exactly
+0
+once. Since 𝑑̄>1, we know that for each function-node, multiple members of 𝑀 are visited that do not occupy the same line or row,
+i.e., they imply distinct value assignments. Thus, if 𝑡 =0, then over the course of the first 2𝑑̄𝑛iterations, each of the entries in 𝑀
+0
+2𝑑̄𝑛iterations.
+will be visited exactly once by BCTs that follow the minimal route; this is then repeated every This means that at the
+𝐴𝑀
+end of every such period, the beliefs corresponding to value assignments in are composed of the same elements (function-node
+entries), and thus, according to Proposition3, they are equal. □
+An immediate corollary arising from Theorem1is that when 𝑑̄>1and 𝑡 =0, for any natural number 𝑘, after 2𝑘𝑑̄𝑛iterations,
+0
+𝑑̄
+each variable-node will exhibit assignment equality between of the values in its domain.
+A second corollary is that for 𝑡 0>0, if for some variable 𝑋 𝑖at 𝑡 0, the difference between beliefs 𝑏𝑡 𝑥0 and 𝑏𝑡 𝑥0 ′ for two values 𝑥 ∈𝐷 𝑖
+and 𝑥′∈𝐷 𝑖 is 𝛿 (e.g., 𝑏𝑡 𝑥0 -𝑏𝑡 𝑥0 ′ =𝛿), then at any iteration 𝑡such that 𝑡 −𝑡 0=2𝑘𝑑̄𝑛, the difference between the beliefs for the two
+values will be 𝛿.
+Example 3. In the following example, we revisit the rather simple factor graph presented in Fig. 1, where the graph has three
+variable-nodes, each with a domain size of 3, i.e., 𝑛 =3and 𝑑=3.
+The entries highlighted in yellow in the cost tables presented in Fig.1are included in the set 𝑀, i.e., they are visited repeatedly
+in the minimal route, after time 𝑡 . In this example, each of the highlighted costs is the lowest in its row and its column. Thus, these
+0
+will be selected right away by the algorithm, and therefore 𝑡 =0.
+0
+As proved in Theorem1, the costs of all beliefs corresponding to the values in the minimal assignment, where these values are
+the coordinates of all the entries in 𝑀, will be equal after visiting each of the members of 𝑀 once. Since there are 2𝑛nodes in the
+single-cycle factor graph, the number of iterations required to visit the six members of 𝑀 is 12.
+Fig.3presents the BCT and corresponding route for the belief sent at the 12’th iteration to variable-node 𝑋 for its value 𝑏. The
+1
+BCT accumulates the members of 𝑀 in the order that is displayed in the route. During the next 12 iterations, each of the entries
+in the route will be visited again in the same order. The same entries (only in a different order) will also be visited by the BCT and
+route of the belief sent to variable-node 𝑋 for its value 𝑐. Thus, belief equality will arise every 12 iterations. Fig.4presents the four
+1
+routes, two clockwise and two counterclockwise, that result in belief equality in each direction and in assignment equality between
+values 𝑏and 𝑐for variable-node 𝑋 .
+1
+Fig.5presents the routes for the graph that includes unary constraints, shown in Fig.2. Each node in the route is obtained by
+summing the selected entry in the function-node cost table and the corresponding unary constraint for the value of the variable-node
+that follows it.
+For the factor graph in Fig.1, if we replace the entry in 𝐹 for 𝑋 =𝑏, 𝑋 =𝑏(currently 89) with a number smaller than 27.5,
+12 1 2
+the solution 𝑋 =𝑏, 𝑋 =𝑏, 𝑋 =𝑏is optimal, and the set 𝑀 includes the entry ⟨𝑏, 𝑏⟩for each of the function-nodes. In this case, the
+1 2 3
+minimal route is unique and there is no belief equality. Fig.6presents the BCT and minimal route to which min-sum converges after
+changing the entry ⟨𝑏, 𝑏⟩in 𝐹 from 89to 23. Note that the accumulated cost of the route in this case is 74, which is smaller than
+12
+83.
+8
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.4.F our r out es for variable-node 𝑋 1in the factor graph presented in Fig.1, corresponding to values 𝑏and 𝑐, which result in both belief equality and assignment
+equalityafter12iterations.
+Fig.5.Fourroutesforvariable-node𝑋 1,forvalues𝑏and𝑐,thatresultinbeliefandassignmentequalityafter12iterations,accordingtothegraphinFig.2.
+Fig.6.BCTandrouteofthebeliefsenttovariable-node𝑋 1forvalue𝑏,afterchangingthegraphinFig.1sothattheentry⟨𝑏,𝑏⟩of𝐹 12isequalto23.
+4.2. Non-immediate convergence
+We now turn to discuss the case where 𝑡 >0, i.e., the algorithm does not follow a periodic path straight away, but rather, it does
+0
+so after several iterations[19,6].
+Definition 6. For each route 𝑟, we refer to the part of the route that comes before 𝑡 0as the tailand we denote it by 𝑡𝑎𝑖𝑙 𝑟.
+Example 4. If we replace in Fig.1the entry ⟨𝑏, 𝑏⟩in the cost table of function-node 𝐹 with the value 42, then we have a “tail”,
+12
+since in the first message sent from 𝐹 to variable-node 𝑋 , the entry 𝑋 =𝑏, 𝑋 =𝑏will be selected, although it is not a member
+12 1 2 1
+of 𝑀. This tail prevents belief equality in the counterclockwise direction (but not in the clockwise direction). As a result, there is no
+assignment equality, as can be seen from Fig.7, which presents the relevant routes.
+9
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.7.Fourroutesforvariable-node𝑋 1,forvalues𝑏and𝑐,accordingtothegraphinFig.1afterreplacingthecostin𝐹 12⟨𝑏,𝑏⟩with42.
+Fig.8.Adifferent(second)singlecyclefactorgraphwiththreenodes,whereeachvariablehasadomainsizeofthree.
+Fig.9.Fo ur rou tes for variable-node 𝑋 1, for values 𝑏and 𝑐, on the graph presented in Fig.8. The routes do not result in assignment equality since they are not
+composedofthesameentries.
+The cycle presented in Fig.8includes, in the cost tables of 𝐹 and 𝐹 , entries that are not in 𝑀, although their costs are minimal
+12 23
+either in a row or in a column. The result is that there are tails of length 1in each direction, which prevent belief equality. Moreover,
+as demonstrated in Fig. 9, although after 14 iterations (routes of length 7), the sum of beliefs for each value is 171, there is no
+assignment equality, because these routes are not constructed from the same entries.
+Example 5. In the final example, we present the periodic routes in Fig.11, starting at 𝑡 (which is iteration 12), when solving the
+0
+graph presented in Fig. 10. The tails of these routes, which are presented in Fig. 12, prevent belief equality, but do not prevent
+assignment equality. This is because the set of entries in the route tails that contribute to the calculation of the beliefs for value 𝑎(i.e.,
+the union of the top clockwise and top counter-clockwise route tails) is identical to the set of entries in the two route tails (clockwise
+and counter-clockwise) used to calculate the beliefs for value 𝑐(the bottom route tails).
+We will show that when the algorithm does not converge and does not start at 𝑡 , the existence of belief equality and assignment
+0
+equality depends on whether or not these tails are composed of the same components.
+Theorem 2. When min-sum is applied to a single-cycle graph, belief equality will occur if the following conditions hold:
+10
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.10.Adifferent(third)singlecyclefactorgraphwiththreenodes,whereeachvariablehasadomainsizeofthree.
+Fig.11.Fourroutesforvariable-node𝑋 1,forvalues𝑎and𝑐,onthegraphpresentedinFig.10,startingat𝑡 0,allwithequalcosts.
+Fig.12.FourtailroutesthatprecedetheroutespresentedinFig.11,onthegraphpresentedinFig.10.Thetailroutespreventbeliefequalitybutnotassignment
+equality.
+𝑑̄>1.
+1.
+2. The algorithm performs 𝑡iterations such that 𝑡 −𝑡 =2𝑘𝑑̄𝑛for any 𝑘 ∈ℕ, i.e., the number of iterations since convergence to a periodic
+2𝑘𝑑̄𝑛. 0
+pattern is
+3. There is a variable 𝑋 𝑖such that for some two values 𝑥 ∈𝐷 𝑖, 𝑥′∈𝐷 𝑖 (𝑥 ≠𝑥′), both of which are assigned to 𝑋 𝑖in 𝐴𝑀 (note that this
+is possible since 𝑑̄>1), the variable-node that represents 𝑋 𝑖receives beliefs through routes 𝑟 𝑥 and 𝑟 𝑥′, both of which have tails (𝑡𝑎𝑖𝑙 𝑟𝑥
+and 𝑡𝑎𝑖𝑙 𝑟 𝑥′, respectively). Moreover, 𝐸 𝑡𝑎𝑖𝑙𝑟𝑥 = 𝐸 𝑡𝑎𝑖𝑙𝑟𝑥′.
+Proof. Assume the three conditions hold. Then, according to Theorem1and its second corollary, the routes of the beliefs corre-
+sponding to the value assignments in the minimal assignment after 𝑡 are equal (composed of the same entries). Thus, if their tails
+0
+are also equal (composed of the same entries), then according to Proposition3, the theorem holds. □
+The following theorem establishes conditions for assignment equality.
+11
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Theorem 3. When min-sum is applied to a single-cycle graph for 𝑡iterations, and 𝑡 −𝑡 =2𝑘𝑑̄𝑛for any 𝑘 ∈ℕ(i.e., the number of iterations
+0
+2𝑘𝑑̄𝑛),
+since convergence to a periodic pattern is then assignment equality occurs if and only if the following two conditions hold:
+𝑑̄>1.
+1.
+2. There is a variable 𝑋 𝑖 such that for some two values 𝑥 ∈𝐷 𝑖, 𝑥′∈𝐷 𝑖 (𝑥 ≠𝑥′), both of which are assigned to 𝑋 𝑖 in 𝐴𝑀 , the routes
+𝑟𝑐 𝑥𝑤 𝑟𝑐 𝑥𝑐𝑤 𝑟𝑐 𝑥𝑤 𝑟𝑐 𝑥𝑐 ′𝑤
+corresponding to these values are , , and , and the following equation holds:
+′
+𝐸 ∪𝐸 =𝐸 ∪𝐸 .
+𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑤 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑐𝑤 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑐 ′𝑤 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑤
+′
+Proof. Assume the two conditions hold. Then, according to Theorem1, the routes of all beliefs corresponding to the value assignments
+in the minimal assignment after 𝑡 are composed of the same components and sum up to identical costs every 2𝑘𝑑̄𝑛iterations. Thus,
+0
+according to Proposition4, the second condition implies assignment equality.
+Assume that the unions of the sets of entries corresponding to the routes for two values in the same domain, both of which belong
+𝐴𝑀 𝑑̄>1;
+to the minimal assignment , are identical. This implies that otherwise, there would be a single value from each domain
+assigned in 𝐴𝑀 . Without loss of generality, assume that we are referring to values 𝑥and 𝑥′ in the domain of variable 𝑋 𝑖, and that
+both values are assigned to 𝑋 𝑖 in 𝐴𝑀 . Following Theorem1and its second corollary, we know that after 𝑡 0, every 2𝑘𝑑̄𝑛iterations,
+the sum of beliefs for each of the values 𝑥and 𝑥′will be identical, i.e.,
+𝐸 𝑟𝑐 𝑥𝑤⧵𝐸 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑤 =𝐸 𝑟𝑐 𝑥𝑐𝑤⧵𝐸 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑐𝑤 =𝐸 𝑟𝑐 𝑥𝑤 ⧵𝐸 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑤 =𝐸 𝑟𝑐 𝑥𝑐 ′𝑤⧵𝐸 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑐 ′𝑤
+′ ′
+(According to Theorem1, regardless of the starting point and direction, after 𝑡 , every 2𝑘𝑑̄𝑛iterations, the set of entries that is added
+0
+to each route is equal to 𝑀.)
+Then, following the assumption and Proposition4, it must hold that:
+𝐸 +𝐸 =𝐸 +𝐸 □
+𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑤 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑐𝑤 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑤 𝑡𝑎𝑖𝑙 𝑟𝑐 𝑥𝑐 ′𝑤
+′
+The significance of the theoretical properties that we establish lies in understanding that (a) the parameter that determines
+whether min-sum will generate belief and/or assignment equality is a property of the problem, and (b) the unary constraint method
+cannot overcome this property. This is because the equalities are generated when the algorithm accumulates the same constraint
+values in different routes. Thus, as long as there is no alternative method for avoiding ties during the run of the algorithm, one cannot
+assume that equalities can be avoided in graphs that include cycles.
+5. Experimental evaluation
+Having derived theoretical proofs, in this section, our aim is to gain a perspective on how frequently belief equality and assignment
+equality arise when min-sum is applied to a single-cycle factor graph. To do so, we created simulations in which we varied the size
+of the cycle, the size of the domain, and the structure of the constraint functions. We implemented the method proposed by Farinelli
+etal.[4]for avoiding equalities, by assigning random unary constraints, selected uniformly from the range [10−8, 10−4]. Since our
+claims deal with cases that do not converge, for each combination of properties used to generate simulation instances (e.g., domain
+size and cycle size), we generated random instances and solved them using min-sum until we had created 100 instances on which
+min-sum did not converge.
+The single-cycle constraint graphs that we used in our simulation included four types of distribution from which the constraint
+costs were sampled. Specifically, for each pair of values assigned to every pair of neighboring variables, the cost was selected according
+to one of the following four options:
+Uniformdistribution Constraint costs were selected uniformly between 0and 100.
+Poissondistribution Constraint costs were selected according to a Poisson distribution with a mean of 50(i.e., cost ∼𝑃𝑜𝑖𝑠(50)).
+Index-basedPoissondistribution Constraint costs were selected using a Poisson distribution with a mean parameter that was
+determined while taking into consideration the variables’ indexes; i.e., the costs selected for 𝑋 𝑖 and 𝑋 𝑗 were taken from
+𝑃𝑜𝑖𝑠(𝑖 ∗𝑗), where 𝑖, 𝑗∈{1, 2, ..., 𝑛}, 𝑛 =||and 𝑖 ≠𝑗.
+Preferredvalues In this distribution, each agent employs a randomized process to select a set of preferred values, denoted as the set
+𝑃𝑉 𝑖. The constraint cost associated with variables 𝑋 𝑖 and 𝑋 𝑗 reflects the level of satisfaction with the chosen values. Our
+assumption is that if the preferred values cannot be selected, the values that are adjacent to them are preferred next, and
+these, in turn, will incur smaller costs than values that are even further away. This type of cost distribution corresponds
+to realistic scenarios such as meeting scheduling. To be specific, we defined the preference cost as 𝑃𝐶 𝑖(𝑣 𝑖, 𝑃𝑉 𝑖), which
+quantifies the level of satisfaction from the assignment 𝑣 𝑖. 𝑃𝐶 was calculated as follows: min𝑘∈PV𝑖|𝑘 −v𝑖|. Then, the
+constraint cost corresponding to the entry 𝑅 𝑖𝑗 was sampled from a normal distribution where the standard deviation
+was set to 10and the mean was calculated using the following formula: 𝑚𝑢 𝑖𝑗 =10 ⋅𝑎𝑣𝑔(𝑃𝐶 𝑖(𝑣 𝑖, 𝑃𝑉 𝑖), 𝑃𝐶 𝑗(𝑣 𝑗, 𝑃𝑉 𝑗)). We
+generated problems with a single preferred value and with three preferred values in each domain.
+12
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.13.Logarithmicscaleofthenumberofinstancessolvedbefore100instancesonwhichmin-sumdidnotconvergewereencountered,forsingle-cyclegraphsin
+whichconstraintsweresampledfromauniformdistribution.
+While we were limited in the selection of the graph structure (since we focus on single-cycle graphs in this research), the choice
+of different constraint structures serves to explore constraints with both abstract and realistic cost distributions. Poisson cost distri-
+butions simulate realistic scenarios in which preferences regarding the value of a variable are not uniformly distributed, but rather
+in close proximity to some reasonable mean. The index-based Poisson distribution simulates scenarios in which these preferences are
+subjective. The final option (preferred values) reflects realistic scenarios in which specific values are preferred over others, e.g., when
+scheduling meetings, participants commonly have preferred time slots, such as the morning or evening.
+Fig.13presents (on a logarithmic scale) the number of instances solved, for each combination of cycle size (number of variable-
+nodes) and domain size, before 100 instances that did not converge were generated under uniformly sampled costs. The trends are
+clear: the larger the size of the single-cycle graph, the smaller the proportion of instances on which the algorithm does not converge.
+In contrast, the larger the domain size, the greater the proportion of instances that do not converge. While the number of instances
+required to find one hundred instances that do not converge increases with the size of the graph for all domain sizes, the growth is
+fastest for the smallest domain sizes.
+Similar results were obtained for the other constraint-cost selection distributions (Fig.14). For all of them, the differences between
+graphs are very small when the variables have large domains, but they become more prominent when variables have small domains
+(the greatest difference being observed when comparing problems with domains sizes of 2 and 3).
+The results for the problems in which the constraints were chosen using the preferred values approach were more consistent (see
+Fig.15). It seems that when some values have lower costs (on average) than others, the size of the domain has a smaller effect on the
+number of instances on which min-sum does not converge.
+Fig.16shows the number of instances in which at least one message with belief equality was generated, among the 100 single-
+cycle factor graphs with uniformly-selected constraint costs on which min-sum did not converge. It is apparent that regardless of the
+size of the cycle and the size of the domain, on average, the algorithm exhibits belief equality in approximately half of the instances.
+The lowest rate of occurrence of belief equality is approximately 25%, and is observed for the minimal domain size (2) and the
+minimal cycle size (2). The highest rate is close to 75%, and is observed for cycles with 2variable-nodes and a domain size of 5. While
+there is no consistent trend, the smallest number of instances in which belief equality was generated is found for problems with the
+smallest domain size. In addition, for all domain sizes larger than 2, the highest rate of belief equality is found for problems with 2
+variable-nodes in the cycle, while the lowest rate is usually observed for problems with more than 8variable-nodes in the cycle.
+Fig.17presents the number of instances in which assignment equality was generated among the same 100 instances. It is clear
+that the frequency of occurrence of assignment equality is considerably higher than that of belief equality. While the highest number
+of instances in which belief equality occurred is 75, the highest number of instances in which assignment equality occurred is close
+to 100. Another clear difference is the effect of the cycle size. In the case of assignment quality, for all problems with domain sizes
+larger than 3, a larger cycle size generally results in a larger number of instances in which assignment equality was generated, while
+the opposite is observed for belief equality (i.e., a lower rate of belief equality with increasing cycle size). A third difference relates
+to the trends with respect to domain size and cycle size; these are more consistent for assignment equality than for belief equality.
+Finally, in the case of assignment equality, the rate of occurrence is high for small domain sizes, irrespective of the cycle size, while
+for large domain sizes, assignment equality is more frequent at larger cycle sizes. In contrast, domain size does not have a substantial
+effect on the rate of occurrence of belief equality.
+13
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.14.Logarithmicscaleofthenumberofinstancessolvedbefore100instancesonwhichmin-sumdidnotconvergeweregenerated,forsingle-cyclegraphsinwhich
+constraintcostsweresampledfrom(a)aPoissondistributionand(b)anindex-basedPoissondistribution.
+Fig.15.Logarithmicscaleofthenumberofinstancessolvedbefore100instancesonwhichmin-sumdidnotconvergeweregenerated,forproblemsinwhichthe
+constraintsweregeneratedviathepreferredvaluesmethodwith(a)asingleand(b)threepreferredvaluesineachdomain.
+The difference between the frequency of occurrence of belief equality and of assignment equality seems to be a consequence of
+the difference between Theorems2and3. The main difference between these theorems relates to the conditions of equality of the
+tails (i.e., the routes before 𝑡 ). While for belief equality, the condition requires equality of tails for two values in a variable’s domain,
+0
+for assignment equality, it requires that the unions of the two tails (clockwise and counterclockwise) are the same. The simulations
+reveal that the latter condition appears to be much easier to achieve, demonstrating that belief equality is not a precondition for the
+existence of assignment equality. Similar results were obtained for the remaining constraint-cost structures (see AppendixA).
+14
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.16.Numberofinstancesamongthe100thatdidnotconvergeinwhichbeliefequalitywasgeneratedasafunctionofthenumberofvariable-nodesinthesingle
+cyclegraph,forconstraintcostssampledfromauniformdistribution.Eachsub-graphcorrespondstoaproblemwithadifferentdomainsize(statedatthetopofeach
+graph).
+Fig.17.Numberofinstancesamongthe100thatdidnotconvergeinwhichassignmentequalitywasgeneratedasafunctionofthenumberofvariable-nodesinthe
+singlecyclegraph,forconstraintcoststakenfromauniformdistribution.Eachsub-graphcorrespondstoadifferentdomainsize.
+6. Conclusion
+Belief propagation is a well-known and widely used algorithm for solving combinatorial optimization problems that can be rep-
+resented by a graphical model. The theoretical knowledge regarding this algorithm is limited to specific graph structures, such as
+acyclic graphs and graphs with a single cycle. Yet, even this limited knowledge is based on the assumption that ties between beliefs
+do not exist. To avoid belief equality, Farinelli etal.[4]proposed the unary constraints method, in which every possible value as-
+signment incurs a very small, randomly-selected added cost. The purpose of invoking this method is to reduce the probability of ties
+to a negligible level.
+15
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.18.Numberofinstances,amongthe100thatdidnotconverge,inwhich(a)beliefequalityand(b)assignmentequalityweregeneratedasafunctionofthe
+numberofvariable-nodesinthesinglecyclegraph,forproblemswithconstraintcostssampledfromaPoissondistribution.Eachsub-graphcorrespondstoadifferent
+domainsize.
+Fig.19.Numberofinstances,amongthe100thatdidnotconverge,inwhich(a)beliefequalityand(b)assignmentequalityweregeneratedasafunctionofthe
+numberofvariable-nodesinthesinglecyclegraph,forproblemswithconstraintcostssampledfromanindex-basedPoissondistribution.Eachsub-graphcorresponds
+toadifferentdomainsize.
+When the algorithm converges, such as in the case where it solves a tree-structured graph, Farinelli et al.’s approach for avoiding
+belief equality does indeed work. However, we prove that even when graphs include just a single cycle, this method cannot prevent
+belief and assignment equalities. Thus, ties cannot be avoided, and our results establish conditions for such equalities in a graph with
+a single cycle. We suspect that this phenomenon would occur in more elaborate graphs as well, with more than one cycle. This
+understanding implies that some of the theoretical knowledge that was based on the assumption that ties can be avoided in belief
+propagation needs to be reevaluated.
+This work opens up a wide field of research. First, existing results must be re-examined to determine how they are affected
+by the existence of ties. Second, additional, novel methods should be developed for avoiding ties. In our future research, we plan
+to investigate whether the results presented in this paper also apply when methods that are known to substantially improve the
+performance of min-sum on graphs with multiple cycles, such as damping and splitting, are used.
+16
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+Fig.20.Numberofinstances,amongthe100thatdidnotconverge,inwhich(a)beliefequalityand(b)assignmentequalityweregeneratedasafunctionofthe
+numberofvariable-nodesinthesinglecyclegraph,forproblemswithasinglepreferredvalueineachdomain.Eachsub-graphcorrespondstoadifferentdomainsize.
+Fig.21.Numberofinstances,amongthe100thatdidnotconverge,inwhich(a)beliefequalityand(b)assignmentequalityweregeneratedasafunctionofthe
+numberofvariable-nodesinthesinglecyclegraph,forproblemswiththreepreferredvaluesineachdomain.Eachsub-graphcorrespondstoadifferentdomainsize.
+Notice, we did not perform experiments with domain size 2, since the amount of preferred values cannot exceed the domain size.
+CRediT authorship contribution statement
+Erel Cohen:Writing – original draft, Software, Investigation.Ben Rachmut:Visualization, Software, Investigation.Omer Lev:
+Writing – review & editing, Writing – original draft, Validation, Investigation, Formal analysis, Conceptualization.Roie Zivan:Writing
+– review & editing, Writing – original draft, Validation, Methodology, Investigation, Formal analysis, Conceptualization.
+Declaration of competing interest
+The authors declare the following financial interests/personal relationships which may be considered as potential competing
+interests: Roie Zivan, Ben Rachmut and Erel Cohen report financial support was provided by Binational Science Foundation grant
+#2018081. Omer Lev reports financial support was provided by Israel Science Foundation grant #196520.
+17
+
+E.Cohen,B.Rachmut,O.Levetal. ArtificialIntelligence338(2025)104243
+AppendixA. Equality results
+Figs.18, 19,20and21present similar results to those depicted in Figs.16and 17when solving problems with the other types of
+constraint sampling distribution. It seems that the nature of the constraint-cost distribution does not affect the trends observed with
+regard to the generation of belief and assignment equalities.
+Data availability
+Data will be made available on request.
+References
+[1]ZiyuChen,YanchenDeng,TengfeiWu,ZhongshiHe,Aclassofiterativerefinedmax-sumalgorithmsvianon-consecutivevaluepropagationstrategies,Auton.
+AgentsMulti-AgentSyst.32(6)(2018)822–860.
+[2]LielCohen,RotemGaliki,RoieZivan,Governingconvergenceofmax-sumondcopsthroughdampingandsplitting,Artif.Intell.279(2020).
+[3]RinaDechter,ConstraintProcessing,MorganKaufman,2003.
+[4]AlessandroFarinelli,AlexRogers,AdrianPetcu,NicholasR.Jennings,Decentralisedcoordinationoflow-powerembeddeddevicesusingthemax-sumalgorithm,
+in:Proceedingofthe7thInternationalConferenceonAutonomousAgentsandMulti-agentSystems(AAMAS),2008,pp.639–646.
+[5]AlessandroFarinelli,AlexRogers,NickR.Jennings,Agent-baseddecentralisedcoordinationforsensornetworksusingthemax-sumalgorithm,Auton.Agents
+Multi-AgentSyst.28(3)(2014)337–380.
+[6]G.DavidForney,FrankR.Kschischang,BrianMarcus,SelimTuncel,Iterativedecodingoftail-bitingtrellisesandconnectionswithsymbolicdynamics,in:Brian
+Marcus,JoachimRosenthal(Eds.),Codes,Systems,andGraphicalModels,Springer,2001,pp.239–264.
+[7]TomHeskes,Ontheuniquenessofloopybeliefpropagationfixedpoints,NeuralComput.16(11)(2004)2379–2413.
+[8]AlexanderT.Ihler,JohnW.FisherIII,AlanS.Willsky,Loopybeliefpropagation:Convergenceandeffectsofmessageerrors,J.Mach.Learn.Res.6(2005)
+905–936.
+[9]F.R.Kschischang,B.J.Frey,H.A.Loeliger,Factorgraphsandthesum-productalgorithm,IEEETrans.Inf.Theory47(2)(2001)181–208.
+[10] Radu Marinescu, Rina Dechter, AND/OR branch-and-bound search for combinatorial optimization in graphical models, Artif. Intell. 173 (16–17) (2009)
+1457–1491.
+[11] J.Pearl,ProbabilisticReasoninginIntelligentSystems:NetworksofPlausibleInference,MorganKaufmann,SanFrancisco,California,1988.
+[12] A.Petcu,B.Faltings,Ascalablemethodformultiagentconstraintoptimization,in:IJCAI,2005,pp.266–271.
+[13] S.D.Ramchurn,A.Farinelli,K.S.Macarthur,N.R.Jennings,Decentralizedcoordinationinrobocuprescue,Comput.J.53(9)(2010)1447–1461.
+[14] A.Rogers,A.Farinelli,R.Stranders,N.R.Jennings,Boundedapproximatedecentralizedcoordinationviathemax-sumalgorithm,Artif.Intell.175(2)(2011)
+730–759.
+[15] NicholasRuozzi,SekharTatikonda,Message-passingalgorithms:Reparameterizationsandsplittings,IEEETrans.Inf.Theory59(9)(2013)5860–5881.
+[16] RubenStranders,AlessandroFarinelli,AlexRogers,NicholasR.Jennings,Decentralisedcoordinationofmobilesensorsusingthemax-sumalgorithm,in:IJCAI
+2009,Proceedingsofthe21stInternationalJointConferenceonArtificialIntelligence,Pasadena,California,USA,July11-17,2009,2009,pp.299–304.
+[17] SekharTatikonda,MichaelI.Jordan,LoopybeliefpropagationandGibbsmeasures,in:AdnanDarwiche,NirFriedman(Eds.),UAI’02,Proceedingsofthe18th
+ConferenceinUncertaintyinArtificialIntelligence,UniversityofAlberta,Edmonton,Alberta,Canada,August1-4,2002,MorganKaufmann,2002,pp.493–500.
+[18] W.T.L.Teacy,A.Farinelli,N.J.Grabham,P.Padhy,A.Rogers,N.R.Jennings,Max-sumdecentralizedcoordinationforsensorsystems,in:AAMAS,2008,
+pp.1697–1698.
+[19] YairWeiss,Correctnessoflocalprobabilitypropagationingraphicalmodelswithloops,NeuralComput.12(1)(2000)1–41.
+[20] YairWeiss,WilliamT.Freeman,Ontheoptimalityofsolutionsofthemax-productbelief-propagationalgorithminarbitrarygraphs,IEEETrans.Inf.Theory
+47(2)(2001)736–744.
+[21] C.Yanover,T.Meltzer,Y.Weiss,Linearprogrammingrelaxationsandbeliefpropagation-anempiricalstudy,J.Mach.Learn.Res.7(2006)1887–1907.
+[22] RoieZivan,TomerParash,LielCohen,HillaPeled,StevenOkamoto,Balancingexplorationandexploitationinincompletemin/max-suminferencefordistributed
+constraintoptimization,Auton.AgentsMulti-AgentSyst.31(5)(2017)1165–1207.
+[23] RoieZivan,OmerLev,RotemGaliki,Beyondtrees:Analysisandconvergenceofbeliefpropagationingraphswithmultiplecycles,in:Proceedingsofthe34th
+ConferenceonArtificialIntelligence(AAAI),NewYorkCity,NewYork,February2020,pp.7333–7340.
+18
+

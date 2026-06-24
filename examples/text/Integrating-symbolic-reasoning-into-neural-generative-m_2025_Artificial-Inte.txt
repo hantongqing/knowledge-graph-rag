@@ -1,0 +1,1668 @@
+ArtificialIntelligence339(2025)104257
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+Integrating symbolic reasoning into neural generative models for
+design generation
+Maxwell J. Jacobson, Yexiang Xue∗
+PurdueUniversity,DepartmentofComputerScience,305N.UniversityStreet,WestLafayette,47907,IN,USA
+A R T I C L E I N F O A B S T R A C T
+Keywords: Design generation requires tight integration of neural and symbolic reasoning, as good design
+Constraint reasoning must meet explicit user needs and honor implicit rules for aesthetics, utility, and convenience.
+Neural generative models Current automated design tools driven by neural networks produce appealing designs, but cannot
+Constrainedcontentgeneration
+satisfy user specifications and utility requirements. Symbolic reasoning tools, such as constraint
+programming, cannot perceive low-level visual information in images or capture subtle aspects
+such as aesthetics. We introduce the Spatial Reasoning Integrated Generator (SPRING) for design
+generation. SPRING embeds a neural and symbolic integrated spatial reasoning module inside the
+deep generative network. The spatial reasoning module samples the set of locations of objects to
+be generated from a backtrack-free distribution. This distribution modifies the implicit preference
+distribution, which is learned by a recurrent neural network to capture utility and aesthetics. The
+sampling from the backtrack-free distribution is accomplished by a symbolic reasoning approach,
+SampleSearch, which zeros out the probability of sampling spatial locations violating explicit user
+specifications. Embedding symbolic reasoning into neural generation guarantees that the output of
+SPRING satisfies user requirements. Furthermore, SPRING offers interpretability, allowing users to
+visualize and diagnose the generation process through the bounding boxes. SPRING is also adept
+at managing novel user specifications not encountered during its training, thanks to its proficiency
+in zero-shot constraint transfer. Quantitative evaluations and a human study reveal that SPRING
+outperforms baseline generative models, excelling in delivering high design quality and better
+meeting user specifications.
+1. Introduction
+Neural and symbolic approaches are two fundamental drivers behind the progress of artificial intelligence (AI). Neural approaches
+have spearheaded major developments in learning from diverse and unstructured data, discovering hidden or fuzzy patterns, and pro-
+ducing effective predictive and generative models. Nevertheless, it is challenging for neural models to provide formal guarantees.
+Furthermore, predictions made by neural models may violate constraints, especially from rare and unseen inputs. Symbolic approaches
+have produced efficient and reliable algorithms that can provide formal guarantees, interpretability, and robustness. However, sym-
+bolic approaches often necessitate fully formulated problems prior to attempting solutions, leading to rigid models that are difficult
+to adapt to changing data distributions. Neither neural nor symbolic methods offer a complete solution on their own, as each has its
+own set of strengths and weaknesses. Consequently, many meaningful real-world tasks remain outside the reach of current artificial
+* Correspondingauthor.
+E-mailaddresses:jacobs57@purdue.edu(M.J.Jacobson),yexiang@purdue.edu(Y.Xue).
+https://doi.org/10.1016/j.artint.2024.104257
+Received 9 October 2023; Received in revised form 25 August 2024; Accepted 12 November 2024
+Availableonline19November2024
+0004-3702/©2024ElsevierB.V.Allrightsarereserved,includingthosefortextanddatamining,AItraining,andsimilartechnologies.
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.1.AninteriordesigngeneratedbyourproposedSPRINGmodel(middle)withagivenbackgroundalreadycontaininganovenandasinkamongotherobjects
+(left).Theuserspecificationsareatthebottom(providedtoSPRINGintheformofpropositionallogic;naturallanguagetextisusedheretoaidreadability).SPRING
+createsadesignsatisfyingthespecifications.Text-to-imageapproacheslikeStableDiffusion(right)oftenfailtomeettheseconstraints,mixingupthenumber,color,
+andplacementofobjects.(Forinterpretationofthecolorsinthefigure(s),thereaderisreferredtothewebversionofthisarticle.)
+intelligences. A better solution would be the integrationof neural and symbolic approaches. However, it is not trivial to bridge the two
+approaches due to multiple aspects of incompatibility. Recently, exciting work has emerged to unite neural and symbolic reasoning
+([59,75,109,6,113,81,72,13]). However, the complete success of neural-symbolic integration is far from achieved.
+Design generation is a field that requires bothneural and symbolic reasoning. Good design must meet industry standards and user
+specifications while capturing subtle aspects such as aesthetics and convenience. Symbolic approaches – for example, a constraint
+program – can be defined to create a plan that meets all standards and needs, given the full specifications of the existing design. Even
+so, constraint programs cannot understand designs in the form of pictures or videos. Nor can they provide compelling visualizations
+of the generated designs. Moreover, designs generated by constraint programming often satisfy the bare minimum of functionality
+without considering subtle aspects such as aesthetics and convenience. In fact, it is almost impossible to encode such subtle aspects
+into the objective function of a constraint program. Therefore, designs generated by constraint satisfaction solely are rarely welcomed
+by customers. This demonstrates a deep drawback in purely symbolic methods like constraint programming – they cannot engage
+with the nebulous world of low-level perception and reasoning. Recent advances in machine learning, in particular deep-generative
+models, have presented new opportunities to address these challenges. Text-to-image and graph-to-image models provide exciting
+possibilities for controllable content generation, but their control is not always precise enough to produce designs that meet complex
+specifications.
+For example, in Fig.1, a toaster must be added to the left of the oven and below the sink (already in the image). Additionally, a
+microwave needs to be added to the right of the oven. In the right panel, the Stable Diffusion (SD) ([88]) model (one of the state-
+of-the-art neural generative models), taking the input of the initial kitchen configuration and the text specifications, simply alters
+the entire scene, producing results that look pleasing but do not fit the specification. This is emblematic of a deep issue with purely
+neural algorithms – thus far, they have failed to grasp the high-level reasoning that symbolic approaches can handle efficiently.
+Overall, AI-driven automatic design is an emerging field that requires the integration of neural and symbolic reasoning. However, such
+integration is beyond the reach of state-of-the-art models.
+Our approach.We introduceSpatialReasoningIntegratedGenerator (SPRING) for design production. Given an initial indoor
+scene and user requirements described in propositional logic, the task is to generate a design that satisfies user specifications, looks
+pleasing and follows common sense. The essence of SPRING is theembedding of a neural and symbolic integrated spatial reasoning
+module within a deep generative network. The spatial reasoning module decides the locations of the objects to be generated in the
+form of bounding boxes, following an iterative refinement approach. The bounding boxes are predicted by a sequence-to-sequence
+neural model and are further filtered by a symbolic constraint reasoning process. This integrated approach allows us to leverage the
+advantages of both neural and symbolic methods. Here, symbolic constraint satisfaction deals with explicit specifications, such as
+user requirements, while neural networks handle aesthetics and common sense.
+SPRING consists of three modules. The first perception module based on Detection Transformers (DETR) ([19]) extracts existing
+object positions from input images.
+It is followed by the spatial reasoning module, which uses a neural and symbolic integrated approach to generate the bounding
+boxes representing the locations of the objects to be generated. We call a collection of all these bounding boxes a layout. Two
+factors need to be taken into consideration: first, the satisfaction of explicit spatial specifications, and second, the implicit preferences
+regarding the naturalness of locations, object sizes, and aesthetics. Our neural and symbolic integrated approach first trains a Recurrent
+Neural Network (RNN) that defines an implicit preference distributionover the layouts. The RNN is trained to re-place objects from online
+images, where these objects are removed using inpainting algorithms. In the implicit preference distribution, layouts that meet implicit
+preferences have high probabilities to be sampled, therefore allowing the spatial reasoning module to capture the implicit spatial
+knowledge and aesthetics. We then modify the implicit preference distribution into a backtrack-free distribution, in which layouts
+that violate explicit user specifications are given 0 probability, and the probabilities of other layouts are scaled up proportionally.
+We further define a symbolic reasoning module – a variant of SampleSearch, initially proposed in ([48]) – to sample layouts from the
+backtrack-free distribution. SampleSearch guarantees that layouts violating constraints will never be sampled, thereby ensuring the
+satisfaction of the explicit user specifications.
+2
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.2.RolloutoftheSPRINGsystem.(Firstrow)SPRINGconsistsoftheperceptionmodule,thespatialreasoningmodule,andthevisualelementgenerationmodule.
+(Second&thirdrows)Theneuralandsymbolicintegratedspatialreasoningmoduledecidestheboundingboxesofeachobjecttobegenerated.Ititerativelyhalves
+eachcoordinateofeveryboundingboxuntilitissufficientlysmall.SymbolicreasoningintheformofSampleSearchisappliedtotheoutputoftheneuralnettoensure
+satisfactionofuserconstraints.Theseboundingboxesarefilledbythevisualelementgeneratorinthelaststep.(Fourthrow)ExamplepicturesgeneratedbySPRING
+demonstrategoodqualitydesignssatisfyinguserspecificationsinFig.1.
+Finally, the bounding boxes are filled by a Visual Element Generator (VEG) – currently, diffusion-type models fill this role. Diffusion
+models are trained to generate individual aesthetically pleasing objects from millions of online images. In our work, both off-the-shelf
+Stable Diffusion models and a fine-tuned version are compared for the VEG. The VEG is given a small margin around each object to
+be generated as contextual information. This is to make sure that the generated objects blend into the existing scene aesthetically and
+seamlessly. The three modules of SPRING are illustrated in Fig.2.
+How SPRING advances the state-of-the-art:
+(1) Guaranteed user requirement satisfaction via embedding symbolic reasoning into neural generative models: SPRING guarantees that
+the generated designs satisfy user specifications. This is beyond the capabilities of the state-of-the-art neural generative models.
+(2)Aesthetics and implicit preference satisfaction: SPRING also learns to satisfy implicit preferences like aesthetics and naturalness
+from data. In particular, the spatial reasoning module decides the reasonable locations and dimensions of objects to be placed, and
+the visual element generator produces detailed visual representations of objects which are blended into the image. Both modules
+learn from emulating the generation of locations and objects from online images, acquiring a sense of aesthetics, naturalness, and the
+satisfaction of other implicit preferences.
+(3) Interpretable model:SPRING is more interpretable than alternate methods. At each step of iterative refinement, the user can
+trace the probabilities associated with each sub-decision made by the spatial reasoning module. This helps to remedy potential
+dissatisfaction of implicit preferences by allowing users to identify and adjust the decision-making process to better align with their
+design expectations.
+(4) Zero-shot transfer to novel user specifications:The spatial reasoning module is capable of handling novel constraints in a zero-shot
+manner. When novel user specifications not present in the training set are given at test time, the symbolic reasoning procedure in the
+3
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+spatial reasoning module still blocks the invalid output from the neural networks in the same way as handling familiar constraints,
+without the need for retraining or fine-tuning.
+SPRING was evaluated in the domain of interior design generation, in which the AI must add elements to an interior space like
+a kitchen or a living room, taking into account existing objects and constraints given by the user. In this setting, it is vital that the
+algorithm produces images that satisfy the user’s design specification, while also maintaining a high overall image quality. Accuracy
+metrics were collected to objectively measure how well SPRING was able to satisfy spatial constraints from the specification. SPRING
+was able to produce designs that satisfy complex user specifications, while text-based or scene graph-based baseline approaches could
+not. Regarding image quality, spatial naturalness and general aesthetics are both important factors in a good-looking design. Synthetic
+positioning datasets were created to evaluate SPRING’s ability to learn implicit spatial constraints, such as toasters should not be put
+on the floor, TVs may hang on the wall, etc. In this situation, SPRING was able to outperform a baseline made up of a Generative
+Adversarial Network (GAN) further filtered by a differentiable convex programming layer. For general aesthetics, automated image
+quality metrics were collected in the form of FID and IS scores. The images produced by SPRING were on par in quality with the
+latest image generation tools. As additional support for these evaluations, a human study was conducted to assess SPRING for both
+specification satisfaction and image quality. The results corroborated the effectiveness of SPRING in generating high-quality images
+that meet user specifications while maintaining the overall aesthetics and spatial naturalness of the design. Furthermore, SPRING
+is capable of handling novel user constraints not presented in the training set in the zero-shot learning environment, which was
+demonstrated by its ability to satisfy complex novel constraints after training was complete.
+How SPRING Advances Artificial Intelligence in General:
+SPRING’s contribution to the broader field of AI is its successful integration of neural and symbolic approaches. It exemplifies
+a powerful synergy where the adaptability of neural models is enhanced by the precision and reliability of symbolic methods. This
+integration addresses a fundamental challenge in AI, offering a balanced solution that leverages the strengths of both methodologies
+while mitigating their weaknesses. For AI researchers and practitioners across various domains, SPRING provides a practical blueprint
+for developing more robust, adaptable, and intelligent systems capable of handling complex, real-world tasks with enhanced efficiency
+and reliability.
+We chose the interior design domain as a motivating application to spur community interest and highlight the necessity of inte-
+grating symbolic reasoning with neural generative models. Our research enables future work in many other domains. To demonstrate
+the general utility and extensibility of our approach in a small way, as a supplement to our experiments in interior design generation,
+we also present a trained SPRING instance that produces images of animals in an outdoor setting (see Section5.6). While this work
+will largely focus on the interior design domain, SPRING can be applied to constrained image generation more broadly, and future
+work should explore this integration even further.
+Our integrated approach echoes human psychology, specifically the theories of dual-process cognition as championed by re-
+searchers like Kahneman ([58]). Within SPRING, two subsystems work together to accomplish a larger cognitive task, with one
+making snap judgments based on learning and data (the neural component) and one moderating those choices with slower, more
+reasoned logic (the symbolic reasoning component). Our work shows how AI can be inspired from the human cognition process.
+2. Problem definition
+2.1. Design production
+Design generation is the problem of producing designs in the form of diagrams, environments, or images. The example chiefly
+explored here is interior design, in which the image is an interior in a home, such as a kitchen or living room, and the design is
+specified as a set of objects to be added which have positional relationships to each other and objects already in the image. The
+problem can be defined as:
+Problem 1. (Design Production): Given: let B be a background image that contains initial objects W, and D be a design specification with
+new objects O and positional constraints C represented in the propositional design language defined below. C may reference objects in both O
+and W. T is the set of natural images.
+Find a scene image S, with B as a background, containing objects defined by O, such that all of C is satisfied and S is realistic; i.e., it is visually
+close to the images in T.
+2.2. Propositional design language
+Symbols and Constants. Our design language uses propositional logic. In this language, 𝑜 1, 𝑜 2, … , 𝑜 𝑁 denote objects. These objects
+represent furniture or other objects that are either in the background image or need to be added. The constants used in the design
+language are integers and text strings. The integers are often used to denote the spatial distances between objects, while text strings
+define the properties and types of the objects.
+Properties and Types.Propertyis a predicate that evaluates to true if and only if an object has a given property. For example,
+property(𝑜 , “𝑏𝑙𝑢𝑒”)is true if and only if object 𝑜 has the property “𝑏𝑙𝑢𝑒” (i.e., its color is blue). A special property is calledtype.
+1 1
+This defines the type of object being reasoned over from a set of known types. For example, type(𝑜 , “𝑚𝑖𝑐𝑟𝑜𝑤𝑎𝑣𝑒”)evaluates to true
+1
+if and only if 𝑜 has the type “𝑚𝑖𝑐𝑟𝑜𝑤𝑎𝑣𝑒”. Combining with the previous example, type(𝑜 , “𝑚𝑖𝑐𝑟𝑜𝑤𝑎𝑣𝑒”) ∧property(𝑜 , “𝑏𝑙𝑢𝑒”)
+1 1 1
+4
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Table1
+Spatialrelationsandtheirtruthconditions.Notethatintegerliterals(shownhereas
+𝑐) are in units of per-thousanths of the background image’s width and height.
+Relation Truthcondition
+above(𝑜 1,𝑜 2,𝑐) topsideof𝑜 1isatleast𝑐unitsabovetopsideof𝑜 2.
+cabove(𝑜 1,𝑜 2) bottomsideof𝑜 1isatleast𝑐unitsabovetopsideof𝑜 2.
+above_value(𝑜 1,𝑐) topsideof𝑜 1hasay-valuelessthan𝑐.
+below(𝑜 1,𝑜 2,𝑐) topsideof𝑜 1isatleast𝑐unitsbelowtopsideof𝑜 2.
+cbelow(𝑜 1,𝑜 2) topsideof𝑜 1isatleast𝑐unitsbelowbottomsideof𝑜 2.
+below_value(𝑜 1,𝑐) topsideof𝑜 1hasay-valuegreaterthan𝑐.
+left(𝑜 1,𝑜 2,𝑐) leftsideof𝑜 1isatleast𝑐unitsleftofleftsideof𝑜 2.
+cleft(𝑜 1,𝑜 2,𝑐) rightsideof𝑜 1isatleast𝑐unitsleftofleftsideof𝑜 2.
+left_value(𝑜 1,𝑐) leftsideof𝑜 1hasanx-valuelessthan𝑐.
+right(𝑜 1,𝑜 2,𝑐) leftsideof𝑜 1isatleast𝑐unitsrightofleftsideof𝑜 2.
+cright(𝑜 1,𝑜 2) leftsideof𝑜 1isatleast𝑐unitsrightofrightsideof𝑜 2.
+right_value(𝑜 1,𝑐) leftsideof𝑜 1hasanx-valuegreaterthan𝑐.
+narrower(𝑜 1,𝑜 2,𝑐) 𝑜 1isatleast𝑐unitsnarrowerthanobject𝑜 2.
+narrower_value(𝑜 1,𝑐) 𝑜 1hasawidthlessthan𝑐.
+shorter(𝑜 1,𝑜 2,𝑐) 𝑜 1isatleast𝑐unitsshorterthanobject𝑜 2.
+shorter_value(𝑜 1,𝑐) 𝑜 1hasaheightlessthan𝑐.
+taller(𝑜 1,𝑜 2,𝑐) 𝑜 1isatleast𝑐unitstallerthanobject𝑜 2.
+taller_value(𝑜 1,𝑐) 𝑜 1hasaheightgreaterthan𝑐.
+wider(𝑜 1,𝑜 2,𝑐) 𝑜 1isatleast𝑐unitswiderthanobject𝑜 2.
+wider_value(𝑜 1,𝑐) 𝑜 1hasawidthgreaterthan𝑐.
+heq(𝑜 1,𝑜 2) 𝑜 1andobject𝑜 2havethesameheight.
+heq_value(𝑜 1,𝑐) 𝑜 1hasaheightequalto𝑐.
+weq(𝑜 1,𝑜 2) 𝑜 1andobject𝑜 2havethesamewidth.
+weq_value(𝑜 1,𝑐) 𝑜 1hasawidthequalto𝑐.
+xeq(𝑜 1,𝑜 2) leftsideof𝑜 1isinlinewithleftsideof𝑜 2.
+xeq_value(𝑜 1,𝑐) leftsideof𝑜 1hasanx-valueequalto𝑐.
+yeq(𝑜 1,𝑜 2) topsideof𝑜 1isinlinewithtopsideof𝑜 2.
+yeq_value(𝑜 1,𝑐) topsideof𝑜 1hasay-valueequalto𝑐.
+means object 𝑜 is a blue microwave. Our language recognizes the following types: chair, couch, potted plant, bed, mirror, dining
+1
+table, window, desk, toilet, door, TV, microwave, oven, toaster, sink, refrigerator, and blender.
+Relations. Relations are used to model spatial constraints between objects, providing a way to describe the relative position, size,
+and alignment of objects within a design. These relations evaluate to true if the spatial relationship is upheld between the objects
+included, and false otherwise. Our grammar includes various types of predicates to express these relationships (a complete description
+is available in Table1).
+1. Spatial relationships with constant offsets:This group of predicates defines spatial relationships between two objects with
+a constant offset. Predicates like above, below, right, and leftdescribe relative positions between objects in the x and y
+dimensions. For example, above(𝑜 , 𝑜 , 𝑘) is true if and only if object 𝑜 is above object 𝑜 by at least 𝑘 vertical units. More
+1 2 1 2
+precisely, the top side of 𝑜 is at least 𝑘vertical units above the top side of 𝑜 . In this paper, we define one vertical unit as one-
+1 2
+thousandth (per-mille) of the image’s height, and similarly, one horizontal unit as one-thousandth of the image’s width. Sometimes
+the distance 𝑘is omitted. In this case, above(𝑜 , 𝑜 )is true if and only if 𝑜 is above 𝑜 . Additionally, the grammar provides
+1 2 1 2
+cabove, cbelow, cright, and cleftpredicates, which represent complete spatial constraints where the entire bounding box
+of one object is constrained in one direction away from its counterpart, with no overlap. For example, cabove(𝑜 , 𝑜 , 𝑘)holds if
+1 2
+and only if object 𝑜 is completely above object 𝑜 with a constant vertical distance of at least 𝑘. In other words, the bottom side
+1 2
+of 𝑜 is at least 𝑐vertical units above the top side of 𝑜 .
+1 2
+2. Size comparisons between objects:shorter, taller, narrower, and widerpredicates define the size constraints between
+objects. For example, shorter(𝑜 , 𝑜 , 𝑐)evaluates to true if and only if object 𝑜 is at least 𝑐 vertical units shorter than object
+1 2 1
+𝑜 . Again, the argument 𝑐can be omitted.
+2
+3. Equality constraints:These predicates establish equal attribute relationships between objects. For example, xeq(𝑜 , 𝑜 )holds
+1 2
+if and only if objects 𝑜 and 𝑜 share the same x-position (meaning they are vertically aligned). Similarly, yeq, weq, and heq
+1 2
+predicates ensure that two objects share the same y-position, width, or height, respectively.
+4. Constraints with constant values:This group of predicates sets specific constraints on an object’s attribute with a constant
+value instead of in reference to another object. For example, above_value(𝑜, 𝑘)holds if and only if the y-position of the top-left
+corner of object 𝑜is above (less than) 𝑘. Other predicates like below_value, right_value, left_value, shorter_value,
+taller_value, narrower_value, wider_value, xeq_value, yeq_value, weq_value, and heq_valueconstrain an ob-
+ject based on given values.
+5
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Complex Relationship. The complex spatial relationship among objects can be defined using logic operators (∧for “and”, ∨for “or”,
+¬for “not”) to connect the set of predicates discussed above. For example, “a cozy brown leather chair is either completely left or
+completely right of the black and white striped couch.” can be described as:
+type(𝑜 ,“𝑐ℎ𝑎𝑖𝑟”)∧property(𝑜 ,“𝑐𝑜𝑧𝑦”)∧property(𝑜 ,“𝑏𝑟𝑜𝑤𝑛”)∧
+1 1 1
+type(𝑜 ,“𝑐𝑜𝑢𝑐ℎ”)∧property(𝑜 ,“𝑏𝑙𝑎𝑐𝑘𝑎𝑛𝑑𝑤ℎ𝑖𝑡𝑒𝑠𝑡𝑟𝑖𝑝𝑒𝑑”)∧(cleft(𝑜 ,𝑜 )∨cright(𝑜 ,𝑜 )).
+2 2 1 2 1 2
+This completes our definition of the propositional design language. While natural language is usually easier to use than structured
+languages like ours, it may suffer from ambiguities, which render it difficult to satisfy hard rules. Nevertheless, we intend to eventually
+extend our work to consider natural language as well. We leave such effort for future work.
+3. Spatial Reasoning Integrated Generator
+SPRING is motivated by the desire to smoothly integrate the handling of implicit preferences from data and explicit rules from
+the user to generate high quality design images. It does this by integrating a symbolic search component to enforce the rules with a
+neural component for learning implicit preferences, perceiving the background, and drawing the image. Following this, SPRING is
+composed of a neural perception module, a hybrid spatial reasoning module, and a neural visual element generation module. Finally,
+SPRING includes an optional human feedback step, allowing the constraints to be edited based on initial results.
+3.1. Perception module
+The purpose of the perception module is to extract information about the existing background for the SRM – which is utilized in
+iterative refinement both for implicit preference and explicit rule satisfaction. The perception module includes an object detectorfor
+predicting existing objects and their bounding boxes, and a scene encoderfor scene-level feature extraction.
+3.1.1. Object detector for prior visual element recognition
+The object detector is implemented with a pre-trained DETR50 ([19]) detection transformer model trained on the COCO dataset
+([67]), but this can be jointly trained with the spatial reasoning module given a new dataset. DETR50 detects objects by taking an
+image as input and outputting a set of vectors, each representing a detected object. These vectors include a categorical vector for class
+probabilities and a size-4 vector for bounding box coordinates. It works by using a convolutional neural network (CNN) ([65,44]) to
+extract features from the image, which are then processed by a transformer to predict object locations and classes. The CNN encodes
+the image into a feature map, and the transformer decodes this map into object predictions, refining them through multiple stages.
+3.1.2. Scene encoder for general visual features
+A Resnet18 ([50]) architecture pre-trained on ImageNet ([33]) is used as the scene encoder, which is fine-tuned during training
+in conjunction with the SRM – these networks together are fully-differentiable, so can be trained together as one larger network.
+The features it encodes are used in the SRM, and represent general information about the image, capturing details like lighting,
+texture, and room composition beyond the objects present. Resnet18 works by using a series of convolutional layers with residual
+connections to extract hierarchical features from the input image, gradually building up a representation that captures increasingly
+complex patterns. Following common practice, the final layer of the Resnet is replaced with a fresh (newly-initialized) one to facilitate
+the fine-tuning. This final layer outputs the 500-sized vector used later by the SRM to initialize its hidden state.
+3.2. Spatial reasoning module (SRM)
+The Spatial Reasoning Module (SRM) is responsible for determining object locations within a design. Our SRM combines neural
+networks and symbolic reasoning to ensure the satisfaction of both explicit constraints and implicit preferences. Our SRM samples
+object locations from the modification of an implicit preference distributionlearned by a Recurrent Neural Network (RNN) to capture
+implicit preferences. The modified distribution, which we call the backtrack-free distribution, uses symbolic reasoning to zero out the
+probability of producing object locations that violate explicit constraints. In both distributions, object locations are determined by
+their respective bounding boxes, which include parameters for the 𝑥and 𝑦coordinates of the upper-left corner, as well as the width
+and height. Together, these bounding boxes constitute the layout (definition from ([118])). The SRM receives background image
+information, including positions and attributes of existing objects, from the perception module. It then samples a layout from the
+backtrack-free distribution.
+Both the preference and the backtrack-free distributions define the probability of generating a layout through aniterative refine-
+ment process,which progressively narrows the range of each parameter through a series of decisions.Each decision refines
+the possible values for one parameter, reducing the range until its precise value is found. For example, Fig.3(left) decides the range
+of object 2’s 𝑥coordinate. It starts by assuming this coordinate can take any value in the range between 0 and 8. In one decision, the
+range shrinks to the left side (0 to 4), or the right side (4 to 8), or the middle value (4). Such decisions continue, forming a tree. The
+probability of taking decisions at each step is marked in the figure. The probability of setting the coordinate to a value is then the
+probability of a decision sequence in the tree.
+6
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fi g.3 .E xamp le probl em demonst rating the impl icit p refere nce and th e backt rack -fre e dis trib ution of one varia ble 𝑥 2. In the r oot node , 𝑥 2can take values be tw een
+0and8.Sucharangeisiterativelyrefinedineachstep(threedecisions:takingtheleftside(L),middle(M),rightside(R))withdifferentprobabilities,formingatree.
+(Left)Theimplicitpreferencedistributiondefineshowthenextdecisionshouldbesampledfromthecurrentdistribution.TheprobabilityisgeneratedbytheRNN.
+(Right)Thebacktrack-freedistribution,whichisproportionaltotheimplicitpreferencedistributionforalldecisionsthatadheretoconstraints,buthave0probability
+whenanyareviolated.Noticehowdistributionswithnewzerosinthefirstandthirdlevelsarerenormalized,butstillproportional.
+Fig.4.ExamplefromFig.3withtheSampleSearchprocedureoverlaid.(1-7)denotesthe7stepsinthesearch.(1)Sample“R”fromdistribution.(2)Noelementof
+therangeislessthan4,sothecurrentnodeispruned.Backtrackandnormalizedistribution.(3)Sample“L”.(4)Sample“R”.(5)Sample“R”.(6)Aleafnodehasbeen
+reached,butitdoesnotsatisfyconstraints.Backtrackandnormalize.(7)Sample“M”.Thisleafnodesatisfiesalltheconstraintsandisreturned.
+The implicit preference distributionassumes that the decision probability at each step is the output of a Recurrent Neural Network
+(RNN), which is trained to capture implicit preferences such as aesthetics, naturalness, and utility. See Fig. 4for an example. The
+RNN learns such implicit preferences by re-generating the locations of objects removed from existing online pictures using inpainting.
+The details are in Subsection 3.2.4.
+The backtrack-free distributionensures that explicit constraints are respected.It modifies the implicit preference distribution by
+assigning zero probability to decisions that lead to constraint violations.For instance, in Fig.3(right), the backtrack-free dis-
+tribution avoids paths that violate user specifications while remaining proportional to the implicit preference distribution elsewhere.
+Notice that some variables become zeroed out, but the others in the same decision step are normalized to remain proportional.
+A SampleSearch-based ([48]) procedure is used to sample from the backtrack-free distribution, as seen in Fig.4. Sam-
+pleSearch is a systematic search procedure including backtracking, normalization, and pruning, taking as input the single-step
+probabilities generated by the RNN. Its interplay between the neural RNN-component and the symbolic search component ensures
+7
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+that the produced layout is a random sample from the backtrack-free distribution, respecting both the implicit preferences and explicit
+constraints.
+3.2.1. Decisions in iterative refinement
+In SPRING, iterative refinement is broken down into three types of decisions: left side, right side, and middle. These decisions
+systematically reduce the range of possible values for each parameter. A left side (𝐿) decision narrows the range to the lower half,
+setting the maximum value to the midpoint. A right side (𝑅) decision narrows the range to the upper half, setting the minimum value
+to the midpoint. A middle (𝑀) decision selects the midpoint as the final value, making the range deterministic.
+The problem is then formulated as a sequence of these decisions, starting at the root of a tree where all ranges are set to initial
+values (in our experiments, [0, 1000]were used), and concluding at a leaf where all ranges are a single integer value. To streamline
+the problem going forward, we assume a set order of decisions (see Section3.2.7), where a parameter is reduced to a single value
+before the next begins refinement.
+3.2.2. The implicit preference & backtrack-free distributions
+Two probability distributions are important to understanding the SRM: the implicit preference distribution and the backtrack-free
+distribution.The implicit preference distributionacts as a proposal distribution, representing implicit user preferences at various
+decision points. It is defined over decisions rather than directly over spatial parameters. The implicit preference distribution over all
+decisions on all spatial parameters can be defined as follows:
+∏𝑛 ∏𝐾𝑖
+𝑄(Δ)= 𝑄𝑘 𝑖(Δ𝑘 ∣Δ<𝑖,Δ< 𝑖𝑘,𝑎,𝑏)
+𝑖
+𝑖=1𝑘=1
+In more detail, the set Δincludes all decisions for all spatial parameters. The set Δ𝑖consists of all decisions refining a parameter 𝑖,
+while Δ𝑘 𝑖 is the single decision for parameter 𝑖at decision step 𝑘. Δ𝑘 𝑖 belongs to the set {𝐿, 𝑀, 𝑅}– the domain of possible decisions,
+left, middle, and right. 𝐾 𝑖 represents the number of steps needed to reduce the range of parameter 𝑖 to a single integer. Δ<𝑖 is
+shorthand for Δ 0, … , Δ𝑖−1, which includes the set of decisions for all previously refined parameters. Similarly, Δ< 𝑖𝑘 refers to the set
+of decisions for the current parameter 𝑖but all previous decision steps. 𝑄(Δ)represents the implicit preference distribution over all
+decisions. 𝑄𝑘 𝑖 is the component of the distribution for the single decision Δ𝑘 𝑖 at decision step 𝑘for parameter 𝑖. The initial integer
+range for all spatial parameters is set to a constant [𝑎, 𝑏], which in this case is [0, 1000].
+The backtrack-free distributionis constructed from the implicit preference distribution, maintaining proportionality for deci-
+sions that can lead to a constraint-satisfying result, while assigning a probability of zero to decisions that always violate constraints.
+This ensures that configurations of decisions drawn from the backtrack-free distribution closely follow the implicit preference distri-
+bution but will never violate explicit constraints, as any decision leading to a violation is given zero probability. The backtrack-free
+derivation 𝑄′of the implicit preference distribution 𝑄can be constructed as follows:
+{
+𝛼𝑄𝑘 𝑖(Δ𝑘 ∣Δ<𝑖,Δ< 𝑖𝑘,𝑎,𝑏) ifΔ𝑘 𝑖,Δ<𝑖,Δ< 𝑖𝑘
+𝑄′ 𝑖𝑘 (Δ𝑘 𝑖|Δ<𝑖,Δ< 𝑖𝑘,𝑎,𝑏)= 𝑖 satisfiesconstraints (1)
+0 otherwise
+We use 𝛼 to normalize after eliminating decisions that lead to constraint violations, maintaining proportionality. Specifically, 𝛼
+is computed as:
+1
+𝛼= ∑
+1− 𝑖Δ𝑖−1𝑄𝑘 𝑖(Δ𝑘 ∣Δ<𝑖,Δ< 𝑖𝑘,𝑎,𝑏)
+Δ𝑘 𝑖∈𝐵 𝑖
+where 𝐵 𝑖Δ𝑖−1 is the set of decisions for parameter 𝑖 at step 𝑘 that lead to constraint violations, and 𝑄𝑘 𝑖(Δ𝑘 𝑖 ∣Δ<𝑖, Δ< 𝑖𝑘, 𝑎, 𝑏) is the
+Δ𝑘
+probability of making decision 𝑖 given the previous decisions and initial range.
+For example, consider a decision where we are refining the width parameter for object 2. The current range is [0, 250] and
+the probability distribution over decision values {𝐿, 𝑀, 𝑅}is {0.2, 0.3, 0.5}. However, the middle decision will violate constraints.
+T bah ce kre trf ao cr ke, - frin ee t h de e rb iva ac tk iotr na c isk - {f 0re .2e 8 d 6e , 0ri .v 0a , 0ti .o 7n 1, 4 }th . e T hp ir so rb ea sb ui ll ti st y in Δ a𝑘 𝑖 7= 1%𝑀 chis a ns ce et t oo f c0 h.0 o. o s𝛼 inr ge s 𝑅ol av nes d t ro e fi1 n− i1 0 n.3 g = to 0 a1 . 7 ra≈ ng1 e.4 o2 f9 [, 1a 2n 5d , 2t 5h 0e ] ,fi an na dl
+a 29% chance of choosing 𝐿and refining to a range of [0, 125]. In either case, 𝑀 is never sampled.
+3.2.3. Parameter sampling
+The SRM’s sampling method is a variant of SampleSearch ([48]), taking the implicit preference distribution over single-step
+decisions from the RNN as input. SampleSearch expands the search tree in a depth-first order. It maintains a range table at each search
+node, listing the current ranges of each coordinate. At each node, it samples a decision (L, R or M) from the current probability table
+at the node and descends into the branch. It continues sampling decisions and descending if no constraint violations are encountered.
+When it descends into a node violating constraints, it backtracks and updates the probability tables of its parents.
+Range table.The range table holds the current ranges of possible values for each spatial coordinate. It tracks the minimum and
+maximum values for each of the four spatial variables of every object. Thus, for |𝑂| objects, the range table maintains |𝑂| ×4 ×2
+values. A range table is considered deterministicif all of its parameters have a single integer value in their range, and non-deterministic
+otherwise.
+8
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+SampleSearch Algorithm. SPRING’s sampling algorithm is a search that begins at the root of the iterative refinement tree,
+where all parameters have the range [0, 1000]. The first parameter is selected for refinement. At the first decision, three choices are
+available: left side, right side, and middle. The RNN, having been trained (see Section3.2.4), can produce the implicit preference
+(𝑄𝑘
+distribution over single decisions. The RNN outputs a softmax distribution on all 3 decisions 𝑖). The choice for the current action
+is sampled as a multinomial distribution 𝛿 𝑖𝑘∼𝑄𝑘 𝑖(Δ𝑘 𝑖|Δ<𝑖, Δ< 𝑖𝑘, 𝑎, 𝑏), deciding the next node of the search. Each node will have its
+own configuration of the range table, which is created and updated accordingly. This process continues until the current parameter
+becomes deterministic, then the next parameter in the ordering is chosen, and sampling continues on that parameter’s decisions.
+In the absence of any constraints, SampleSearch will continue until reaching a deterministic node representing a full layout. It will
+return this layout as a sample. Along the way, each single-step decision is sampled from the implicit preference distribution provided
+by the RNN. Therefore, the sampled layout meets implicit preferences such as reasonable spatial arrangements and aesthetics.
+If SampleSearch reaches a leaf node violating constraints, it backtracks to its parent node and modifies its probability table –
+resetting the probability of choosing the child node to 0 and normalizing the probabilities of taking other decisions. It then samples
+another decision from the parent node and continues the search until finding a satisfying node. If an internal node has all of its
+children set to 0 probability, then that internal node is also deemed as violating constraints. In this case, we backtrack to its parent
+node, and its probability becomes 0. If the probabilities of taking all decisions at the root node are 0, we must conclude that there is
+no layout that satisfies constraints. In this case, we return “no solution” statement to the user along with the search tree as a trace of
+reasoning.
+This search also includes a pruning step that trims branches which certainly lead to constraint violation. This pruning, as well as
+further details on checking nodes for constraint violation, can be found in AppendixA.
+Proposition 1. The layouts sampled from SampleSearch procedure are from the backtrack-free distribution defined in Subsection 3.2.2.
+The proof of Proposition1follows from the proof of Theorem 1 in ([48]).
+3.2.4. Learning implicit preference
+In SPRING’s spatial reasoning module, the RNN’s role is to model the implicit preference distribution for each decision based on
+prior decisions, the input image, and the object class being added (e.g., chair, couch, table). This implicit preference distribution
+captures implicit qualities like aesthetics and naturalness, which are best learned from data. Deep learning methods, such as RNNs,
+excel at extracting this type of nuanced knowledge from datasets.
+RNN architecture.Our RNN neural component is implemented using gated recurrent units (GRUs) ([23]). The background image
+is encoded by an encoder network as the initial hidden state of the RNN. Starting from this state, the SRM decides the bounding box of
+each object to be generated sequentially. Moreover, the locations of the bounding boxes are further filtered by a symbolic reasoning
+module to ensure constraint satisfaction. Specifically, the pipeline is made up of 3 leaky-ReLU-activated gated recurrent units followed
+by a dense layer, and a Softmax activated output layer. Each GRU inputs and outputs a 4-size vector. GRUs use a hidden state to
+preserve information across time, and manage that information using internal (learned) reset and update gates. This hidden state
+vector (size 500) is initialized from a vector produced by the scene encoder within the perception module (see Section3.1.2). The
+hidden state is also updated by a simple variable encoder, which produces a vector for each positional variable of each object to let
+the GRUs know that a new object or variable has started, and to encode the object class and variable type. This encoding is added
+(summed) to the state vector directly.
+The output of the GRU is discarded, and the hidden state is instead passed to the dense layer. This is a common practice with
+GRUs to encode the temporal aspect of the problem within the hidden state and then pass that state to a dense layer. The dense layer
+has 512 internal units and 4 output units. The basic unit of this RNN output is a decision token– a size 4 vector representing a score
+distribution of three possible decisions and one special start token. The input at each timestep is the previous timestep’s decision as
+a one-hot vector. The network outputs at each step a softmax vector to assign the probability to each token.
+Training of the RNN.The training of SRM uses a dataset containing background images with a bounding box for each object to
+be generated. Each object’s location is defined by the upper left point, as well as the width and height of the bounding box. These
+variables are converted to decision strings as described in the previous sections. The training process is a supervised procedure – it
+trains the spatial reasoning module to generate bounding boxes (in the form of decision strings) which match those in the training
+dataset. This procedure teaches the neural network implicit spatial knowledge including the relative sizes of objects and their common
+spatial relationships (toasters go on the counter, televisions might be hung on the wall, etc).
+The training of RNN is accomplished in-part through teacher forcing([108]). In teacher forcing, the ground truth decision token
+from the previous step drawn from the training set is used as the input to train the RNN to predict the decision of the current step.
+Teacher forcing can drastically speed up RNN training, but can also result in lower resilience to uncommon sequences. For this reason,
+a mixture of strategies – with and without teacher forcing – is used to train the model. 50% of the time the input of the RNN is set
+by teacher forcing and 50% set by the predictions of the RNN itself. We also randomize the order of the objects in the decision string
+during training.
+3.2.5. The SRM satisfies explicit constraints
+Because the SRM’s sampling method blocks all samples that will lead to certain constraint violation (by setting them to probability
+0), no decision will be finalized which violates constraints. The SRM ensures that all possible configurations are searched until a
+satisfying configuration is found, prioritizing those with high preference through the sampling process. If a configuration violates
+9
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+constraints, it is backtracked, and its probability is reset to 0, allowing the search to continue with normalized probabilities for
+remaining options. This exhaustive process guarantees that any final decision adheres to the explicit constraints. If no configuration
+is found after this exhaustive search, the SRM returns a “no solution” statement to the user, along with a trace of the reasoning,
+ensuring transparency and adherence to specified constraints.
+3.2.6. The SRM respects implicit preferences
+Because the RNN has learned from a dataset that complies with implicit preferences (such as aesthetics, naturalness, and utility),
+the implicit preference distribution it generates takes these factors into account. It captures the nuanced and often fuzzy knowledge of
+how objects should be arranged to be visually appealing and functional. The backtrack-free distribution maintains the proportions from
+this implicit preference distribution, ensuring that the SRM’s sampling method, which is equivalent to the backtrack-free distribution,
+optimizes decisions for these implicit preferences. Consequently, the decisions made during the layout formation process are not only
+compliant with explicit constraints but also optimized for implicit qualities, resulting in designs that are aesthetic and practical.
+3.2.7. Order simplification
+We use a set (arbitrary) ordering of how spatial parameters are considered. Example, object 1 x-value, then object 1 y-value, etc.
+This reduces load on the RNN component, as for what it needs to learn.
+3.2.8. Incorporating existing objects
+During design generation, existing objects perceived in the background image may influence the decisions made by the SRM. Not
+only should the user be able to set positional constraints that reference existing objects, but these objects must be encoded in the
+neural component of the SRM as well. This is because the neural component is an RNN with a state that is stored throughout the
+generation process, and encoding what objects are currently in the room will give it vital context for future objects. This is handled
+by making no distinction between objects that already exist in the background – those found by the perception module – and objects
+that need to be generated in the scope of the SRM. Each of the existing objects is constrained to their already-known parameter values
+(using constraints like xeq, yeq, etc) but they are still processed through the SRM to update the hidden state. As the constraints are
+set to a single value, every decision is forced down a particular path. These are processed through the SRM first before new objects.
+3.3. Visual element generator (VEG)
+The visual element generator (VEG) takes as input the background, the prompt, and location of each object in the form of a
+bounding box, and outputs an image patch for each bounding box which contains the requested visual element that can be merged
+seamlessly into the background image in a process conventionally known as inpainting. The result is a completed scene adhering to the
+design with all positional constraints guaranteed. The visual element generator is sequentially called on each bounding box created
+by the spatial reasoning module.
+Our SPRING framework offers a flexible structure where various neural generative models can be used for the VEG. In the ex-
+periments, we utilized both off-the-shelf Stable Diffusion-based neural generative models and fine-tuned versions of these models for
+indoor scene generation. In each case, the bounding box generated by the SRM and the prompt information are provided as input
+to the model, and the output is an image patch that can be integrated into the background. Since the Stable Diffusion-based VEG
+is trained on a vast collection of online images, it can produce detailed and visually appealing image patches of individual objects,
+meeting the implicit preferences and aesthetic requirements.
+3.3.1. Generative models based on stable diffusion
+Stable Diffusion from latent spaces follows a series of auto-denoising steps, which generates an image from a vector in the semantic
+space. This process is visualized in Fig.5. Starting with pure Gaussian noise, a latent vector is de-noised by a central network in small
+steps. This guides the latent vector towards a comprehensible structure as defined by the training data – the final vector, when
+decoded, produces a good-looking image. By conditioning this central network on latent representations of text or input images, the
+output image will be pushed towards semantically aligning with both. In other words, if conditioned on the text “a green chair”,
+the output latent vector will become progressively more similar to the vector embedding of a green chair. The networks of Stable
+Diffusion are composed of a U-Net ([89]), an image autoencoder, and a text encoder. Its function is to generate 512x512 images
+conditioned on a same-size context image and a string of natural language text.
+Autoencoder / Pixel-to-Latent Space.A context image like the background can be input through the autoencoder, which encodes
+the image into a latent space representation by compressing the image into a lower-dimensional space that retains the essential features
+of the image. The autoencoder is structured with an encoder that compresses the input image into a latent space and a decoder that
+reconstructs the image from this latent representation. The encoder consists of residual convolution blocks and self attention blocks,
+slowly shrinking the dimensionality of the data. The decoder mirrors the encoder’s structure in reverse, transforming the latent
+representation back into a detailed image.
+Text Encoding.Text is input through the Contrastive Language–Image Pre-training (CLIP) ([85]) encoder. CLIP is trained to align
+the latent representations of text and images – for example, it might learn that the string “A brown desk” should have a very similar
+latent vector to an image of a brown desk. Its contrastive pre-training lets it convert the input text into a series of embeddings that
+capture the semantic meaning of the text in relation to images.
+10
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.5.Typicallatentdiffusionapproach,asutilizedbyourVisualElementGenerator.(A)Animagecanbegeneratedconditionedontextandimageinputs.These
+inputsaretransformedtothelatentspacebyCLIP([85])andanautoencoder,respectively.(B)Diffusionstartswithapurenoisevectorandremovesnoiseinsmall
+stepstoformanimage.ThisoccursentirelyinthelatentspacebytheU-net([89]).(C)Inthelatentspace,eachde-noisingstepisasoftadjustmenttowardsaspace
+morefamiliartotheU-net.These“islands”areformedduringtraining,andmaptoimagesthatlookgood,andfittheconditioningdata..
+Reverse Diffusion through U-net.The reverse process of diffusion is performed by the U-Net. The U-Net features convolutional
+blocks with an encoder-decoder architecture. The encoder path includes convolutional layers and downsampling to capture high-
+level features, while the decoder path uses upsampling and convolutional layers to reconstruct the image. Skip connections link
+corresponding encoder and decoder layers, retaining latent spatial information. Attention mechanisms between convolutional blocks
+enhance focus on relevant image parts, improving output quality.
+Latent Diffusion. These parts work together by using the text and image embeddings as conditions for the U-Net during the
+reverse diffusion process, which iteratively refines a noisy latent representation into a structured latent that, when decoded, produces
+a coherent, high-quality output image. Using cross-attention, these text and image vectors directly interact with the image’s noisy
+latent vector at each diffusion step.
+Inpainting with Mask.In the case of inpainting, a mask can be applied by specifying the area of the image to be altered, and
+the model fills in the masked region while considering the surrounding context and the provided text prompt. This is applied at
+each step of the diffusion, so the contextual part remains unchanged and available. The use of region-limiting bounding boxes in the
+layout combined with the masking process and the iterative application of objects is the reason SPRING does so little damage to its
+background, which cannot be said of other methods.
+3.3.2. Using a pre-trained model in the VEG
+Preparing the Image.To prepare the image, we build the model with half-precision floating-point weights, and set the number
+of inference steps to 80. A mask is constructed from the bounding box, where pixels inside the box are set to 1, and all others to 0.
+Given the size constraint, a 512x512 crop is found around the object’s bounding box, ideally centered on the box. If a center crop
+would exceed the border of the image, it is adjusted by minimally shifting the crop box back within the image boundaries, ensuring
+no part of the crop lies outside the image. This method preserves as much background context as possible without compromising
+local image quality. The crop is then applied to both the background image and the mask.
+Preparing the Prompt.The prompt is constructed programmatically from the object’s type and any properties defined in the
+constraint language using the type() and property() predicates. For example, “A [Object type]. [Property 1]... [Property n]”
+Alternatively, the user can directly enter a prompt for each object.
+Inpainting the Object.The prompt, cropped background, and cropped mask are fed into the inpaint model, and the resultant
+image is saved. This image represents only the cropped area, so it must be reinserted into the larger image. Because inpainting
+preserves all outside of the bounding box, and the cropped area exceeds the dimensions of the bounding box, the entire area fits
+seamlessly into the original background.
+Fully Pre-trained Models Tested in VEG. Several of the VEG models tested in this work follow this approach as completely
+pre-trained models. We evaluate the base Stable Diffusion models with versions 1.2 and 1.4. Additionally, we try a publicly available
+model pre-trained on Stable Diffusion V1.2 ([91]), which also included additional inpainting-specific training (with mask images for
+each object included) drawn from the “laion-aesthetics v2 5+” dataset ([94]).
+11
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+3.3.3. Finetuning a model in the VEG
+SPRING also allows the VEG to be fine-tuned in conjunction with training the SRM, to produce more visually and aesthetically
+consistent results. The details of this are below.
+Finetuning Approach.Our finetuning approach is a variant of low-rank finetuning (LoRa) ([53]), which allows changing the
+behavior of a large diffusion model without succumbing to catastrophic forgetting ([74,43]) or requiring many computational re-
+sources. This method adds trainable parameters to key locations within the network, particularly around the previously-mentioned
+self-attention and cross-attention modules inside the U-net. At a high level, the parameters of the original model are frozen so they
+cannot be changed. Two smaller matrices are created by decomposing the original large parameter matrix. These matrices have a
+much smaller rank than the original, significantly reducing the number of parameters. Their dot product approximates the original
+parameter matrix. The frozen original parameters are combined with the adapted low-rank updates, enabling effective finetuning
+with far fewer parameters.
+Training proceeds as it normally does for Stable Diffusion, albeit only with the LoRA parameters trainable. This involves a su-
+pervised approach where the mean squared error loss is calculated between the known noise and the predicted noise. The AdamW
+([71]) optimizer is then used to minimize this loss over many training steps, ensuring efficient and effective fine-tuning.
+Finetuned Models Tested in VEG.One of the VEG models we tested was produced in this way. A model was initialized from
+Stable Diffusion v1.4. Low-rank (rank of 4) parameters were instantiated around the U-net. CLIP and the autoencoder were not
+adjusted. The dataset utilized was the same COCO subset used to train the SRM. Text prompts were produced simply by listing the
+categories of object documented as being in the image. Random image flips were introduced to supplement the existing data. A batch
+size of 4 and a constant learning rate of 0.0004 was used. Training proceeded for 8840 timesteps. After finetuning, execution proceeds
+in the same fashion as a pretrained model.
+3.3.4. Impact on aesthetics
+The purpose of utilizing massive pretrained models, potentially finetuning them, and integrating them into an iterative application
+process is to serve the needs of aesthetic quality in design. The SRM and the layout it produces are sufficient for producing locations
+that follow user constraints and are natural. This has an effect on aesthetic quality, because naturally positioned objects will be more
+aesthetically pleasing than unnaturally positioned ones. However, none of that has any meaning unless the images of the objects
+produced from the layout are not themselves aesthetically pleasing.
+Models trained on massive image datasets, such as Stable Diffusion, learn from a vast array of visual data. This extensive training
+allows the models to capture a wide range of visual features and styles, enhancing their ability to generate high-quality, aesthetically
+pleasing images. The models generalize to the subtleties of color, texture, lighting, and composition, all of which are crucial for
+creating visually appealing designs.
+Finetuning these pretrained models to the specific task of interior design further enhances their aesthetic quality. Through fine-
+tuning, the models can adapt to the unique characteristics and requirements of interior design, such as the typical color schemes,
+object proportions, and spatial relationships found in living spaces. This specialized training allows the models to generate designs
+that are not only visually appealing but also contextually appropriate for interior environments.
+Perhaps most importantly, SPRING can utilize the full power of an image generation model on every object by calling it itera-
+tively as a series of much simpler inpaints. This approach allows SPRING to focus the model’s capabilities on one object at a time,
+ensuring high-quality, detailed generation for each element in the scene. By using region-limiting bounding boxes and masks, SPRING
+minimizes the risk of altering the background or other objects, preserving the overall aesthetic integrity of the scene. This iterative
+application ensures that each object is generated with maximum attention to detail and quality, resulting in a visually pleasing final
+design.
+3.3.5. Inpainting failures
+A challenge of any diffusion model is the rare chance that it will generate the wrong object or no object at all. These inpainting
+failures are possible, although our method reduces them since each call is responsible for only a single object placed in a reasonable
+location. Correctly painted objects are guaranteed to follow positional constraints. Additionally, finetuning processes can further
+reduce the likelihood of these failures (see Section5.1).
+3.4. Optional human feedback
+SPRING concludes with a simple and optional human-feedback step, in which the resulting image is presented to the user, along
+with the SRM-produced layout. If the user finds the output unappealing, they can choose to regenerate the output from any step of the
+process, including altering object-specific prompts to get new images from the same layout, or recreating the layout and all objects
+with altered constraints. The following examples illustrate this functionality and the potential for adjustment:
+The first example (changing only visual properties of the objects, not locational ones) allows more aesthetic control to the
+user. For example, if the user would like a couch that was generated to be red instead of brown, they could add the property
+property(𝑐𝑜𝑢𝑐ℎ, “𝑟𝑒𝑑”). The same layout would be kept, but the object inpainting would be regenerated with this new property as
+a part of the prompt.
+The second example(changing the spatial and locational constraints on objects) allows more detailed control over the spatial
+elements, and allows for the correction of overly-loose constraints. Consider the scenario where object 𝑜 is specified to be wider than
+1
+𝑜 via the constraint wider(𝑜 , 𝑜 ). Consider also that both objects are of the same type, and it is common within the SRM’s training
+2 1 2
+12
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+dataset to see two similarly-sized instances of these objects. The process of iterative refinement may settle on 𝑜 being wider than 𝑜
+1 2
+by only a very small margin (e.g. 1 per-mille). This would satisfy the constraint and fit the SRM’s understanding of a good scene, but
+it likely would not satisfy the user. The optional human-feedback step allows this to be remedied, as the user can specify a tighter
+constraint – wider(𝑜 , 𝑜 , 100)would add an offset, forcing the object to be wider by at least 100 per-mille.
+1 2
+4. Related work
+Neuro-Symbolic AI.Neuro-symbolic methods combine neural networks, which excel at pattern recognition and are adaptable to
+diverse tasks, with symbolic systems, which are adept at reasoning and explicit knowledge representation. This hybrid approach aims
+to leverage the strengths of both methodologies to create AI systems that can learn from data and reason with symbolic knowledge.
+This concept has produced numerous recent breakthroughs ([75,109,6,113,81,72,45,42]).
+Much of the work into neuro-symbolic methods have focused on their much greater explainability than conventional neural
+methods, without sacrificing the predictive power of those same networks. This has taken many forms, including producing first-
+order logic explained predictions ([49,24,9,25]) and concept-based reasoning ([73,72]).
+Work has also gone into using the formalisms in symbolic reasoning to make neural networks safer ([112]) and more fair ([41,
+29,30]). This is broadly possible because symbolic algorithms often provide useful guarantees on their output that go beyond what
+purely neural methods can supply.
+Still other approaches focus on the potential benefits to generalizability that symbolic approaches bring, allowing the system to
+deal with noise and nebulous concepts using neural approaches, and abstract reasoning using symbolic ones([98,72,39,55]).
+Methods of integration, desired outcomes, and the symbolic approaches used differ. For example, neuro-argumentative learning
+([101,119,10,28,4,31,97,7,26,27]) integrates neural algorithms and symbolic argumentative reasoning, where the latter uses struc-
+tured logical arguments to process conflicting information. By combining the two, it leverages the pattern recognition capabilities of
+neural networks to inform and refine the logical arguments, resulting in a system that can adapt to and often explain new data while
+maintaining structured reasoning capabilities. This question of integration is a major consideration for all parts of the field ([13]).
+Our work focuses on the integration of neural networks with constraint reasoning, in the domain of design generation.
+Fast & Slow Thinking.Our work also draws inspiration from the fast and slow thinking model described in works from cognitive
+psychology. Psychophysiological studies have long supported the concept of dual-process thinking in humans ([96,68]) – in which
+more deliberate and more intuitive thinking are the result of separate fundamental processes. System 1 refers to a set of innate and
+learned automatic processes that are rapid, parallel, and unconscious. System 2 is responsible for abstract and hypothetical thinking
+and is slower, more deliberate, and more conscious ([58,38]). These concepts hold exciting parallels for the world of AI, which are
+already being seriously explored ([64,5]). Recent work has explored the idea that inspiration can be drawn from these neurocognitive
+concepts to improve adaptability, generalizability, common sense, and causal reasoning in AI ([16]).
+Our SPRING model integrates Fast and Slow Thinking by pairing neural networks (System 1 / “fast”) with symbolic reasoning (Sys-
+tem 2 / “slow”), blending modern deep learning’s fluidity with traditional symbolic AI’s methodicalness. This duality allows SPRING
+to generate innovative designs that also adhere to precise constraints, but the key concept of bridging deep learning’s adaptability
+with symbolic AI’s reliability is widely pursued in AI. As such, our work takes inspiration from concepts like fast and slow planning
+([40]), with the notable change that our system does not utilize any sort of meta-cognition AI-subsystem ([46]) to regulate between
+fast and slow thinking modules explicitly.
+Constraint Reasoning & Machine Learning.Constraint reasoning’s integration with deep learning aims to boost reasoning and
+optimize performance. Historically, this has included incorporating “common-sense” reasoning into natural language models ([51,
+102,82]), case-based reasoning from expert systems ([54]), and relational reasoning between objects or terms ([93,63,83,115,36]).
+Embedded constraint reasoning in machine learning is a promising idea ([17,106,70,15,90]), providing a structured way to in-
+corporate domain knowledge and improve problem-solving capabilities. Convex optimization has been successfully employed as a
+neural net layer ([18,1,3,2]), and other constraint reasoning methods have been integrated into neural nets for various applications
+([12,34,111,8,61,21,77]). Often, this comes in the form of using data to produce constraint models. Constraint acquisition enables
+learning of constraint networks from examples ([14,84,103]). Other research is focused on constraint models embedded into net-
+works. For example, decision diagrams have been successfully integrated into GANs for constrained schedule generation ([111]), and
+similar approaches have excelled in text2SQL generation and similar tasks ([56]).
+Automatic Design.Design domains have presented an exciting challenge for AI developers – recent progress has been made in
+architecture design ([114]), chip design ([60]), and biosystems ([105]). Automatic interior design problems have been tackled in
+several ways previously ([22]) – including reinforcement learning ([107]) and conditioning ([20]). Often, the data generated for this
+task is an abstract diagram of an interior space ([62,78,79]), but this approach is hard to visualize for a user. Other works focus on
+interior space images ([66]), offering better visual qualities but less structure within the data itself.
+Text-to-Image & Graph-to-Image Methods.Large diffusion models like DALL-E ([87,86]), GLIDE ([80]), and Stable Diffusion
+([88]) can inpaint objects into scenes given a natural language prompt – made possible by large online datasets and the combination
+of transformer ([104]) and diffusion ([95]) models. However, they fail on complex instructions, such as constraining the number and
+spatial relationships of objects.
+Another strong line of research encodes requirements into hidden vectors via graph or recurrent nets ([32,110,37,69]), and then
+conditions image generation on these vectors. This includes sg2im ([57]), which encodes positional relationships into scene graphs for
+image generation. These approaches struggle with complex constraints and those not present in training. Other works ([116,35,47])
+adapt this approach for image-to-image problems, using scene graphs as editable latent representations. Also related are layout-to-
+13
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Table2
+ResultsfortheStableDiffusionVEGcomparison.(Top)Howmanyoftheex-
+amples(10perbackground)foreachSDmodelhadatleastoneinpaintfailure
+(withanobjectnotbeingprintedinanyrecognizablestate).Version1.2and
+itsfinetunedvariantfaredthebest.(Bottom)Howmanyofthe10examplesfor
+eachbackgroundhadatleastoneinpaintfailure(withthephysicalcontinuity
+ofthescenebeingbrokeninaclearandobviousway).Thefinetunedversion
+1.2variantperformedmuchbetterthananyother.Thisversionwaschosento
+representStableDiffusionintheVEGforallotherexperimentsinthiswork.
+ImagesThatContainedOneorMoreInpaintFailures
+SDV1.2 SDV1.2ft-I SDV1.4 SD1.4ft-cl
+BG1(1Object) 3 0 5 2
+BG2(2Objects) 1 1 4 4
+BG3(3Objects) 2 7 6 7
+Total 6 8 15 13
+ImagesThatContainedOneorMoreClearContinuityFailures
+SDV1.2 SDV1.2ft-I SDV1.4 SD1.4ft-cl
+BG1(1Object) 4 0 3 4
+BG2(2Objects) 8 0 7 8
+BG3(3Objects) 8 0 10 10
+Total 20 0 20 22
+image approaches ([118,99]) which generate an image from a background and user-supplied layout. Most recently, this has been
+achieved with ControlNets ([117]), which allow efficient tuning to new conditions for large diffusion models. Yet, these all require
+the positions of all objects to be strictly and completely defined by users (e.g., as sketches) and do not reason about positions or
+spatial relationships.
+5. Experiments
+Evaluating the performance of SPRING for interior design production involves examining three important aspects of the algorithm:
+the ability to consistently meet design requirements (i.e., constraints), the naturalness of the Spatial Reasoning Module’s spatial
+predictions, and the realism of the final images produced by SPRING. It is important to emphasize that assessing the quality of
+generated images is a challenging problem in the field, and determining the naturalness of positions and dimensions, independent
+of aesthetic quality, is even more difficult. Furthermore, specific implicit preferences like aesthetics and convenience are hard to
+measure, and the impact of satisfying constraints on the realism, aesthetics, and naturalness of the generated designs is challenging
+to assess. To tackle these challenges, the first aspect (constraint satisfaction) was evaluated using synthetic data scenarios for precise
+measurement, while the second and third aspects (quality of images, naturalness of positions and dimensions) were trained on real
+data. To address the known issues with automatic metrics commonly employed in image generation tasks, a human survey was also
+conducted. Essentially, we take a holistic approach by demonstrating that we can learn implicit preferences generally, and then
+showing that the end products are realistic, aesthetic, and natural through Fréchet Inception Distance (FID) and Inception Score (IS),
+as well as our human study. Combining all of these experiments, we seek to answer several key questions:
+• Does SPRING produce design scenes that fit the specification better than baselines? We evaluate this through design
+adherence experiments, and through scores obtained in a human study.
+• Does SPRING have superior image quality to baselines?This is evaluated in the image quality experiments using FID and IS
+scores, the human study, and a targeted spatial reasoning experiment to assess preference accuracy.
+• Is SPRING easily extensible? This is checked by demonstration of zero-shot constraint adaptation, as well as by tested and
+training an instance of SPRING on an outside domain.
+5.1. Comparison of VEG backbone models
+To determine the most effective version of the Stable Diffusion (SD) model for use as the Visual Element Generator (VEG) in
+further SPRING evaluation, we compared four versions: SD V1.2, SD V1.2 pre-finetuned on inpainting tasks (ft-I), SD V1.4, and SD
+V1.4 finetuned on the COCO dataset with LoRa (ft-cl). We tested each model across three backgrounds (BG1, BG2, BG3) with author-
+constructed layouts, containing 1, 2, and 3 objects respectively. Each completed image was checked for the presence of at least one
+inpaint failure or continuity failure. Inpaint failures in this case are defined as instances where an object is not generated in any
+recognizable state. Continuity failures are instances where the physical consistency of the scene is broken in a clear and obvious way.
+As this is a comparative test for choosing a base model, these metrics were applied rather generously, counting only breaches that
+were visually apparent as failures.
+14
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.6.ExamplesfromtheStableDiffusionVEGcomparisonexperimentshowingthreedifferentbackgrounds(BG1,BG2,BG3)containing1,2,and3objectsrespec-
+tively.EachbackgroundwasusedtotestvariousversionsofStableDiffusionmodels:SDV1.2,SDV1.2finetunedoninpaintingtasks(ft-I),SDV1.4,andSDV1.4
+finetunedontheCOCOdatasetwithLoRa.TheresultsdemonstratethatSDV1.2finetunedoninpaintingtasks(ft-I)performsthebestoverall,producingbetterlooking
+imagesthatfittherequirementsofthelayoutbetter.Noticethehigherdegreeofphysicalconsistencycomparedtotheothermodels,whichoftengenerateobjects
+that“phaseout”ordonotfitthebackgroundwell.
+The results (Fig. 6 and Table 2) showed that SD V1.2 finetuned on inpainting tasks (ft-I) consistently outperformed the other
+models. It exhibited the second fewest inpaint failures, with only 8 instances across all backgrounds, and no continuity failures at
+all. All objects generated during this experiment blended into the background quite convincingly. In contrast, the other models had
+significantly higher failure rates. Consequently, SD V1.2 ft-I was selected as the VEG backbone model for all subsequent experiments.
+5.2. Evaluating image quality
+This experiment assesses the visual quality of images produced by SPRING using the leading automated image quality metrics.
+This measurement of visual quality is inherently tied to several implicit preferences in design, including aesthetics and naturalness.
+5.2.1. Setup
+Generating Specifications.To evaluate the visual quality of the produced images, 10,000 scenes were generated from SPRING
+and from baselines using random specifications generated via the following procedure. These specifications were unconstrained in
+position placement to focus on assessing the visual quality of images, not the feasibility of constraints in varied backgrounds. Possible
+object types were selected based on the room being generated – chair, couch, potted plant, dining table, and television for living
+rooms; microwave, oven, toaster, refrigerator, and potted plant for kitchens. A requested number of objects were selected for each
+scene, with replacement. Additionally, natural language prompts were generated programmatically for use with the Stable Diffusion
+baselines. These prompts listed all objects to be included. For example, “An oven, a refrigerator, and a toaster”.
+Baselines. SPRING’s performance was compared with Stable Diffusion, and SG2IM, representing text-to-image and graph-to-
+image methods respectively. Another text-to-image baseline – GLIDE – was also checked on a smaller set of examples, but was found
+to produce lower quality images than Stable Diffusion. Rectangular masks, centered in the image and featuring a 20-pixel margin
+15
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Table3
+Quantitativeresultsfrom10,000generatedscenesshowourSPRING(withStableDiffu-
+sionintheVEG)leadsinpositionandobjectaccuracyforuserspecificationsatisfaction,
+aswellasInceptionScore(IS)andFréchetInceptionDistance(FID)perceptionscores
+forvisualimagequality.FIDstatisticswerecalculatedfromtheCOCO2017validation
+set.Positionaccuracyrepresentshowoftenthepositionalconstraintsaremet.Object
+accuracyrepresentshowoftenthecorrectnumberandtypeofobjectsaregeneratedand
+identifiable. ⋆indicates our method.
+Method PositionAccuracy↑ ObjectAccuracy↑ IS↑ FID↓
+StableDiffusion 0.5 0.63 3.58 162.73
+SG2IM 0.0 0.0 2.52 NaN
+SPRING⋆ 1.0 0.77 3.59 160.36
+around each edge, defined every mask in the Stable Diffusion baseline. This allowed Stable Diffusion to retain more context from the
+background.
+During our evaluation, we found that the images generated by SG2IM were of low quality and displayed minimal variations when
+given the same scene graph. We maintained consistency with the parameters and code provided in the original SG2IM paper. After
+reaching out to the author via GitHub, we learned that the poor image quality was likely due to mode collapse. Nevertheless, we
+included these results in our evaluation for a comprehensive comparison.
+Background images. Background images were generated by the algorithms themselves, increasing the difficulty of the task.
+SPRING handles this by using the VEG with the prompt “a clean, empty, living room.” or “a clean, empty, kitchen.”. Stable Diffusion
+used the same approach, generating a background before receiving the specification and then inpainting it to complete the task. As
+SG2IM inherently generates its own backgrounds, this aspect remains consistent with its usual operation.
+Training.SPRING was trained on a subset of the COCO 2017 Detection dataset relating to interior design. It is difficult to find
+real-world datasets of background images (containing few objects) with bounding boxes of the objects to be generated. We instead
+use datasets of images containing objects and their corresponding bounding boxes (such as COCO). We remove these objects from the
+original images using the Telea method ([100]). This lets us train SPRING to place bounding boxes in their most natural positions. To
+ensure that the dataset was focused on interior design, only images including one or more of the following categories were included:
+chair, couch, potted plant, bed, mirror, dining table, window, desk, toilet, door, TV, microwave, oven, toaster, sink, refrigerator, or
+blender. In order to train SPRING in a supervised manner, it was necessary to remove these objects from the images, leaving only
+the empty backgrounds and bounding box annotations. To accomplish this, various methods were tested with the goal of achieving
+visually pleasing results while also being efficient as numerous images needed to be processed. The Telea method was ultimately
+selected as it uses an image’s gradient information to guide the inpainting process, resulting in visually plausible results.
+The SRM of SPRING was trained with a learning rate of 0.0001 and a batch size of 8 for 100 epochs. Negative Log Likelihood
+loss was utilized. Instead of training on pixel values, SPRING was trained on a relative system of per mille (parts per thousand). This
+allows the network to operate using the same parameters on multiple image sizes, but restricts precision slightly.
+Metrics. The primary metrics we collect here are the Inception score (IS) ([92]) and Fréchet Inception Distance (FID) ([52]).
+These are measures of the quality and diversity of images from a generative model based on the intermediate layers of a pre-trained
+classifier. For IS, higher scores indicate better quality images, while FID scores indicate better quality with lower scores. FID also
+requires comparison statistics to a control dataset – in our case, COCO 2017. Both metrics are known to be volatile ([11]), hence the
+large number of images produced for testing. Once compiled, all images are resized to 1000 ×1000to make a fair comparison (IS and
+FID scores are effected by image size).
+Figures. From the 10,000 scenes created, a handful of them were chosen to represent this group in Fig. 9. In addition to the
+large set of randomized, unconstrained, generated-background designs, a small set of exemplar images were produced with author-
+constructed specifications both using real images from across the web (see Fig.7, 10) and from generated backgrounds (see Fig.8).
+These could not feasibly be created at a scale where automated metrics like IS and FID would yield meaningful results, but they do
+allow an additional human-eye demonstration of image quality.
+5.2.2. Results
+Fig.9consists of selected scenes from the 10,000 automatically generated designs, while Figs.7and 8display some of the designs
+crafted from author-constructed specifications, with the former utilizing real-world images and the latter featuring VEG-generated
+backgrounds. Quantitative results are presented in Table3.
+From these images, we can conclude that SPRING produces lifelike images. We especially would like to draw our readers’ attention
+to the images in Fig.2. We see that the microwave and the toaster were added in reasonable locations that one would expect. Also, their
+dimensions and perspective are quite natural. We conclude that this is because the spatial reasoning module was able to discern the
+usual locations of these appliances, and it works in harmony with the visual element generation module, which was able to understand
+the context (such as the tabletop and the closet in the specific direction) and put the appliances in the most natural orientations.
+In Figs. 8 and 9, neural generative models such as Stable Diffusion also generate realistic scenes, but their results often violate
+user specifications (see later sections). The image quality from SG2IM was the worst due to mode collapsing. Note that the images
+generated by SPRING do have occasional imperfections – this suggests our future line of work. Most objects are placed realistically, but
+some are oriented oddly. We hypothesize that this issue is primarily due to the difficulty of learning locational preferences strongly
+16
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.7.ExamplevisualizationsfromSPRING.Notethediverselocationspossiblegiveneachbackgroundandspecification.Backgroundsarefromvariousweb-sources.
+Constraintsaredescribedintextforclarity.TheywereprovidedtoSPRINGinpropositionallogic(SeeappendixTableB.6forlogicdefinitions).
+from a limited dataset. The spatial reasoning module faces a complex task, working directly with an image feature vector to find
+suitable locations for every object, a challenge amplified in cramped scenes with strict constraints. Another contributing factor is the
+visual element generator, which has its own inductive biases. It often requires careful coaxing to generate furniture facing certain
+orientations, a likely consequence of its large-scale training on Internet data, where few images depict furniture from the back or
+facing away from the camera. Overall, though, the objects generated by SPRING are generally well-placed, integrating seamlessly into
+the given backgrounds. This implies that the SRM, despite the inherent difficulty of its task, performs well in its role while keeping
+constraints satisfied.
+From the quantitative results, we can see that our assessment of image quality is validated at scale. Analyzing 10,000 generated
+scenes, SPRING’s performance is comparable to Stable Diffusion and higher than SG2IM in both FID and IS metrics. This indicates that
+the integration of our constraint satisfaction capability does not undermine the overall aesthetic quality of the images, as corroborated
+by these state-of-the-art metrics.
+5.3. Evaluating design adherence
+This experiment evaluates how well SPRING adheres to the user specification provided. It tests for explicit constraints around the
+spatial variables being upheld, as well as the correct objects being placed into the image.
+17
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.8.MorevisualizationsfromSPRINGwithcomparisonstoStableDiffusion.Backgroundsaregeneratedasdetailedinsection5.2.Constraintsaredescribedin
+textforclarity.TheywereprovidedtoSPRINGinpropositionallogicandStableDiffusionastext(SeeappendixTableB.7forlogicdefinitions,andFig.B.14fora
+higher-definitionlookatsomeoftheimages).
+5.3.1. Setup
+Generating Specifications.20 interior designs were produced for testing. Specifications were generated using the same process
+as the “Evaluating Image Quality” experiment (section5.2), except with constraints also being randomly generated. For ease of gen-
+eration, only the constraints cleft, cright, cabove, and cbelow could be sampled – indicating a non-overlapping directional constraint
+in the specified direction. Each specification included 3 objects and 4 constraints, and was checked to ensure it was satisfiable. These
+constraints were also logged as scene graphs for use by SG2IM. The conversion from our language to scene graphs was done without
+ambiguity or information loss.
+Baselines. The same baselines were tested as were introduced in the “Evaluating Image Quality” experiment (section 5.2) –
+including Stable Diffusion and SG2IM. Natural language constraints were used to inpaint images using Stable Diffusion, these were
+formed from programmatically constructed prompts derived from the same logic as SPRING. For SG2IM, which utilizes scene graphs
+as input, we converted these from SPRING’s propositional logic without ambiguity.
+Background images.Background images were generated using the same process as the 10,000-size set in the “Evaluating Image
+Quality” experiment (section5.2).
+Training.Training was done using the same process as the “Evaluating Image Quality” experiment (section5.2).
+Metrics.Object accuracy and position accuracy were measured as follows: Object accuracy.the author counted and classified the
+objects in each image. If all 3 objects were visible and identifiable, the image was given a 100% object accuracy. Two identifiable
+18
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.9.ImagesproducedbySPRINGwithgeneratedbackgroundsandnopositionalconstraints–onlyobjectsarespecified.SPRING’sSRMstillfindssensiblelocations
+forobjects,evenintheabsenceofcomplexconstraints.Backgroundsaregeneratedasdetailedinsection5.2.Thelistofobjectsgeneratedforeachimageherecanbe
+foundinAppendixB.1.
+objects resulted in a 67% accuracy, and so on. This score was then averaged across all 20 images to measure the object accuracy of the
+method. Position accuracy.for each constraint clause (e.g. the oven is left of the toaster), the viewer checked whether the constraint
+was clearly true within the image. Clauses that referenced images which were not inpainted correctly (penalized in object accuracy)
+were not included in this count, only relationships between visible and recognizable objects. Position accuracy was also averaged
+across all 20 images to produce our final metrics.
+5.3.2. Results
+All metrics are presented in Table 3. Stable Diffusion had lower object accuracy than SPRING, and also showed much worse
+position accuracy compared to SPRING (50% for Stable Diffusion alone compared to 100% with SPRING). Identifying objects was
+not possible with SG2IM, hence its accuracy is 0. Notice that SPRING does not guarantee perfect object accuracy, but improves it by
+explicitly painting one object at a time in isolation from others. SPRING does guarantee perfect position accuracy via the symbolic
+constraint reasoning of the sampling procedure in the SRM. Several failing images of Stable Diffusion suggest the struggle of current
+neural generative models. For example, in the top row of Fig.10, Stable Diffusion was able to understand that some blue objects
+need to be added. However, it cannot carry out deep semantic reasoning to determine that the blue color is associated with the
+microwave. This same failing is visible in the right panel of Fig.1, where the descriptive texts “blue” and “green” are applied widely
+and arbitrarily, instead of being applied to their respective objects.
+5.4. Evaluating spatial reasoning
+5.4.1. Setup
+This experiment assesses how well the generated object locations satisfy explicit constraints and implicit preferences in a controlled
+setting. This is done by creating synthetic datasets which have both explicit constraints and implicit preferences. To measure implicit
+preferences, the objects’ positions are biased in ways unknown to the algorithms tested, but known to the authors. The goal is then to
+examine which algorithm can best capture this implicit bias (i.e., putting objects in locations following the inductive biases present in
+the training dataset). Explicit constraints are measured by checking if the sampled locations are properly constrained after execution.
+To eliminate outside variables, this section focuses on the spatial reasoning module in isolation, testing its ability to learn “good”
+positions while guaranteeing that all spatial constraints are satisfied. In a broader scope, these implicit preferences may include
+aesthetic considerations related to natural and visually appealing placement of objects within the scene.
+Dataset & Metrics.We define three synthetic scenarios with known object location distributions, known to the synthetic data
+generator but not the algorithms. No VEG or perception module is used. We evaluate two key metrics: constraint accuracyand prefer-
+ence accuracy. Constraint accuracymeasures the percentage of generated locations that adhere to the explicitly provided constraints
+essential for the given scenario. On the other hand, preference accuracyquantifies the extent to which generated locations align with
+the learned implicit preferences. See AppendixCfor scenario specifications, including the list of explicit constraints required and the
+implicit preferences to be checked.
+Baseline.For qualitative comparisons on the spatial reasoning module, we compare with baselines that also produce bounding
+boxes for objects to be generated. Unfortunately, conditional neural generative models, such as Stable Diffusion, cannot be compared
+19
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.10.ComparisonsbetweenSPRING(VEGchoiceinbrackets)andbaselinesonkitchenbackgroundsfromvariousweb-sources.SPRINGcreatesdistinctobjectsand
+alwaysfollowspositionalconstraints.Baselinemethodsproducecompellingimages,butrarelyfulfillallconstraints.Theyalsogreatlydisruptthebackground.Notice
+howtheword“blue”inthefirstrowaffectstheSPRINGandbaselineimages.SPRINGappliesbluenesstothemicrowave,whileStableDiffusionandGLIDEapplyit
+tootherpartsoftheimage.(SeeappendixTableB.8forlogicdefinitions).
+Table4
+Resultsforevaluating“goodness”oflocationdecisionsbytheSRMwhentestedon
+syntheticscenarios.OurSPRINGisabletogenerateobjectlocationsbettersatis-
+fyingimplicitpreferencesfromdata(measuredbypreferenceaccuracy)compared
+tobaselines,whilebothapproaches100%satisfyexplicituserconstraints.Note,
+SPRINGcanalsohandlenon-convexconstraints,while“GAN+CVX”cannot.More
+details of this experiment are in AppendixC. ⋆indicates our method.
+Scenario SPRING⋆ GAN+CVX
+Pref.Acc.↑ Constr.Acc.↑ Pref.Acc.↑ Constr.Acc.↑
+“Basic” 1.0 1.0 1.0 1.0
+“Tight” 0.917 1.0 0.813 1.0
+“Complex” 0.875 1.0 0.723 1.0
+fairly because they do not provide coordinates for the generated objects. Hence, we compare SPRING planning with a Generative
+Adversarial Network (GAN) augmented with a differentiable convex optimization (CVX) layer. More specifically, this approach models
+the locations of the generated objects as optimal solutions to Quadratic Programs (QPs) subject to constraints. The objective function of
+the QP is designed to capture implicit location preferences and is learned via backpropagation (the work of ([1]) details an algorithm
+to backpropagate gradients over a convex optimization layer). To be specific, the objective function of the QP is updated during
+training to match the QP’s optimal solution (predicted locations) with the actual locations in the dataset. Notice that the “GAN +
+CVX” approach can only deal with convex constraints and objective functions, which limits its applicability.
+Training.Both methods are trained on each scenario until convergence, and each dataset is matched with a set of constraints
+during testing.
+5.4.2. Results
+As shown in Table4, the SRM formulation SPRING uses outperformed or matched GAN + CVX in preference accuracy for every
+dataset. Both algorithms guarantee positional constraints, but GAN + CVX only does this with convex constraints. This implies that
+the SRM used by SPRING is very capable of learning implicit preferences from data while still maintaining complex spatial constraints.
+Both approaches were designed to satisfy the explicit constraints with 100% accuracy, and they did.
+20
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.11.SPRING’s zero-shot transfer learning performance on a new constraintatopnever present in the training set.atopconstrains an object to be sitting on top
+ofanother.Thisspecificationappliestoallbackgroundswhichalreadyhavethreetables:0,1,and2fromlefttoright.Theflowerisalwaysonetabletotherightof
+thegreenfern,showinggoodperformanceofSPRING.
+5.5. Demonstrating zero-shot constraint satisfaction
+Our approach allows for re-programming of the spatial reasoning module for zero-shot constraint editing. New constraints can be
+implemented and used in filtering the GRU outputs of the SRM at any time, even after training. To demonstrate this capability, we
+construct a new constraint type after training SPRING. We define this constraint asatop(𝑜 , 𝑜 )– which constrains the first object’s
+1 2
+bounding box (𝑜 ) to be on top of the first object’s bounding box (𝑜 ). More precisely,atopevaluates to true if and only if:
+1 2
+• the bottom of the first object’s bounding box is between the top and the bottom of the second object’s bounding box.
+• the right side of the first object’s bounding box is between the right and left sides of the second object’s bounding box.
+• the top of the first object’s bounding box is above the top of the second object’s bounding box.
+By combining this new constraint with the previous language set, very complex specifications can be produced. In Fig.11in the main
+text,atopis used to define a complex specification utilizing the perception module to create a design which can be applied to any
+background including three tables. A flower and a fern are to be placed in the image. The flower is always one table to the right of
+the green fern (e.g. if the fern is on the middle table, the flower is on the right table, and if the fern is on the left table, the flower is
+on the middle table). As demonstrated in that figure, specifications can be automatically applied to entire sets of backgrounds, and
+produce diverse and complex images through use of zero-shot constrains.
+5.6. Demonstrating extensibility of SPRING outside of interior design
+In the prior experiments, we demonstrated the effectiveness of SPRING in generating aesthetically pleasing and highly constrained
+interior design images. We chose the domain of interior design as it perfectly aligns with SPRING’s strengths—requiring both im-
+plicit knowledge gleaned from data for aesthetic and common-sense adherence, and explicit knowledge from users specifying design
+requirements that must be meticulously followed. However, the potential applications of SPRING extend far beyond interior design.
+Fig.12illustrates an example of SPRING applied to a different subset of the COCO dataset, this time featuring animals instead of
+furniture elements. The results maintain high quality and adherence to specified input constraints, showcasing SPRING’s versatility.
+SPRING can be applied across any domain that demands stringent 2D constrained image generation. The only prerequisite is a
+robust dataset of labeled images. The Perception module can either be trained afresh on an object detection network, as was done with
+DETR, or leverage a pre-trained model. Meanwhile, the Visual Element Generator requires an inpainting network, which, although
+challenging and resource-intensive to train from scratch, can be efficiently fine-tuned or used as-is, as demonstrated in this study.
+The Spatial Reasoning Module necessitates only a moderate dataset of images labeled with object categories and bounding boxes to
+learn implicit locational preferences.
+With the zero-shot extensibility of the constraint language included, SPRING can be adapted to new domains easily. Interior design
+was selected as an illustrative domain not only because it is a natural fit for SPRING’s capabilities but also due to the ready availability
+of necessary data and its practical relevance.
+5.7. Human study
+This section presents a human study conducted to evaluate the performance of our SPRING method and Stable Diffusion inpainting
+for generating interior space images, such as kitchens, living rooms, and billiard rooms. We decided to conduct this study due to the
+difficulty of evaluating generated content for qualities like aesthetic appeal. Despite the existence of metrics like IS and FID used
+during the automated experiments, human studies remain the gold standard in generated image evaluation.
+Participants were provided with a background image, a completed scene, and a bullet-pointed specification used to generate
+the image. Additionally, questions with images generated by SPRING displayed the intermediate layout. Background images were
+generated using the methods described in 5.2. Constraints were handcrafted by the authors to fit the background. This was done with
+the aim of evaluating all approaches in good conditions – so that all algorithms can produce the highest quality images possible.
+21
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.12.SPRINGresultsonan“animals”subsectionoftheCOCOdataset.Thisincludedalltrainingsetimagesthatincludedoneormoreofthefollowingcategories:
+dog,horse,sheep,cow,elephant,bear,giraffe.TheseresultsshowthatSPRINGcanbeeasilyextendedtootherimage-generationdomains..
+Table5
+Resultsforthehumansurveywithtwomethods:StableDiffusionandSPRING(ours).
+MetricscollectedincludeLikertscores(1-5)forspecificationsatisfaction,aesthetic
+appeal,backgroundpreservation,andthenaturalnessofspatialqualities–e.g.pro-
+portionsbetweenobjects,proportionsbetweenanobjectandthebackground.SPRING
+doesmuchbetteratsatisfyinguserspecificationsthanStableDiffusion,andisfarless
+likelytodamagethebackgroundduetoitsmorecontrolledinpainting.SPRINGreceives
+slightlylowerresultsforaestheticsandnaturalness,perhapsrepresentingasmalltrade-
+offbetweentheamountofcontrolprovidedbythealgorithmanditsabilitytoproduce
+good-looking images. ⋆indicates our method.
+Method S Sap te ic si ffi acc ta it oi non ↑ Aesthetics↑ B Pra ec sk eg rr vo au tin od n↑ S Np aa tuti ra al lness↑
+SPRING⋆ 4.068 3.367 4.473 3.663
+StableDiff. 2.240 3.588 2.608 3.876
+22
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+5.7.1. Evaluation metrics
+Participants were asked to rate each image on a 5-point Likert scale across four distinct metrics: specification satisfaction, aesthetic
+appeal, background preservation, and spatial naturalness. Detailed metric descriptions can be found in AppendixB.2.
+• Specification satisfaction:Image adherence to the input specifications, including object visibility, constraint satisfaction, and
+details like color, texture, and material.
+• Aesthetic appeal:Overall image quality, irrespective of specification.
+• Background preservation:Maintenance of the original background without unnecessary changes.
+• Spatial naturalness:Reasonableness of object locations and dimensions within the image.
+5.7.2. Questionnaire structure
+The questionnaire included 3–4 sections, with versions 1 and 2 having three sections and version 3 having four sections. Versions
+were randomly assigned to each participant. Each section contained six examples generated by both SPRING and Stable Diffusion,
+using the same constraints and backgrounds. To ensure the validity of the responses, two “attention check / gold-standard” questions
+were incorporated into each version of the questionnaire. These questions have obvious answers for human beings. Responses that
+violated these attention checks were discarded. A total of 9 human subjects participated in the survey.
+The specification satisfaction part is a multifaceted question involving some objectivity (are the positional constraints satisfied,
+are the right number of images displayed) and some subjectivity (do the objects look like the types they are supposed to be, do they
+have the right texture or material). For this reason, the specification satisfaction Likert score question is preceded by two additional
+questions where the subject is asked to check the boxes for the objects that are not visible and the constraints that are not satisfied.
+This means the subject is forced to recognize the objective parts of specification satisfaction before taking into account the subjective
+ones.
+5.7.3. Initial tutorial
+Before the test could be completed, an initial tutorial was provided to the participants. A real image was presented, and the
+subjects were asked to fill out the questions in the same way as they would in the main study. After completing the example, the
+subject was given example answers so that they could check their understanding of the directions before they began the test.
+5.7.4. Demographics
+The study included participants with diverse backgrounds to ensure a comprehensive evaluation. Details can be found in Ap-
+pendixB.3.
+5.7.5. Results
+The averaged results are presented in Table5. Our findings indicate that SPRING nearly matches the aesthetic quality and spatial
+naturalness of Stable Diffusion, as anticipated. Furthermore, SPRING significantly outperforms Stable Diffusion in terms of specifi-
+cation satisfaction and background preservation. These results demonstrate the effectiveness of the SPRING method for generating
+high-quality interior space images that adhere closely to the provided specifications while maintaining the integrity of the original
+background. These results support those found in the previous experiments:better specification satisfaction with comparable or
+superior image quality.
+5.8. Computational resources
+In training for spatial reasoning, the SPRING instances utilized here comprise 15,721,089 trainable parameters, spanning both the
+SRM and the trainable segments of the Perception module, excluding the VEG. Utilizing a modest GPU (NVIDIA GeForce RTX 2070
+Super), training averaged 1.8 seconds per batch of eight images.
+Evaluating efficiency outside the training phase is more nuanced due to the variable iterations of the GRU, which depend on
+the number of objects, constraint behaviors, and implicitly learned preferences. It is challenging to precisely describe SPRING’s
+runtime in general scenarios. However, it is known that single forward passes of the GRU take approximately 0.5 milliseconds.
+During iterative refinement—with three potential actions and a fixed maximum decision depth determined by the integer per-mille
+range of each variable, the worst-case number of calls to the RNN can grow exponentially with the number of objects – the typical
+time characterization for a depth first search.
+The runtime of the VEG varies based on several factors, notably the choice of backbone model (e.g., Stable Diffusion, GLIDE).
+These models’ efficiency has been thoroughly analyzed in prior studies. Importantly, in all evaluations conducted for this study,
+locating all objects with the SRM consistently required significantly less time than it took for a Stable Diffusion-based VEG to inpaint
+a single object into the scene, which averaged 12 seconds per inpaint. In other words, augmenting any inpainting model with the
+capabilities of SPRING is not a significant tradeoff for speed.
+5.9. Key experimental conclusions
+Drawing from the results of all of these experiments, several key conclusions can be drawn:
+23
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+Fig.13.Abar-chartsummaryofevaluationmetrics.Notethe3mainpoints:SPRINGisbetteratspecificationsatisfaction,SPRINGcreatesimagesapproximatelyas
+good-lookingasstate-of-the-artimagegenerators(StableDiffusion),andthehumanstudysupportsbothofthepreviouspoints.Backgroundpreservationandspatial
+naturalnessscoresarealsogivenasspecificaspectsofspecificationsatisfactionandaestheticsrespectively.Thepatternholdsfortheseaswell–similarnaturalness,
+improvedpreservation.
+• SPRING is better than baselines at producing design scenes that fit the specification: This is evident from the design
+adherence experiments (higher position accuracy and object accuracy), as well as the scores in the human study. See Fig.13.
+• SPRING has comparable or superior image quality to baselines: This is evident from the image quality experiments (similar
+or better FID and IS scores), the human study, and the targeted spatial reasoning experiment (superior preference accuracy). See
+Fig.13.
+• SPRING can create complex scenes with zero-shot adapted constraints: This is demonstrated in the creation of the atop
+constraint and the images combining it with conjunctions and disjunctions. See Fig.11.
+• SPRING can be extended to other domains: SPRING was easily extended to the domain of outdoor animal images as an
+exemplar case. See Fig.12.
+6. Conclusion
+We have introduced SPRING for design production. Good designs must meet specific user requirements and comply with implicit
+guidelines on appearance and functionality. This is only feasible through theunion of symbolic reasoning with neural algorithms.
+We achieve this by integrating data-driven neural generative models with symbolically-driven constraint programming. The object
+positions suggested by the neural network are filtered through the symbolic constraint reasoning process to meet user specifications.
+Our SPRING produces high-quality interior design scenes that respect user-defined spatial requirements, satisfy common sense and
+look pleasing. Our approach also handles new constraint types in a zero-shot manner due to the symbolic constraint reasoner’s
+programmability. It is also more interpretable as decisions are made iteratively.
+One limitation of SPRING is the expressibility of preferences in relation to constraints. Constraints are defined explicitly and
+concretely. For example, above(𝑜 , 𝑜 ) resolves true if and only if object 1 is above object 2, whether it’s by a single pixel or a
+1 2
+greater distance. While our constraint language does support offsets to handle this (e.g., above(𝑜 , 𝑜 , 100)ensures object 1 is above
+1 2
+object 2 by at least 100 per-mille), constraints are not inherently adjusted based on implicit user preferences. This is not to say that
+implicit learned preferences or “fuzzy” knowledge play no role in object positioning. In fact, preferences related to object types and
+the background image influence the iterative refinement process, determining final placements. However, the direct modification of
+constraints based on user preferences remains an area for future research. Nevertheless, SPRING mitigates the effects of this limitation
+with an optional human feedback step, allowing users to adjust constraints based on initial results.
+Another limitation of our work is the dependence on the VEG model’s quality and compatibility for object generation. While
+the backbone VEG model can be finetuned by various effective methods, this is an expensive and difficult process that still offers
+limited control. New methods are in development that may reduce the severity of this limitation considerably by introducing more
+controllable generators ([117,76]) – potentially suitable for integration with SPRING.
+24
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+With this in mind, future work will focus on enhancing control between the SRM and VEG and adapting to other domains. It will
+also include more exploration into user interaction with the SRM, potentially introducing softer constraints that can adapt to user
+feedback efficiently. Additionally, this method should naturally be expanded to cover more complex cases, such as 3D design.
+CRediT authorship contribution statement
+MaxwellJ. Jacobson:Conceptualization, Data curation, Formal analysis, Investigation, Methodology, Software, Validation, Vi-
+sualization, Writing – original draft, Writing – review & editing.Yexiang Xue:Conceptualization, Data curation, Formal analysis,
+Funding acquisition, Investigation, Methodology, Project administration, Resources, Software, Supervision, Validation, Visualization,
+Writing – original draft, Writing – review & editing.
+Declaration of competing interest
+The authors declare the following financial interests/personal relationships which may be considered as potential competing inter-
+ests: Yexiang Xue reports financial support was provided by National Science Foundation. Maxwell Jacobson reports financial support
+was provided by National Science Foundation. Maxwell Jacobson and Yexiang Xue report a relationship with Purdue University that
+includes: employment, funding grants, and travel reimbursement.
+Acknowledgements
+This research was supported by the U.S. National Science Foundation grants IIS-1850243, CCF-1918327, IIS-2339844.
+AppendixA. Constraint checking and pruning
+The following section details constraint checking and pruning within the SRM’s sampling procedure.
+Constraint Representation.Consider the constraint language input (See Section2.2) as an abstract syntax tree (AST) 𝑐. To avoid
+confusion with the search tree, the terms ast-root, ast-node, ast-leaf, etc, will be substituted for root, node, and leaf (which will refer
+exclusively to the search tree). The ast-root of 𝑐 will usually be an AND term, acting as a list of top-level constraints. AND, OR, and
+NOT terms all act as internal ast-nodes, while spatial relations act as ast-leaves.
+Checking Constraints at Leaf Nodes.At a leaf node, checking constraint satisfaction is trivial. First, the ast-tree representing
+the constraints in the spec is parsed using recursive descent to handle Structural terms like AND (∧) and OR (∨). If the term is an
+AND, SPRING recurses on the term to get a new list of ast-child terms, all of which must still hold for the node to be satisfiable.
+Conversely, if the term is an OR, we must recurse with the flag that the entire term resolves true if any of its ast-children do. Each
+spatial constraint – like left_of, above, etc – is converted to its parameter-driven form. A full breakdown of these transformations
+to meaningful parameter constraints is described in Table1. These parameter constraints can be checked directly against a leaf node
+range table, as the table is definitionally deterministic. This simple checking at leaf nodes would be enough for SPRING to function,
+but may be inefficient on its own, as many branches of the tree are clearly unsatisfiable.
+Range-based Pruning.To decrease the search space further and avoid exploring clearly unsatisfiable regions, SPRING incorpo-
+rates range-based pruning. Given the prospective range table and an ast-root term in the constraint language, we check each term
+that is an ast-child of the ast-root. If the term is a spatial relationship (such as left_of, above, wider, zeq, etc.), it can be checked
+for satisfaction directly against the range table. For example, if the term left_of(𝑜 , 𝑜 , 100)is found, we must ensure that object
+1 2
+1’s x-value is smaller than object 2’s x-value by at least 100 per-mille. In other words, the minimum of the (𝑜 , x) range must be less
+1
+than the maximum of the (𝑜 , x) range minus the offset of 100. If this is not true, the current range table is unsatisfiable and its node
+2
+can be marked as violating. That node and all of its children can be pruned. This can also be seen in Fig.4, step 2, where a decision
+is pruned for violating a constraint.
+AppendixB. General additional experiment details
+B.1. Logical language translation
+The logical instructions for generating the figures in this work are given in the following tables. Note the relationdefault, which
+combines a number of default constraints used on all objects to fit the limitations of the VEG module. For the figures generated using
+Stable Diffusion as the VEG, the objects are set to have a width and height between 256 and 512 pixels. Additionally, the bounding
+boxes for these objects are constrained such that they do not extend beyond the boundaries of the image. For the figures generated
+using GLIDE as VEG, the same default constraints are used, with the exception that the objects are bounded between 150 and 256
+pixels. This does not include Fig.9, which has its objects described for each image in Table B.9– as that figure does not include
+positional constraints beyond the default.
+B.2. Human study question text
+This section provides the original questions associated with each rating metric in the human study, offering insight into the specific
+aspects participants were instructed to consider while assessing the images.
+25
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+TableB.6
+ThelogicformulationsusedforFigs.7withaccompanyingdescriptivetext.‘#’commentsrepresentobjectsthatweredetectedby
+the perception module and incorporated. Note the relationdefault: this sets width and height between 256 and 512 pixels to
+accommodateStableDiffusion.
+Figure LogicLanguage NaturalLanguage
+type(0,”oven”)∧
+property(0,”amodernlookingoven”)∧
+Fig.7 Addamodernlookingoveninthemiddleorrightside.
+default(0)∧
+right_value(0,400)
+#0:amicrowave,1:anoven.
+type(2,”toaster”)∧type(3,”plant”)∧
+property(2,”aretrotoasteroven”)∧
+Replacethemicrowavewitharetrotoasteroven
+property(3,”apottedpotatoplant”)∧
+Fig.7 andaddapottedpotatoplantfullybelowthetoasteroven
+default(2)∧default(3)∧
+andatleastpartlyabovetheoven.
+xeq(2,0)∧yeq(2,0)∧
+wider(2,0)∧taller(2,0)∧
+cbelow(3,0)above(3,1)
+#0:achair.
+type(1,”chair”)∧type(2,”table”)∧
+property(1,”adarkcoloredleatherchair”)∧ Addadarkcoloredleatherchair
+Fig.7 property(2,”awoodentable”)∧ fullyleftofthewhitechair,
+default(1)∧default(2)∧ andawoodentablebetweenandbelowthem.
+cleft(1,0,300)∧below(2,1)∧
+below(2,0)∧left(2,0)∧right(2,1,100)
+type(0,”tv”)∧type(1,”couch”)∧type(2,”chair”)∧
+property(0,”aflatscreentv”)∧
+property(1,”acouchfacingleft”)∧ AddaflatscreenTVintheleft15%oftheimage.
+Fig.7 property(2,”achair”)∧ AlsoaddaredchairandacouchrightoftheTV,
+default(0)∧default(1)∧default(2)∧ wherethechairisabovethecouch.
+left_value(0,150)∧
+cright(1,0)∧cright(2,0)∧cabove(2,1)
+#0:atv.
+type(1,”chair”)∧type(2,”couch”)∧type(3,”chair”)∧
+property(1,”aredchairfacingaway”)∧
+property(2,”acouchfacingaway”)∧ Addabluechair,acouch,andaredchair,
+Fig.7
+property(3,”abluechairfacingaway”)∧ lefttoright,allundertheTV.
+default(1)∧default(2)∧default(3)∧
+cbelow(1,0)∧yeq(2,1)∧yeq(3,1)∧
+cleft(1,2)∧cleft(2,3)
+#0:asink,1:anoven.
+type(2,”microwave”)∧type(3,”toaster”)∧
+property(2,”abluemicrowave”)∧ Addabluemicrowaverightoftheoven,
+Fig.7
+property(3,”agreentoaster”)∧ andagreentoasterleftoftheovenandbelowthesink.
+default(2)∧default(3)∧
+cright(2,1)∧cleft(3,1)∧cbelow(3,0)
+• Specification satisfaction: “On a scale of 1 to 5, how well does the image fit the prompt? This includes the objects being visible,
+the constraints being satisfied, and the details mentioned in the prompts (e.g., objects being the right color). Do not take image
+quality into account.”
+• Aesthetic appeal: “On a scale of 1 to 5, rate the aesthetic quality of the image. This includes how realistic the image is, how good
+each object looks, and how good the scene as a whole looks. Do not take the prompt into account.”
+• Background preservation: “On a scale of 1 to 5, rate how well the background image was preserved. This includes unnecessary
+changes being made to the background not specified by the prompt, additional objects being added, details being unnecessarily
+removed, etc.”
+• Spatial naturalness: “On a scale of 1 to 5, how reasonable are the locations and dimensions of the objects in the image.”
+B.3. Human study demographics
+All subjects were college graduates with degrees in science or technology fields. Most participants had some knowledge and
+familiarity with generative models or AI-generated content. All subjects are currently living in the United States of America, but have
+diverse countries of origin. All subjects understand the English language to an advanced degree, but for some, it is a second or third
+language. No subjects are known to have experience in interior design. Roughly half of the subjects are currently pursuing careers in
+academia, while the other half are pursuing careers in industry.
+26
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+TableB.7
+The logic formulations used for Figs.8with accompanying descriptive text. Note the relationdefault: this sets width and height
+between256and512pixelstoaccommodateStableDiffusion.
+Figure LogicLanguage NaturalLanguage
+type(0,“chair”)∧
+type(1,“couch”)∧
+type(2,“coffeetable”)∧ Objects:
+property(0,“acozybrownleatherchair”)∧ Acozybrownleatherchair,
+property(1,“ablackandwhitestripecouch”)∧ ablackandwhitestripecouch,
+property(2,“astoutcoffeetable”)∧ astoutcoffeetableinfrontofthecouch.
+default(0)∧default(1)∧default(2)∧ Constraints:
+Fig.8
+cleft(0,1)∧ Thechairiscompletelyleftofthecouch
+xeq(0,1)∧ andhorizontallyalignedwithit.
+below(2,0)∧ Thecoffeetableisbelowthechairandtoitsright.
+right(2,0)∧ Thecouchiswiderthanthechair,asisthecoffeetable.
+wider(1,0)∧ Thecouchistallerthanthecoffeetable.
+wider(2,0)∧
+taller(1,2)
+type(0,“table”)∧
+type(1,“television”)∧
+Objects:
+property(0,
+Abigkitchentablesurroundedbychairs,madeofwood,
+”abigwoodenkitchentablesurroundedbychairs”)∧
+abigflatscreentelevisionmountedonawall.
+property(1,
+Constraints:
+”abigflatscreentelevisionmountedonawall”)∧
+Fig.8 ThetableiscompletelybelowtheTV
+default(0)∧default(1)∧
+andtheTViscompletelytotheleftofthetable.
+cbelow(0,1)∧
+Thetableiswiderthan40%oftheimage
+cleft(1,0)∧
+andtallerthan30%oftheimage.
+wider_value(0,400)∧
+TheTViswiderthan30%oftheimage.
+taller_value(0,300)∧
+wider_value(1,300)
+type(0,“microwave”)∧
+Objects:
+type(1,“toaster”)∧
+Abrownmicrowave,
+property(0,“abrownmicrowave”)∧
+awood-panelpop-uptoaster.
+Fig.8 property(1,“awood-panelpop-uptoaster”)∧
+Constraints:
+default(0)∧default(1)∧
+Themicrowaveiscompletelytotheleftofthetoaster
+cleft(0,1)∧
+andthetoasterisbelowthemicrowave.
+below(1,0)
+type(0,“microwave”)∧
+type(1,“oven”)∧
+Objects:
+property(0,“abluemicrowave”)∧
+Abluemicrowave,awhiteoven.
+property(1,“awhiteoven”)∧
+Fig.8 Constraints:
+default(0)∧default(1)∧
+Themicrowaveisintheright50%oftheimage.
+cleft(1,0)∧
+Theoveniscompletelyleftandbelowthemicrowave.
+cbelow(1,0)∧
+right_value(0,500)
+Fig.B.14.AcloserlookatsomeoftheimagesgeneratedforFigs.1and2.Notethatthebackgroundisminimallydisturbed.Alsonotethat,whilethemicrowavecan
+beanywhererightoftheoven,itisplacedinareasonableplace–onthecounterorbuiltintothecabinets.
+AppendixC. Evaluating spatial reasoning synthetic scenarios
+In this test, we compare the performance of the spatial reasoning module alone to a generative adversarial network equipped with
+convex optimization as an embedded layer. We will evaluate each model’s ability to meet both explicit constraints from the user and
+implicit preferences derived from the training data. The test scenarios will involve generating synthetic data for each object type,
+with the data distribution designed to express a strong preference for specific values. A range of common values for each preference
+will be established as acceptable, with values outside this range considered as not meeting the preference. The use of synthetic data
+27
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+TableB.8
+The logic formulations used for Figs.10with accompanying descriptive text. Note the relationdefault: this
+setswidthandheightbetween256and512pixelstoaccommodateStableDiffusion.
+Figure LogicLanguage NaturalLanguage
+type(0,”microwave”)∧
+type(1,”oven”)∧
+property(0,”abluemicrowave”)∧
+Fig.10 Abluemicrowaveaboveablackoven.
+property(1,”ablackoven”)∧
+default(0)∧default(1)∧
+cabove(0,1)
+type(0,”microwave”)∧
+type(1,”oven”)∧
+Arefrigeratorleftofanoven
+Fig.10 type(2,”refrigerator”)∧
+andamicrowaverightandabovethesameoven.
+default(0)∧default(1)∧default(2)∧
+cleft(2,1)∧cright(0,1)∧cabove(0,1)
+type(0,“microwave”)∧
+type(1,“oven”)∧
+type(2,“toaster”)∧
+type(3,“sink”)∧
+Amicrowave,anoven,atoaster,andasink.
+default(0)∧default(1)∧
+Thesinkisleftofandatleastpartlyabovetheoven,
+Fig.10 default(2)∧default(3)∧
+themicrowaveisrightofandabovetheoven,
+right(0,1)∧
+andthetoasterisbelowthemicrowave.
+above(0,1)∧
+left(3,1)∧
+above(3,1)∧
+below(2,0)
+is necessary as it allows us to know the acceptable range for each preference, which is not possible with real data. Both the spatial
+reasoning module and the GAN + CVX baseline will be trained on this preference-laden data, and then evaluated on their ability to
+satisfy constraints and preferences. The preference accuracies will be reported as the percentage of clauses that are satisfied.
+The test includes three scenarios, each with specific data generation functions and acceptable preference ranges. The first scenario,
+“basic”, involves objects with a higher likelihood of being generated on opposite halves of the image. The second scenario, “tight”, has
+objects with specific width and height ratios with stricter acceptable ranges. The third scenario, “complex”, has multiple preferences,
+such as object 1 being at least 1.5 times taller than its width, and object 2 having a specific y-coordinate value dependent on that of
+object 1. These scenarios demonstrate that the SRM’s preference learning is effective and outperforms other methods such as GAN +
+CVX.
+Two random functions were used to compose the synthetic datasets.rnd(j, k)randomly generates an integer between jand k
+𝑗+𝑘−𝑗 𝑘−𝑗
+from a normal distribution with mean and standard deviation . Selected values are rounded, and constrained between j
+2 12
+and k. For example, if object 1’s xvalue is drawn fromrnd(1, 500), then the mean of xwill be 250.5 and the standard deviation
+will be 41.583.uni(j, k)does the same with a uniform distribution between jand k.
+The following sections include preference ranges (under “checked preferences”) for each scenario. The preference accuracy is
+measured as a percentage of correctly satisfied clauses across 256 generated examples. The object associated with each variable is
+indicated in the subscript (e.g. 1 ≤𝑥 𝑜1≤500asserts that the x value of object 1 must be between 0 and 500 to satisfy the preference).
+Constraints are also given (under “constraints”) in our constraint language. The constraint accuracy is measured as a percentage of
+correctly satisfied clauses across the same 256 generated examples.
+C.1. Basic scenario
+Object x y width(w) height(h)
+1 rnd(1,500) uni(400, 550) rnd(192,256) rnd(128,256)
+2 rnd(500,1000) uni(400, 550) rnd(192,256) rnd(128,256)
+Constraints:
+• above(o1, o2, 300) – Object 1 is above object 2 by at least 300 per mille.
+Checked preferences:
+• 1 ≤𝑥 𝑜1≤500
+• 500 ≤𝑥 𝑜2≤1000
+28
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+TableB.9
+ObjectsgeneratedforFig.9,listedfromtoplefttobottomright.Theseimagesdonotcontainpositionalconstraints,and
+showthattheSPRING’sspatialreasoningmodulecanprovidegoodlocationsforobjectsevenwithouthumanplanning
+andcloselytailoredspecifications.
+microwave,pottedplant
+microwave,plant
+microwave,oven
+toaster,plant
+toaster,plant
+couch,table
+chair,table
+plant,chair
+couch,table
+couch,tv
+chair,plant,table
+chair,table
+couch,chair,plant
+couch,chair,table,
+chair,table
+microwave,refrigerator
+microwave,refrigerator,oven
+refrigerator,microwave
+oven,toaster,toaster
+microwave,refrigerator,toaster
+toaster,oven,refrigerator
+plant,tv,table
+plant,couch
+chair,table
+couch,tv,plant
+refrigerator,refrigerator,oven
+sink,toaster,microwave
+sink,toaster,oven
+microwave,microwave,oven
+microwave,toaster
+microwave,refrigerator,refrigerator
+plant,couch,table
+couch,chair,table
+chair,table
+chair,chair,table
+oven,refrigerator,microwave
+microwave,oven,refrigerator
+oven,plant,
+couch,couch,table
+couch,chair
+C.2. Tight scenario
+Object x y width(w) height(h)
+1 rnd(1,1000) rnd(300,700) rnd(220,256) rnd(120,150)
+2 rnd(1,1000) rnd(300,700) rnd(120,150) rnd(120,150)
+3 rnd(1,1000) rnd(300,700) rnd(120,150) rnd(220,256)
+Constraints:
+• left(o1, o2, 180) – Object 1 is left of object 2 by at least 180 per mille.
+• left(o2, o3, 180) – Object 2 is left of object 3 by at least 180 per mille.
+Checked preferences:
+• 220 ≤𝑤 𝑜1≤256 • 120 ≤𝑤 𝑜3≤150 • 120 ≤ℎ 𝑜2≤150
+• 120 ≤𝑤 𝑜2≤150 • 120 ≤ℎ 𝑜1≤150 • 220 ≤ℎ 𝑜3≤256
+29
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+C.3. Complex scenario
+Object x y width(w) height(h)
+1 rnd(1,1050) rnd(375,565) rnd(64, 128) rnd(𝑤 𝑜1×1.5,200)
+2 rnd(1,1050) rnd(𝑦 𝑜1−10,𝑦 𝑜1+10) rnd(64, 128) rnd(𝑤 𝑜2×1.5,200)
+3 rnd(1,900) rnd(1,144) rnd(64, 128) rnd(𝑤 𝑜3×2,𝑤 𝑜3×2)
+4 rnd(1,1050) rnd(400,665) rnd(64, 128) rnd(𝑤 𝑜4−10,𝑤 𝑜4+10)
+Constraints:
+• left(o1, o2, 400) – Object 1 is left of object 2 by at least 400 per mille.
+• above(o2, o4, 200) – Object 2 is above object 4 by at least 200 per mille.
+• right(o4, o1, 250) – Object 4 is right of object 1 by at least 250 per mille.
+• right_value(o1, 500) – Object 1 is in the right 50% of the image.
+• wider_value(o4, 250) – Object 4 is at least 25% the width of the image.
+• above_value(o3, 250) – Object 2 is in the top 25% of the image.
+Checked preferences:
+• 1 ≤𝑥 𝑜1≤1050 • 1 ≤𝑦 𝑜3≤144 • 𝑤 𝑜1×1.5 ≤ℎ 𝑜1≤200
+• 1 ≤𝑥 𝑜2≤1050 • 400 ≤𝑦 𝑜4≤665 • 𝑤 𝑜2×1.5 ≤ℎ 𝑜2≤200
+• 1 ≤𝑥 𝑜3≤900 • 64 ≤𝑤 𝑜1≤128 • 𝑤 𝑜3×2 ≤ℎ 𝑜3≤𝑤 𝑜3×2
+• 1 ≤𝑥 𝑜4≤1050 • 64 ≤𝑤 𝑜2≤128 • 𝑤 𝑜4−10 ≤ℎ 𝑜4≤𝑤 𝑜4+10
+• 375 ≤𝑦 𝑜1≤565 • 64 ≤𝑤 𝑜3≤128
+• 𝑦 𝑜1−10 ≤𝑦 𝑜2≤𝑦 𝑜1+10 • 64 ≤𝑤 𝑜4≤128
+Data availability
+Data will be made available on request.
+References
+[1]A.Agrawal,B.Amos,S.Barratt,S.Boyd,S.Diamond,J.Z.Kolter,Differentiableconvexoptimizationlayers,in:AdvancesinNeuralInformationProcessing
+Systems,2019,pp.9558–9570.
+[2]A.Agrawal,S.Barratt,S.Boyd,Learningconvexoptimizationmodels,IEEE/CAAJ.Autom.Sin.8(2021)1355–1364,https://doi.org/10.1109/JAS.2021.
+1004075.
+[3]A.Agrawal,S.Barratt,S.Boyd,B.Stellato,Learningconvexoptimizationcontrolpolicies,in:A.M.Bayen,A.Jadbabaie,G.Pappas,P.A.Parrilo,B.Recht,C.
+Tomlin,M.Zeilinger(Eds.),Proceedingsofthe2ndConferenceonLearningforDynamicsandControl,PMLR,2020,pp.361–373,https://proceedings.mlr.
+press/v120/agrawal20a.html.
+[4]E.Albini,P.Lertvittayakumjorn,A.Rago,F.Toni,Dax:deepargumentativeexplanationforneuralnetworks,CoRR,arXiv:2012.05766,https://arxiv.org/abs/
+2012.05766,2020.
+[5]T.Anthony,Z.Tian,D.Barber,Thinkingfastandslowwithdeeplearningandtreesearch,in:I.Guyon,U.V.Luxburg,S.Bengio,H.Wallach,R.Fergus,S.
+Vishwanathan,R.Garnett(Eds.),AdvancesinNeuralInformationProcessingSystems,CurranAssociates,Inc.,2017,https://proceedings.neurips.cc/paper/
+2017/file/d8e1344e27a5b08cdfd5d027d9b8d6de-Paper.pdf.
+[6]F.Arabshahi,J.Lee,A.Bosselut,Y.Choi,T.M.Mitchell,Conversationalmulti-hopreasoningwithneuralcommonsenseknowledgeandsymboliclogicrules,in:
+Proceedingsofthe2021ConferenceonEmpiricalMethodsinNaturalLanguageProcessing(EMNLP2021),2021.
+[7]H.Ayoobi,N.Potyka,F.Toni,Sparx:sparseargumentativeexplanationsforneuralnetworks,CoRR,arXiv:2301.09559,https://doi.org/10.48550/arXiv.2301.
+09559,2023.
+[8]Y.Bai,D.Chen,C.P.Gomes,CLR-DRNets:curriculumlearningwithrestartstosolvevisualcombinatorialgames,in:L.D.Michel(Ed.),27thInternational
+ConferenceonPrinciplesandPracticeofConstraintProgramming(CP2021),SchlossDagstuhl–Leibniz-ZentrumfürInformatik,Dagstuhl,Germany,2021,
+pp.17:1–17:14,https://drops.dagstuhl.de/opus/volltexte/2021/15308.
+[9]P.Barbiero,G.Ciravegna,F.Giannini,P.Lió,M.Gori,S.Melacci,Entropy-basedlogicexplanationsofneuralnetworks,in:ProceedingsoftheAAAIConference
+onArtificialIntelligence,2022,pp.6046–6054.
+[10]P.Baroni,D.Gabbay,M.Giacomin,L.vanderTorre(Eds.),HandbookofFormalArgumentation,CollegePublications,2018.
+[11]S.Barratt,R.Sharma,Anoteontheinceptionscore,preprint,arXiv:1801.01973,2018.
+[12]A. Bartolini, M. Lombardi, M. Milano, L. Benini, Neuron constraints to model complex real-world problems, in: Principles and Practice of Constraint
+Programming–CP2011:17thInternationalConference,CP2011,Perugia,Italy,September12-16,2011.Proceedings17,Springer,2011,pp.115–129.
+[13]T.R.Besold,A.S.d‘AvilaGarcez,S.Bader,H.Bowman,P.Domingos,P.Hitzler,K.U.Kühnberger,L.C.Lamb,D.Lowd,P.M.V.Lima,L.dePenning,G.Pinkas,
+H.Poon,G.Zaverucha,Neural-SymbolicLearningandReasoning:ASurveyandInterpretation,IOSPress,Amsterdam,2022.
+[14]C.Bessiere,F.Koriche,N.Lazaar,B.O’Sullivan,Constraintacquisition,in:CombiningConstraintSolvingwithMiningandLearning,Artif.Intell.244(2017)
+315–342,https://doi.org/10.1016/j.artint.2015.08.001,https://www.sciencedirect.com/science/article/pii/S0004370215001162.
+[15]C.Bessière,L.d.Raedt,T.Guns,L.Kotthoff,M.Nanni,S.Nijssen,B.O’Sullivan,A.Paparrizou,D.Pedreschi,H.Simonis,Theinductiveconstraintprogramming
+loop,IEEEIntell.Syst.(2018),https://doi.org/10.1109/MIS.2017.265115706.
+[16]G.Booch,F.Fabiano,L.Horesh,K.Kate,J.Lenchner,N.Linck,A.Loreggia,K.Murugesan,N.Mattei,F.Rossi,B.Srivastava,Thinkingfastandslowinai,in:
+ProceedingsoftheAAAIConferenceonArtificialIntelligence,2021,pp.15042–15046.
+[17]A.Borghesi,F.Baldo,M.Milano,Improvingdeeplearningmodelsviaconstraint-baseddomainknowledge:abriefsurvey,preprint,arXiv:2005.10691,2020.
+[18]S.Boyd,L.Vandenberghe,ConvexOptimization,CambridgeUniversityPress,2004.
+30
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+[19]N.Carion,F.Massa,G.Synnaeve,N.Usunier,A.Kirillov,S.Zagoruyko,End-to-endobjectdetectionwithtransformers,CoRR,arXiv:2005.12872,https://
+arxiv.org/abs/2005.12872,2020.
+[20]K.H.Chang,C.Y.Cheng,J.Luo,S.Murata,M.Nourbakhsh,Y.Tsuji,Building-gan:graph-conditionedarchitecturalvolumetricdesigngeneration,in:Proceedings
+oftheIEEE/CVFInternationalConferenceonComputerVision(ICCV),2021,pp.11956–11965.
+[21]D.Chen,Y.Bai,S.Ament,W.Zhao,D.Guevarra,L.Zhou,B.Selman,R.B.vanDover,J.M.Gregoire,C.P.Gomes,Automatingcrystal-structurephasemapping
+bycombiningdeeplearningwithconstraintreasoning,Nat.Mach.Intell.3(2021)812–822.
+[22]Z.Chen,X.Wang,Applicationofaitechnologyininteriordesign,in:E3SWebofConferences,E3SWebofConferences,2020,p.02105.
+[23]K.Cho,B.vanMerrienboer,D.Bahdanau,Y.Bengio,Onthepropertiesofneuralmachinetranslation:Encoder–decoderapproaches,in:SSST@EMNLP,2014.
+[24]G.Ciravegna,P.Barbiero,F.Giannini,M.Gori,P.Lió,M.Maggini,S.Melacci,Logicexplainednetworks,Artif.Intell.314(2023)103822.
+[25]G.Ciravegna,F.Giannini,S.Melacci,M.Maggini,M.Gori,Aconstraint-basedapproachtolearningandexplanation,in:ProceedingsoftheAAAIConference
+onArtificialIntelligence,2020,pp.3658–3665.
+[26]O.Cocarascu,A.Rago,F.Toni,Extractingdialogicalexplanationsforreviewaggregationswithargumentativedialogicalagents,in:Proc.AAMAS2019,IFAAMS,
+2019,pp.1261–1269,http://dl.acm.org/citation.cfm?id=3331830.
+[27]O.Cocarascu,A.Stylianou,K.Cyras,F.Toni,Data-empoweredargumentationfordialecticallyexplainablepredictions,in:Proc.ECAI2020,IOSPress,2020,
+pp.2449–2456.
+[28]O.Cocarascu,F.Toni,Argumentationformachinelearning:asurvey,in:Proc.COMMA2016,IOSPress,2016,pp.219–230.
+[29]I.Davidson,S.Ravi,Makingexistingclusteringsfairer:algorithms,complexityresultsandinsights,in:TheThirty-FourthAAAIConferenceonArtificialIntelli-
+gence,AAAIPress,NewYork,NY,USA,2020,pp.3733–3740.
+[30]I.Davidson,S.Ravi,Towardsauditingunsupervisedlearningalgorithmsandhumanprocessesforfairness,preprint,arXiv:2209.11762,2022.
+[31]A.Dejl,P.He,P.Mangal,H.Mohsin,B.Surdu,E.Albini,P.Lertvittayakumjorn,A.Rago,F.Toni,Argflow:atoolkitfordeepargumentativeexplanationsfor
+neuralnetworks,in:Proc.AAMAS2021,ACM,2021,pp.1761–1763.
+[32]F.Deng,Z.Zhi,D.Lee,S.Ahn,Generativescenegraphnetworks,in:InternationalConferenceonLearningRepresentations,2021,https://openreview.net/
+forum?id=RmcPm9m3tnk.
+[33]J.Deng,W.Dong,R.Socher,L.J.Li,K.Li,L.Fei-Fei,Imagenet:alarge-scalehierarchicalimagedatabase,in:2009IEEEConferenceonComputerVisionand
+PatternRecognition,Ieee,2009,pp.248–255.
+[34]F.Detassis,M.Lombardi,M.Milano,Teachingtheolddognewtricks:supervisedlearningwithconstraints,in:ProceedingsoftheAAAIConferenceonArtificial
+Intelligence,2021,pp.3742–3749.
+[35]H.Dhamo,A.Farshad,I.Laina,N.Navab,G.D.Hager,F.Tombari,C.Rupprecht,Semanticimagemanipulationusingscenegraphs,in:Proceedingsofthe
+IEEE/CVFConferenceonComputerVisionandPatternRecognition,2020,pp.5213–5222.
+[36]S.Džeroski,L.DeRaedt,H.Blockeel,Relationalreinforcementlearning,in:InductiveLogicProgramming:8thInternationalConference,ILP-98Madison,
+Wisconsin,USA,July22–24,1998Proceedings8,Springer,1998,pp.11–22.
+[37]M.Engelcke,A.R.Kosiorek,O.P.Jones,I.Posner,Genesis:generativesceneinferenceandsamplingwithobject-centriclatentrepresentations,in:International
+ConferenceonLearningRepresentations,2020,https://openreview.net/forum?id=BkxfaTVFwH.
+[38]J.S.B.Evans,Intwominds:dual-processaccountsofreasoning,TrendsCogn.Sci.7(2003)454–459.
+[39]R.Evans,E.Grefenstette,Learningexplanatoryrulesfromnoisydata,J.Artif.Intell.Res.1(2018)11172,https://doi.org/10.1613/JAIR.5714,https://dx.doi.
+org/10.1613/JAIR.5714.
+[40]F.Fabiano,V.Pallagani,M.B.Ganapini,L.Horesh,A.Loreggia,K.Murugesan,F.Rossi,B.Srivastava,Fastandslowplanning,arXiv:2303.04283,2023.
+[41]J.Ferry,U.Aivodji,S.Gambs,M.J.Huguet,M.Siala,Improvingfairnessgeneralizationthroughasample-robustoptimizationmethod,Mach.Learn.(2022).
+[42]J.Ferry,U.Aïvodji,S.Gambs,M.J.Huguet,M.Siala,Improvingfairnessgeneralizationthroughasample-robustoptimizationmethod,Mach.Learn.112(2023)
+2131–2192,https://doi.org/10.1007/s10994-022-06191-y.
+[43]R.M.French,Catastrophicforgettinginconnectionistnetworks,TrendsCogn.Sci.3(1999)128–135.
+[44]K.Fukushima,Neocognitron:aself-organizingneuralnetworkmodelforamechanismofpatternrecognitionunaffectedbyshiftinposition,Biol.Cybern.36
+(1980)193–202.
+[45]V.Galetic,A.Nottle,Flexibleandinherentlycomprehensibleknowledgerepresentationfordata-efficientlearningandtrustworthyhuman-machineteamingin
+manufacturingenvironments,in:ProceedingsoftheNeuro-SymbolicAIforAgentandMulti-AgentSystems[NeSyMAS]Workshop,Partofthe22ndInternational
+ConferenceonAutonomousAgentsandMultiagentSystems,London,2023,PresentedonMay30,2023.
+[46]M.B.Ganapini,M.Campbell,F.Fabiano,L.Horesh,J.Lenchner,A.Loreggia,N.Mattei,F.Rossi,B.Srivastava,K.B.Venable,Thinkingfastandslowinai:the
+roleofmetacognition,in:G.Nicosia,V.Ojha,E.LaMalfa,G.LaMalfa,P.Pardalos,G.DiFatta,G.Giuffrida,R.Umeton(Eds.),MachineLearning,Optimization,
+andDataScience,SpringerNature,Switzerland,Cham,2023,pp.502–509.
+[47]S.Garg,H.Dhamo,A.Farshad,S.Musatian,N.Navab,F.Tombari,Unconditionalscenegraphgeneration,in:ProceedingsoftheIEEE/CVFInternational
+ConferenceonComputerVision,2021,pp.16362–16371.
+[48]V.Gogate,R.Dechter,Samplesearch:importancesamplinginpresenceofdeterminism,Artif.Intell.175(2011)694–729,https://doi.org/10.1016/j.artint.
+2010.10.009,https://www.sciencedirect.com/science/article/pii/S0004370210001797.
+[49]M.Gori,Logicexplainednetworks,in:17thInternationalWorkshoponNeural-SymbolicLearningandReasoning(NESY2023),CertosadiPontignano,Siena,
+Italy,2023.
+[50]K.He,X.Zhang,S.Ren,J.Sun,Deepresiduallearningforimagerecognition,in:Proceedingsof2016IEEEConferenceonComputerVisionandPattern
+Recognition,IEEE,2016,pp.770–778,http://ieeexplore.ieee.org/document/7780459.
+[51]P.He,X.Liu,W.Chen,J.Gao,Ahybridneuralnetworkmodelforcommonsensereasoning,in:ProceedingsoftheFirstWorkshoponCommonsenseInference
+inNaturalLanguageProcessing,AssociationforComputationalLinguistics,HongKong,China,2019,pp.13–21,https://aclanthology.org/D19-6002.
+[52]M.Heusel,H.Ramsauer,T.Unterthiner,B.Nessler,S.Hochreiter,Ganstrainedbyatwotime-scaleupdateruleconvergetoalocalNashequilibrium,in:
+I.Guyon,U.V.Luxburg,S.Bengio,H.Wallach,R.Fergus,S.Vishwanathan,R.Garnett(Eds.),AdvancesinNeuralInformationProcessingSystems,Curran
+Associates,Inc.,2017,https://proceedings.neurips.cc/paper_files/paper/2017/file/8a1d694707eb0fefe65871369074926d-Paper.pdf.
+[53]E.J.Hu,Y.Shen,P.Wallis,Z.Allen-Zhu,Y.Li,S.Wang,L.Wang,W.Chen,Lora:low-rankadaptationoflargelanguagemodels,preprint,arXiv:2106.09685,
+2021.
+[54]K.H.Im,S.C.Park,Case-basedreasoningandneuralnetworkbasedexpertsystemforpersonalization,ExpertSyst.Appl.32(2007)77–85,https://doi.org/10.
+1016/j.eswa.2005.11.020,https://www.sciencedirect.com/science/article/pii/S095741740500309X.
+[55]H.Jaeger,Conceptors:aneasyintroduction,arXiv:1406.2671[abs],https://api.semanticscholar.org/CorpusID:12607909,2014.
+[56]N.Jiang,M.Zhang,W.J.vanHoeve,Y.Xue,Constraintreasoningembeddedstructuredprediction,J.Mach.Learn.Res.23(2022)1–40,http://jmlr.org/
+papers/v23/21-1484.html.
+[57]J.Johnson,A.Gupta,L.Fei-Fei,Imagegenerationfromscenegraphs,in:CVPR,2018.
+[58]D. Kahneman, Thinking, Fast and Slow, Farrar, Straus and Giroux, New York, 2011, https://www.amazon.de/Thinking-Fast-Slow-Daniel-Kahneman/dp/
+0374275637/ref=wl_it_dp_o_pdT1_nS_nC?ie=UTF8%26colid=151193SNGKJT9%26coliid=I3OCESLZCVDFL7.
+[59]H.Kautz,Thethirdaisummer:Aaairoberts.engelmorememoriallecture,AIMag.43(2022)105–125.
+[60]B.Khailany,H.Ren,S.Dai,S.Godil,B.Keller,R.Kirby,A.Klinefelter,R.Venkatesan,Y.Zhang,B.Catanzaro,etal.,Acceleratingchipdesignwithmachine
+learning,IEEEMICRO40(2020)23–32.
+31
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+[61]E.Khalil,H.Dai,Y.Zhang,B.Dilkina,L.Song,Learningcombinatorialoptimizationalgorithmsovergraphs,Adv.NeuralInf.Process.Syst.30(2017).
+[62]G.Kumar,A.Kumar,Rahul,Adeeplearningapproachforinteriordesigningofapartmentbuildingarchitectureusingu2net,in:2022InternationalConference
+onSustainableComputingandDataCommunicationSystems(ICSCDS),2022,pp.1465–1471.
+[63]L.C.Lamb,A.d.Garcez,M.Gori,M.O.Prates,P.H.Avelar,M.Y.Vardi,Graphneuralnetworksmeetneural-symboliccomputing:asurveyandperspective,in:C.
+Bessiere(Ed.),ProceedingsoftheTwenty-NinthInternationalJointConferenceonArtificialIntelligence,IJCAI-20,InternationalJointConferencesonArtificial
+IntelligenceOrganization,2020,pp.4877–4884,surveytrack.
+[64]LeCun,Y.,Apathtowardsautonomousmachineintelligenceversion0.9.2,2022-06-27,OpenReview62,2022.
+[65]Y.LeCun,B.Boser,J.S.Denker,D.Henderson,R.E.Howard,W.Hubbard,L.D.Jackel,Handwrittendigitrecognitionwithaback-propagationnetwork,in:
+AdvancesinNeuralInformationProcessingSystems,1990,pp.396–404.
+[66]X.Li,H.Li,C.Wang,X.Hu,W.Zhang,Visual-attentionganforinteriorsketchcolourisation,IETImageProcess.15(2021)997–1007,https://doi.org/10.1049/
+ipr2.12080,https://ietresearch.onlinelibrary.wiley.com/doi/abs/10.1049/ipr2.12080.
+[67]T.Y.Lin,M.Maire,S.Belongie,J.Hays,P.Perona,D.Ramanan,P.Dollár,C.L.Zitnick,Microsoftcoco:commonobjectsincontext,in:EuropeanConference
+onComputerVision,Springer,2014,pp.740–755.
+[68]W.L.Lin,Y.W.Lien,Thedifferentroleofworkingmemoryinopen-endedversusclosed-endedcreativeproblemsolving:adual-processtheoryaccount,Creat.
+Res.J.25(2013)85–96,https://doi.org/10.1080/10400419.2013.752249,arXiv:https://doi.org/10.1080/10400419.2013.752249.
+[69]N.Liu,S.Li,Y.Du,J.Tenenbaum,A.Torralba,Learningtocomposevisualrelations,Adv.NeuralInf.Process.Syst.34(2021)23166–23178.
+[70]M.Lombardi,M.Milano,Boostingcombinatorialproblemmodelingwithmachinelearning,preprint,arXiv:1807.05517,2018.
+[71]I.Loshchilov,F.Hutter,Decoupledweightdecayregularization,preprint,arXiv:1711.05101,2017.
+[72]J.Mao,C.Gan,P.Kohli,J.B.Tenenbaum,J.Wu,Theneuro-symbolicconceptlearner:interpretingscenes,words,andsentencesfromnaturalsupervision,in:
+InternationalConferenceonLearningRepresentations,2019,https://openreview.net/forum?id=rJgMlhRctm.
+[73]E.Marconato,A.Passerini,S.Teso,Glancenets:interpretable,leak-proofconcept-basedmodels,in:AdvancesinNeuralInformationProcessingSystems,2022.
+[74]M.McCloskey,N.J.Cohen,Catastrophicinterferenceinconnectionistnetworks:thesequentiallearningproblem,in:PsychologyofLearningandMotivation,
+vol.24,Elsevier,1989,pp.109–165.
+[75]L.Mitchener,D.Tuckey,M.Crosby,A.Russo,Detect,understand,act:aneuro-symbolichierarchicalreinforcementlearningframework,Mach.Learn.111
+(2022)1523–1549,https://doi.org/10.1007/s10994-022-06142-7.
+[76]S.Mo,F.Mu,K.H.Lin,Y.Liu,B.Guan,Y.Li,B.Zhou,Freecontrol:training-freespatialcontrolofanytext-to-imagediffusionmodelwithanycondition,preprint,
+arXiv:2312.07536,2023.
+[77]M.Mulamba,E.Gamba,T.Guns,Decisionfocusedlearningforprediction+optimisationproblems,in:ProceedingsofAAAI,ConstraintProgrammingand
+Machine,LearningBridgeProgram,2023.
+[78]N.Nauata,K.H.Chang,C.Y.Cheng,G.Mori,Y.Furukawa,House-gan:relationalgenerativeadversarialnetworksforgraph-constrainedhouselayoutgeneration,
+in:EuropeanConferenceonComputerVision,Springer,2020,pp.162–177.
+[79]N.Nauata,S.Hosseini,K.H.Chang,H.Chu,C.Y.Cheng,Y.Furukawa,House-gan++:generativeadversariallayoutrefinementnetworktowardsintelligentcom-
+putationalagentforprofessionalarchitects,in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,2021,pp.13632–13641.
+[80]A.Nichol,P.Dhariwal,A.Ramesh,P.Shyam,P.Mishkin,B.McGrew,I.Sutskever,M.Chen,Glide:towardsphotorealisticimagegenerationandeditingwith
+text-guideddiffusionmodels,https://doi.org/10.48550/ARXIV.2112.10741,https://arxiv.org/abs/2112.10741,2021.
+[81]M.Nye,M.Tessler,J.Tenenbaum,B.M.Lake,Improvingcoherenceandconsistencyinneuralsequencemodelswithdual-system,neuro-symbolicreasoning,
+in:M.Ranzato,A.Beygelzimer,Y.Dauphin,P.Liang,J.W.Vaughan(Eds.),AdvancesinNeuralInformationProcessingSystems,CurranAssociates,Inc.,2021,
+pp.25192–25204,https://proceedings.neurips.cc/paper_files/paper/2021/file/d3e2e8f631bd9336ed25b8162aef8782-Paper.pdf.
+[82]B.Peng,Z.Lu,H.Li,K.F.Wong,Towardsneuralnetwork-basedreasoning,arXiv:1508.05508[abs],2015.
+[83]A.A.Pise,H.Vadapalli,I.Sanders,Relationalreasoningusingneuralnetworks:asurvey,Int.J.Uncertain.FuzzinessKnowl.-BasedSyst.29(2021)237–258,
+https://doi.org/10.1142/S0218488521400134.
+[84]S.D.Prestwich,E.C.Freuder,B.O’Sullivan,D.Browne,Classifier-basedconstraintacquisition,Ann.Math.Artif.Intell.89(2021)655–674.
+[85]A.Radford,J.W.Kim,C.Hallacy,A.Ramesh,G.Goh,S.Agarwal,G.Sastry,A.Askell,P.Mishkin,J.Clark,etal.,Learningtransferablevisualmodelsfrom
+naturallanguagesupervision,in:InternationalConferenceonMachineLearning,PMLR,2021,pp.8748–8763.
+[86]A.Ramesh,P.Dhariwal,A.Nichol,C.Chu,M.Chen,Hierarchicaltext-conditionalimagegenerationwithcliplatents,preprint,arXiv:2204.06125,2022.
+[87]A.Ramesh,M.Pavlov,G.Goh,S.Gray,C.Voss,A.Radford,M.Chen,I.Sutskever,Zero-shottext-to-imagegeneration,in:M.Meila,T.Zhang(Eds.),Proceedings
+ofthe38thInternationalConferenceonMachineLearning,PMLR,2021,pp.8821–8831,https://proceedings.mlr.press/v139/ramesh21a.html.
+[88]R.Rombach,A.Blattmann,D.Lorenz,P.Esser,B.Ommer,High-resolutionimagesynthesiswithlatentdiffusionmodels,in:ProceedingsoftheIEEE/CVF
+ConferenceonComputerVisionandPatternRecognition,2022,pp.10684–10695.
+[89]O.Ronneberger,P.Fischer,T.Brox,U-net:convolutionalnetworksforbiomedicalimagesegmentation,in:MedicalImageComputingandComputer-Assisted
+Intervention–MICCAI2015:18thInternationalConference,Munich,Germany,October5-9,2015,Proceedings,PartIII18,Springer,2015,pp.234–241,pro-
+ceedings,partIII18.
+[90]L.M.Rousseau,M.Gendreau,G.Pesant,Usingconstraint-basedoperatorstosolvethevehicleroutingproblemwithtimewindows,J.Heuristics8(2002)43–58.
+[91]RunwayML,Stablediffusioninpainting,https://huggingface.co/runwayml/stable-diffusion-inpainting,2023.(Accessed15April2024).
+[92]T.Salimans,I.Goodfellow,W.Zaremba,V.Cheung,A.Radford,X.Chen,Improvedtechniquesfortraininggans,Adv.NeuralInf.Process.Syst.29(2016).
+[93]A.Santoro,D.Raposo,D.G.Barrett,M.Malinowski,R.Pascanu,P.Battaglia,T.Lillicrap,Asimpleneuralnetworkmoduleforrelationalreasoning,in:I.Guyon,
+U.V.Luxburg,S.Bengio,H.Wallach,R.Fergus,S.Vishwanathan,R.Garnett(Eds.),AdvancesinNeuralInformationProcessingSystems,CurranAssociates,
+Inc.,2017,https://proceedings.neurips.cc/paper/2017/file/e6acf4b0f69f6f6e60e9a815938aa1ff-Paper.pdf.
+[94]C.Schuhmann,Laion-aestheticsv2,https://laion.ai/blog/laion-aesthetics/,2022.(Accessed15April2024).
+[95]J.Sohl-Dickstein,E.Weiss,N.Maheswaranathan,S.Ganguli,Deepunsupervisedlearningusingnonequilibriumthermodynamics,in:F.Bach,D.Blei(Eds.),
+Proceedingsofthe32ndInternationalConferenceonMachineLearning,PMLR,Lille,France,2015,pp.2256–2265,https://proceedings.mlr.press/v37/sohl-
+dickstein15.html.
+[96]P.T.Sowden,A.Pringle,L.Gabora,Theshiftingsandsofcreativethinking:connectionstodual-processtheory,Think.Reasoning21(2015)40–60,https://
+doi.org/10.1080/13546783.2014.885464.
+[97]P.Sukpanichnant,A.Rago,P.Lertvittayakumjorn,F.Toni,Neuralqbafs:explainingneuralnetworksunderlrp-basedargumentationframeworks,in:Proc.AIxIA
+2021,Springer,2021,pp.429–444.
+[98]J.Sun,H.Sun,T.Han,B.Zhou,Neuro-symbolicprogramsearchforautonomousdrivingdecisionmoduledesign,in:J.Kober,F.Ramos,C.Tomlin(Eds.),
+Proceedingsofthe2020ConferenceonRobotLearning,PMLR,2021,pp.21–30,https://proceedings.mlr.press/v155/sun21a.html.
+[99]T.Sylvain,P.Zhang,Y.Bengio,R.D.Hjelm,S.Sharma,Object-centricimagegenerationfromlayouts,in:ProceedingsoftheAAAIConferenceonArtificial
+Intelligence,2021,pp.2647–2655.
+[100] A.Telea,Animageinpaintingtechniquebasedonthefastmarchingmethod,J.Graph.Tools9(2004)23–34.
+[101] F.Toni,Aroadmapforneuro-argumentativelearning,in:17thInternationalWorkshoponNeural-SymbolicLearningandReasoning(NESY2023),Certosadi
+Pontignano,Siena,Italy,2023,Shortpaper.
+[102] T.H.Trinh,Q.V.Le,Asimplemethodforcommonsensereasoning,https://doi.org/10.48550/ARXIV.1806.02847,https://arxiv.org/abs/1806.02847,2018.
+32
+
+M.J.JacobsonandY.Xue ArtificialIntelligence339(2025)104257
+[103] D.C.Tsouros,T.Guns,K.Stergiou,Learningconstraintmodelsfromdata,in:ProceedingsofAAAI,ConstraintProgrammingandMachine,LearningBridge
+Program,2023.
+[104] A.Vaswani,N.Shazeer,N.Parmar,J.Uszkoreit,L.Jones,A.N.Gomez,Ł.Kaiser,I.Polosukhin,Attentionisallyouneed,Adv.NeuralInf.Process.Syst.30
+(2017).
+[105] M.J.Volk,I.Lourentzou,S.Mishra,L.T.Vo,C.Zhai,H.Zhao,Biosystemsdesignbymachinelearning,ACSSynth.Biol.9(2020)1514–1533.
+[106] K.Wang,S.Shah,H.Chen,A.Perrault,F.Doshi-Velez,M.Tambe,Learningmdpsfromfeatures:predict-then-optimizeforsequentialdecisionmakingby
+reinforcementlearning,in:M.Ranzato,A.Beygelzimer,Y.Dauphin,P.Liang,J.W.Vaughan(Eds.),AdvancesinNeuralInformationProcessingSystems,Curran
+Associates,Inc.,2021,pp.8795–8806.
+[107] N.Wang,C.Niu,Z.Li,Rlayout:interiordesignsystembasedonreinforcementlearning,in:201912thInternationalSymposiumonComputationalIntelligence
+andDesign(ISCID),2019,pp.117–120.
+[108] R.J.Williams,D.Zipser,Alearningalgorithmforcontinuallyrunningfullyrecurrentneuralnetworks,NeuralComput.1(1989)270–280,https://doi.org/10.
+1162/neco.1989.1.2.270.
+[109] Y.Wu,S.Prabhumoye,S.Y.Min,Y.Bisk,R.Salakhutdinov,A.Azaria,T.Mitchell,Y.Li,Spring:Gpt-4out-performsrlalgorithmsbystudyingpapersand
+reasoning,arXiv:2305.15486,2023.
+[110] K.Xu,H.Liang,J.Zhu,H.Su,B.Zhang,Deepstructuredgenerativemodels,preprint,arXiv:1807.03877,2018.
+[111] Y.Xue,W.J.v.Hoeve,Embeddingdecisiondiagramsintogenerativeadversarialnetworks,in:InternationalConferenceonIntegrationofConstraintProgram-
+ming,ArtificialIntelligence,andOperationsResearch,Springer,2019,pp.616–632.
+[112] W.C.Yang,G.Marra,G.Rens,L.DeRaedt,Safereinforcementlearningviaprobabilisticlogicshields,in:ProceedingsoftheThirty-SecondInternationalJoint
+ConferenceonArtificialIntelligence(IJCAI-23),IJCAI,2023.
+[113] K.Yi,J.Wu,C.Gan,A.Torralba,P.Kohli,J.Tenenbaum,Neural-symbolicvqa:disentanglingreasoningfromvisionandlanguageunderstanding,in:S.Bengio,
+H.Wallach,H.Larochelle,K.Grauman,N.Cesa-Bianchi,R.Garnett(Eds.),AdvancesinNeuralInformationProcessingSystems,CurranAssociates,Inc.,2018,
+https://proceedings.neurips.cc/paper_files/paper/2018/file/5e388103a391daabe3de1d76a6739ccd-Paper.pdf.
+[114] Y.Yoshimura,B.Cai,Z.Wang,C.Ratti,DeepLearningArchitect:ClassificationforArchitecturalDesignThroughtheEyeofArtificialIntelligence,Springer
+InternationalPublishing,Cham,2019,pp.249–265.
+[115] V.Zambaldi,D.Raposo,A.Santoro,V.Bapst,Y.Li,I.Babuschkin,K.Tuyls,D.Reichert,T.Lillicrap,E.Lockhart,etal.,Relationaldeepreinforcementlearning,
+preprint,arXiv:1806.01830,2018.
+[116] A.Zareian,Z.Wang,H.You,S.F.Chang,Learningvisualcommonsenseforrobustscenegraphgeneration,in:EuropeanConferenceonComputerVision,
+Springer,2020,pp.642–657.
+[117] L.Zhang,A.Rao,M.Agrawala,AddingConditionalControltoText-to-ImageDiffusionModels,2023.
+[118] B.Zhao,L.Meng,W.Yin,L.Sigal,Imagegenerationfromlayout,in:ProceedingsoftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,
+2019,pp.8584–8593.
+[119] K.Čyras,A.Rago,E.Albini,P.Baroni,F.Toni,Argumentativexai:asurvey,in:Z.H.Zhou(Ed.),ProceedingsoftheThirtiethInternationalJointConferenceon
+ArtificialIntelligence,IJCAI-21,InternationalJointConferencesonArtificialIntelligenceOrganization,2021,pp.4392–4399,surveyTrack.
+33
+

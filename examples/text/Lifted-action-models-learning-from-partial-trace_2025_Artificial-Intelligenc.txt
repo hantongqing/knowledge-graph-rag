@@ -1,0 +1,1779 @@
+ArtificialIntelligence339(2025)104256
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+Lifted action models learning from partial traces
+Leonardo Lamannaa,∗, Luciano Serafinia, Alessandro Saettib,
+Alfonso Emilio Gerevinib, Paolo Traversoa
+aCenter for Augmented Intelligence, Fondazione Bruno Kessler, Trento, Italy
+bDipartimento di Ingegneria dell’Informazione, Università degli Studi di Brescia, Italy
+A R T I C L E I N F O A B S T R A C T
+Keywords: For applying symbolic planning, there is the necessity of providing the specification of a symbolic
+Planning action model, which is usually manually specified by a domain expert. However, such an encoding
+Learning may be faulty due to either human errors or lack of domain knowledge. Therefore, learning the
+Action model
+symbolic action model in an automated way has been widely adopted as an alternative to its
+Parti alobservability
+manual specification. In this paper, we focus on the problem of learning action models offline,
+Plantraces
+from an input set of partially observable plan traces. In particular, we propose an approach to: (i)
+augment the observability of a given plan trace by applying predefined logical rules; (ii)learn the
+preconditions and effects of each action in a plan trace from partial observations before and after
+the action execution. We formally prove that our approach learns action models with fundamental
+theoretical properties, not provided by other methods. We experimentally show that our approach
+outperforms a state-of-the-art method on a large set of existing benchmark domains. Furthermore,
+we compare the effectiveness of the learned action models for solving planning problems and show
+that the action models learned by our approach are much more effective w.r.t. a state-of-the-art
+method.1
+1. Introduction
+Automated planning techniques require the specification of planning domains through action models, i.e., a set of preconditions
+and a set of effects for each action. However, the manual specification of an action model is often an inaccurate, time-consuming, and
+error-prone task. The automated learning of action models is widely recognised as a key and compelling challenge to overcome these
+difficulties. To ensure the generality and re-usability of an action model, preconditions and effects are specified with lifted schemes,
+which are independent from the specific set of objects involved in each planning domain. Several works have addressed the task
+of learning action models and have provided important results from different perspectives and according to different assumptions,
+see, e.g., [1–3,9,12,26,27,29,30,32,23]. A common assumption is to learn action models from an input set of traces that provide
+information about a sequence of successfully executed actions and information about the states before and after each execution.
+Some works address the problem of learning action models from partial traces, i.e., traces in which the value of some state variable is
+unknown, and some of the executed actions might be missing. Though this problem is intuitively clear, its formal specification is far
+* Correspondingauthor.
+E-mailaddress:llamanna@fbk.eu(L.Lamanna).
+1 The source code is available in [21].
+https://doi.org/10.1016/j.artint.2024.104256
+Received 22 December 2023; Received in revised form 11 November 2024; Accepted 11 November 2024
+Availableonline15November2024
+0004-3702/©2024ElsevierB.V.Allrightsarereserved,includingthosefortextanddatamining,AItraining,andsimilartechnologies.
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+from being obvious, and it has not been completely addressed by previous works. Some important aspects are still missing, including
+the criteria for determining the output action model among different possibilities, and the criteria for evaluating the efficacy of the
+learned model.
+Given a set of partial traces, the problem is to learn an action model that can generate a trace consistent with the input partial
+trace. However, in general such an action model is not unique. Indeed, two action models could differently complete the partial trace
+with the missing actions and the missing values for state variables. Therefore, we need a criterion to select one model among all the
+models that could generate a completion of the given partial trace. Concerning the criteria for evaluating the quality of the learned
+model, several works have adopted the standard measures of precision and recall of the preconditions and effects. Another important
+issue to consider is how the model can be used in solving planning problems, finding executable and valid plans w.r.t. the ground
+truth model. In this paper, we provide the following contributions:
+• We propose to consider the minimal action modelsamong all the possible models that are capable of generating the input set of
+partial traces. To characterize what a minimal action model is for a partial trace, we define a partial order on the set of action
+models. Intuitively a minimal model for a partial trace is the “smallest” model consistent with the trace, i.e., the model that
+contains only the necessary effects to justify the changes observed in the trace. We will see that a partial trace can have more
+than one minimal model leaving a certain room for uncertainty in the action model learning.
+• We provide a sound and complete set of completion rulesfor deriving all the minimal modelsof a set of partially observable traces.
+We prove that the minimal models of a set of partial traces can be derived by the iterative application of these rules until the
+partial traces and the learned model are not changed. From the set of minimal models, we can extract all the preconditions of
+the actions that are possibly part of the action model and all the effects that are necessarily part of the model.
+• We define an algorithm, called OffLAM , which iteratively applies the set of completion rules, and which is guaranteed to
+PT
+terminate and to compute all the minimal models of a set of partial traces.
+• We evaluateOffLAM on a benchmark of 18 planning domains adopted in the past International Planning Competitions (IPCs).
+PT
+We show that our algorithm outperforms a state-of-the-art system in almost all the tasks using the standard evaluation of precision
+and recall on preconditions and effects. We also evaluate the efficacy of the action model learned byOffLAM for solving problems
+PT
+and computing valid solutions. This evaluation shows that, even in terms of efficacy, the proposed algorithm outperforms a state-
+of-the-art approach in all the cases.
+The paper is structured as follows. Section 2 summarizes the existing work on the action model learning; Section 3 gives the
+necessary background; Section4describes the completion rules for the derivation of all the minimal action models consistent with
+a set of traces with partially observable states and fully observable actions; Section 5 shows that the iterative application of the
+completion rules meets several fundamental theoretical properties about the computation of the minimal models; Section6presents
+algorithmOffLAM ; Section7introduces an additional rule to treat traces having partially observable actions; Section8presents the
+PT
+results of our experimental study; finally, Section9gives the conclusions and mentions the future work.
+2. Related work
+The task of learning an action model can be formulated for different sources of input (e.g., labelled directed graphs encoding the
+structure of the search space for one or more problems [8], or camera images observed during the execution of one or more plans
+[4–6]). This work focuses on the task of learning action models from traces containing a symbolic representation of the traversed
+states and executed actions. Moreover, the approaches to action model learning can be classified into two main classes, namely: offline
+and online. Offline approaches assume that a set of traces is provided before learning the model; on the contrary, online approaches
+determine the action to execute while learning the model. Specifically, the determined action is executed by either a real agent or a
+simulator, which returns failure or a set of observations on the state of the world obtained from the execution of the action. Some
+prominent approaches to online action model learning are [10,22,20]. These approaches progressively learn an action model by using
+an approximation of the ground truth model to compute plans that reach several informative states. The observations derived from
+the execution of the computed plans allow these approaches to refine the model utilised for planning. In this paper, we propose an
+offline approach. For this reason, we restrict the discussion on the related work to the approaches that fall in this category.
+Offline approaches address the problem of model learning with different assumptions on the observability of states and actions
+in the input traces. Stern and Juba[28]propose a methodology for learning grounded action models from a set of fully observable
+traces. Notably, the learned action model is guaranteed to be safe, i.e., the plans computed using the learned action model are sound.
+The methodology has been extended into an approach,SAM, for learning lifted action models [18]. The learned action models are
+still safe, but their computation requires an additional assumption called “injective action binding”, i.e., the assumption that every
+action parameter is replaced with a different object. A follow-up work has extendedSAMto deal with ground actions that do not
+meet the injective action binding assumption [18]. Further works have extendedSAMfor learning probabilistic action models, and
+action models with numerical variables [19,25]. All these works assume input traces with fully observable states and actions, while
+our approach deals with partially observable traces.
+Bachor and Behnke[7]study the complexity of the action model learning problem from a set of fully observable traces. They
+introduce a partial ordering between action models to give a minimality notion for action models so that a model smaller than a safe
+model is safe. We give a similar notion, with the difference that we do not distinguish between positive and negative effects. As a
+consequence, our approach can derive unsafe action models.
+2
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+In the rest of this section, we focus on learning from partially observable traces. Action Relation Modeling System (ARMS) is one of
+the first approaches proposed for learning action models, encoded using the STRIPS language, from traces with partially observable
+states and fully observable actions [30]. For learning action models, ARMS builds a weighted propositional satisfiability problem
+(weighted MAX-SAT), and solves it using a MAX-SAT solver. The constraints of the SAT problem are extracted from states and actions
+in the input traces.ARMSguarantees that the learned action models are approximately correct and concise; the notion of correctness
+and conciseness are given according to some metrics used for the evaluation (i.e. rates of error and redundancy).
+Another approach learning from the same kind of traces asARMSisEPI-SAM[24].EPI-SAMdeals with the uncertainty on which
+action in a sequence has a certain effect by using disjunctions in the definition of the initialstate and conditional effects. Specifically,
+it outputs a conformant planning problem such that a strong plan solving such a problem is guaranteed to be sound for the ground
+truth model. Differently fromEPI-SAM,OffLAM can learn from sets of traces having partially observable actions and outputs an
+PT
+action model that can be used by classical planners.
+CAMAlearns action models from a set of traces and a noisy initial action model derived by human annotations [31]. Similarly to
+ARMS,CAMAencodes the learning problem as a weighted MAX-SAT problem constructed from a set of soft constraints based on the
+human annotations and the input traces. Afterward,CAMAsolves the problem using a weighted MAX-SAT solver and converts the
+solution of the solver to an action model.
+Learning Object Centred Models (LOCM) learns an action model from a set of traces with fully observable actions and unobservable
+states. It groups the problem objects in sets such that each object behaves in the same way as any other object in its set [12].
+Afterwards, it assembles the transition behaviour of each group of objects, which is determined by a finite-state machine, assembles
+the coordination between transitions of different groups of objects, and the relationships between objects of different groups. Notably,
+LOCMdoes not require input knowledge about the planning domain to be learned (e.g., the set of predicate names), but it does not
+deal with static knowledge (e.g., precondition propositions that are not in the set of effects of any action), which needs to be explicitly
+specified. A follow-up work extendsLOCMfor learning a wider range of domains by allowing an object’s behaviour to be represented
+by more than one finite-state machine [11]. Finally,LOPextendsLOCMfor dealing with static knowledge, but requires as input a set
+of optimalplan traces [15].
+As far as we know, FAMA is the only action model learner working with the same kind of input traces as OffLAM . Indeed,
+PT
+similarly toOffLAM ,FAMAcan learn action models from a set of traces with both partially observable states and actions. It learns
+PT
+action models by transforming the learning task into a classical planning task.FAMAworks with different kinds of inputs, from a set
+of complete traces to partial traces containing only the initial and final states (without intermediate actions or states). With respect
+toFAMA,OffLAM guarantees to compute all the “smallest” models consistent with the input traces. Moreover, we will show that in
+PT
+practice the models computed using our approach are better than those computed byFAMAin many ways.
+The planning community has also proposed approaches for learning action models encoded into a language more expressive than
+STRIPS. For instance,LAMPoutputs action models having quantifiers and logical implications [33];SLAFoutputs models with action
+effects having universal quantifiers [3]. Our work focuses on learning action models encoded into the PDDL language by using the
+STRIPS assumption for action preconditions and effects.
+3. Preliminaries
+Let  be a set of predicate names with associated arity, of a first order language and  be a finite set of operator names with
+associated arity. Predicates and operators of arity 𝑛are called 𝑛-ary predicates and 𝑛-ary operators. Given a set of 𝑛distinct symbols
+(constants or variables), let ()be the set of atomic formulas 𝑝(𝑥 1, … , 𝑥 𝑚)obtained by applying the 𝑚-ary predicate 𝑝 ∈ to any
+𝑚-tuple of symbols 𝒙∈𝑚 . For instance, if  contains the single binary predicate 𝚘𝚗, and ={𝑥 , 𝑥 , 𝑥 }then ()is the set of 9
+1 2 3
+atoms {𝚘𝚗(𝑥 𝑖, 𝑥 𝑗) | 1 ≤𝑖, 𝑗≤3}. Moreover, 𝑖𝑡(())denotes the set of literals with atoms in ().
+Definition 1 (Action schema). An action schema for an 𝑛-ary operator name 𝑜𝑝 ∈  on the set of predicates  is a tuple
+⟨𝗉𝖺𝗋(𝑜𝑝),𝗉𝗋𝖾(𝑜𝑝),𝖾𝖿𝖿(𝑜𝑝)⟩, where 𝗉𝖺𝗋(𝑜𝑝)is a tuple of 𝑛distinct variables 𝒙=(𝑥 1, … , 𝑥 𝑛), 𝗉𝗋𝖾(𝑜𝑝)is a set of atoms in ()and 𝖾𝖿𝖿(𝑜𝑝)
+is a consistent set of literals in 𝑖𝑡(())with ={𝑥 1, … , 𝑥 𝑛}.
+𝗉𝗋𝖾∶ →2()and 𝖾𝖿𝖿∶ →2𝑖𝑡(())are functions that associate operators with their sets of preconditions and effects, respec-
+tively. Therefore, sets 𝗉𝗋𝖾(𝑜𝑝)and 𝖾𝖿𝖿(𝑜𝑝)contain the preconditions and the effects of the operator 𝑜𝑝; 𝖾𝖿𝖿+(𝑜𝑝)and 𝖾𝖿𝖿−(𝑜𝑝)denote
+the set of positive and negative literals in 𝖾𝖿𝖿(𝑜𝑝), and are called positive and negative effects of 𝑜𝑝. Without loss of generality, we
+assume that operators have no negative precondition, and that operators do not make true atoms that they require to be true in their
+preconditions, i.e., 𝖾𝖿𝖿(𝑜𝑝) ∩𝗉𝗋𝖾(𝑜𝑝) =∅.2
+Definition 2 (Ground action). The ground action𝑎 =𝑜𝑝(𝑐 1, … , 𝑐 𝑛)of an 𝑛-ary operator name 𝑜𝑝 ∈w.r.t. constants 𝑐 1, … , 𝑐 𝑛 is the
+pair ⟨𝗉𝗋𝖾(𝑎), 𝖾𝖿𝖿(𝑎)⟩, where 𝗉𝗋𝖾(𝑎)(resp. 𝖾𝖿𝖿(𝑎)) is obtained by replacing the 𝑖-th parameter of 𝗉𝖺𝗋(𝑜𝑝)in 𝗉𝗋𝖾(𝑜𝑝)(resp. 𝖾𝖿𝖿(𝑜𝑝)) with
+𝑐 𝑖, for 𝑖 =1, … , 𝑛.
+2 An operator with 𝑝(𝒙)as a negative precondition can be translated into an operator without such a precondition by introducing a dummy predicate, say 𝑛𝑜𝑡-𝑝(𝒙),
+substituting ¬𝑝(𝒙)with 𝑛𝑜𝑡-𝑝(𝒙)in the preconditions, adding 𝑛𝑜𝑡-𝑝(𝒙)to the action effects that make 𝑝(𝒙)false, and adding ¬𝑛𝑜𝑡-𝑝(𝒙)to the action effects that make
+𝑝(𝒙)true. An operator with 𝑝(𝒙)as both precondition and effect can be simply translated into the same operator but without the 𝑝(𝒙)effect.
+3
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+For simplicity, we adopt the injective binding assumption in the presentation of our approach, i.e., we restrict the ground actions
+to 𝑜𝑝(𝑐 1, … , 𝑐 𝑛)with 𝑐 𝑖≠𝑐 𝑗 for 1 ≤𝑖 <𝑗≤𝑛. We use notation 𝒄 to denote a tuple of constants. Moreover, we use the term lifted, as
+the opposite of grounded, to refer to expressions and actions where constants have been replaced with parameters.
+Definition 3 (Action model). An action modelis a triple ⟨,,⟩where  is a set of predicate names with their arity, is a set
+of operator names with their arity, and maps every operator name 𝑜𝑝 ∈into an action schema.
+In the rest of the paper, 𝗉𝗋𝖾  and 𝖾𝖿𝖿  denote functions 𝗉𝗋𝖾 and 𝖾𝖿𝖿 for action model , respectively. For every literal 𝑙, 𝑙
+denotes the complementary literal defined as follows: if 𝑙is 𝑝(𝒄)then 𝑙is ¬𝑝(𝒄), if 𝑙is ¬𝑝(𝒄)then 𝑙is 𝑝(𝒄). For a set of literals 𝐿, 𝐿
+denotes the set of literals consisting of the complementary of each literal in 𝐿, i.e., 𝐿={𝑙∣𝑙∈𝐿}.
+Definition 4 (Finite-state machine of an action model). The finite-state machineof an action model  =⟨,,⟩for a set of constants
+is the triple () =⟨, , 𝛿⟩where the set of states is the set of maximally consistent sets of literals in 𝑖𝑡(()), i.e., 𝑆is the set of
+𝑠 ⊆𝑖𝑡(()), such that for every 𝑙∈𝑖𝑡(()), either 𝑙∈𝑠or 𝑙̄ ∈𝑠. is the set of all possible ground actions of each 𝑛-ary operator
+name in on any 𝑛-tuple of constants in ; 𝛿⊆× × is a transition relation such that (𝑠, 𝑎, 𝑠′) ∈𝛿if and only if 𝗉𝗋𝖾(𝑎) ⊆𝑠and
+𝑠′=𝑠 ⧵𝖾𝖿𝖿(𝑎)∪𝖾𝖿𝖿(𝑎).
+We used both terms “action model” and “planning domain” interchangeably. We also use the term ground model to indicate the
+finite-state machine of the model for some set of constants. The proper meaning can be determined from the context.
+Under total observability, a state can be unambiguously represented as a set of atoms (positive literals); if an atom is not present
+in a state, it is assumed to be false in that state. Under partial observability, instead, the absence of an atom and its negation should be
+considered as an absence of evidence about the atom’s truth value. In other words, under partial observability, a complete description
+of a state contains for every atom 𝑝(𝒄)either 𝑝(𝒄)or ¬𝑝(𝒄), and a partial stateis a proper subset of a complete state.
+Definition 5 (Planning problem). A planning problemfor a planning domain and a set of constant is a triple ⟨(), 𝑠 , 𝑔⟩where
+0
+()is the finite-state machine of for , 𝑠 is a state of (), called the initial state, and 𝑔is a propositional formula over the
+0
+predicates of and constants in , called the goal.
+Definition 6 (Plan and executable plan). A plan𝜋is a finite sequence of ground actions. A plan (𝑎 1, … , 𝑎 𝑛)is executablein ()from
+a state 𝑠 0if (𝑠 𝑖−1, 𝑎 𝑖, 𝑠 𝑖) ∈𝛿for 𝑖 ∈{1, … , 𝑛}. In this case, we say that 𝜋executed in 𝑠 0reaches𝑠 𝑛, or that 𝑠 𝑛is reachable from 𝑠 0by𝜋.
+Definition 7 (Trace). Given an executable plan 𝜋=(𝑎 1, … , 𝑎 𝑛), the sequence (𝑠 0, 𝑎 1, 𝑠 1), … , (𝑠 𝑛−1, 𝑎 𝑛, 𝑠 𝑛)is called a plan traceof 𝜋, or
+simply a trace.
+Definition 8 (Valid plan). A plan 𝜋 is validfor a planning problem ⟨(), 𝑠 , 𝑔⟩, if it is executable from 𝑠 in ()and reaches a
+0 0
+state 𝑠that satisfies 𝑔.
+Definition 9 (Consistency with a trace). An action model is consistent with a trace𝒕(in short 𝒕is a trace of ) if 𝒕is a trace of
+(), where is the set of constants in𝒕.
+A trace of a plan contains the complete description of each state generated by executing the actions in the plan; i.e., every
+𝑠 𝑖 contains all the ground literals that are true at timestep 𝑖. However, in many cases, such a complete description might not be
+available. This lack of knowledge is modelled with partial traces. In a partial trace information about the truth value in a state or
+about the executed actions can be partial. In the following, the wildcard symbol ⋆can be replaced by either an action, an operator,
+or an argument of an action.
+Definition 10 (Partial state and partial action). A partial state 𝑠̂of a state 𝑠is a subset of 𝑠. A partial action 𝑎̂of an action 𝑎is either
+⋆or an expression obtained by replacing one or more parts (operator name and/or argument) of 𝑎with ⋆.
+The worst case is when in an input trace 𝑎̂=⋆, because in this case neither the action name nor its arguments are observed, i.e.,
+action 𝑎is completely non observable. In our experimental study, when input traces contain partial actions, we will focus on such a
+worst case.
+Definition 11 (Partial trace). A partial trace𝒕̂ of a trace 𝒕is obtained by replacing some state 𝑠 𝑖of 𝒕with a partial state 𝑠̂ 𝑖and/or some
+action 𝑎 𝑖of 𝒕with a partial action 𝑎̂ 𝑖. If 𝒕̂ is a partial trace of 𝒕, then we say that 𝒕is a completion of 𝒕̂ .
+Definition 12 (Consistency with a partial trace). An action model is consistent with a partial trace𝒕̂ if it is consistent with some
+𝒕̂
+completion of .
+4
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+We are now ready to formally define the problem of learning an action model from an input set of partial traces. We assume that
+the knowledge contained in such a set of traces is sound, i.e., it cannot happen that in a trace an action 𝑎makes an atom true while
+𝑎makes the same atom false in another trace.
+Definition 13 (Action model learning problem). Let ̂ ={𝒕̂(1), … , 𝒕̂(𝑛) }be a set of partial traces such that there is an (unknown) ground
+truth model ⋆ consistent with 𝒕̂(𝑖) , for 1 ≤𝑖 ≤𝑛. The problem of action model learningis the task of finding an action model that
+⋆
+is the most similar to .
+We address this problem by looking for all the “smallest” models that are consistent with an input set of traces. This requires
+the definition of a partial order on the set of action models. Intuitively, a model  is smaller than a model  if the transitions
+1 2
+outgoing from a state for  are a subset of those for  , and the changes in the state resulting from the execution of an action in
+1 2
+a state for  are a subset of that for  . Let us formally define what we mean by the smallest model.
+1 2
+Definition 14 (Partial order on action models). Let () =(𝑆, , 𝛿), ′() =(𝑆, , 𝛿′), and 𝑝be a predicate. ()is smaller than or
+equal to′()w.r.t. 𝑝, denoted by () ⪯𝑝′(), if (𝑠 0, 𝑎, 𝑠 1) ∈𝛿implies that there exists (𝑠′ 0, 𝑎, 𝑠′ 1) ∈𝛿′for all tuples of constants
+𝒄of such that
+1. 𝑝(𝒄) ∈𝑠′ ⇒𝑝(𝒄) ∈𝑠 ;
+0 0
+2. 𝑝(𝒄) ∈𝑠′ ∩𝑠′ ⇒𝑝(𝒄) ∈𝑠 ∩𝑠 ;
+0 1 0 1
+3. ¬𝑝(𝒄) ∈𝑠′ ∩𝑠′ ⇒¬𝑝(𝒄) ∈𝑠 ∩𝑠 .
+0 1 0 1
+Furthermore,  ⪯𝑝′if for all set of constants , () ⪯𝑝′();  ⪯′, if for all predicates 𝑝,  ⪯𝑝′.
+One can easily prove that ⪯𝑝and ⪯are partial orders. The definition of  ⪯′is similar to the definition of the fact that is
+a safe action model w.r.t. ′ given in [18](Def. 4) with the only difference that we do not require that the effects of an action are
+the same in and ′ when the action is applied to the same state, but only that the effects of the action in are fewer than or
+the same as those in ′. Indeed, conditions 2 and 3 of Definition14impose that the literals that are not changed by action 𝑎in ′
+are a subset of the literals that are also not changed in .
+Example 1. Assume that 𝛿={(𝑠 , 𝑜𝑝 (𝒄), 𝑠 ), (𝑠 , 𝑜𝑝 (𝒄), 𝑠 )}, 𝛿′={(𝑠′, 𝑜𝑝 (𝒄), 𝑠′), (𝑠′, 𝑜𝑝 (𝒄), 𝑠′)}, 𝛿and 𝛿′are respectively the transi-
+0 1 1 0 2 2 0 1 1 1 2 2
+tion functions of ()and ′(), and let 𝑠 ={¬𝑝(𝒄), 𝑞(𝒄)}, 𝑠 ={𝑝(𝒄), 𝑞(𝒄)}, 𝑠 ={¬𝑝(𝒄), ¬𝑞(𝒄)}, 𝑠′ ={𝑝(𝒄), 𝑞(𝒄)}, 𝑠′ ={𝑝(𝒄), 𝑞(𝒄)}
+0 1 2 0 1
+and 𝑠′ ={𝑝(𝒄), 𝑞(𝒄)}, where 𝒄is a sequence of constants in . The truth-value of literals 𝑝(𝒄)and 𝑞(𝒄)is not changed by action 𝑜𝑝 (𝒄)
+2 1
+and 𝑜𝑝 2(𝒄)in ′(), whereas it is changed in (), therefore ()  𝑝′()and ()  𝑞′(). On the contrary, since we also
+have that all the positive literals of 𝑠 0and 𝑠 1are contained in 𝑠′ 0and 𝑠′ 1, ′() ⪯𝑝(), ′() ⪯𝑞(), and hence ′() ⪯().
+Proposition 1.  ⪯𝑝′if and only if for any operator 𝑜𝑝 ∈
+1. 𝑝(𝒙) ∈𝗉𝗋𝖾′(𝑜𝑝(𝒙)) ⇒𝑝(𝒙) ∈𝗉𝗋𝖾(𝑜𝑝(𝒙)),
+2. 𝑝(𝒙) ∈𝖾𝖿𝖿(𝑜𝑝(𝒙)) ⇒𝑝(𝒙) ∈𝖾𝖿𝖿′(𝑜𝑝(𝒙)),
+3. ¬𝑝(𝒙) ∈𝖾𝖿𝖿(𝑜𝑝(𝒙)) ⇒¬𝑝(𝒙) ∈𝖾𝖿𝖿′(𝑜𝑝(𝒙)),
+where 𝗉𝗋𝖾and 𝖾𝖿𝖿 (resp. 𝗉𝗋𝖾′and 𝖾𝖿𝖿′) are the functions for preconditions and effects of (resp. ′).
+Proof. We start by proving the only if direction: Suppose that  ⪯𝑝′.
+1. Let us show that 𝑝(𝒙) ∈𝗉𝗋𝖾′(𝑜𝑝(𝒙)) ⇒𝑝(𝒙) ∈𝗉𝗋𝖾(𝑜𝑝(𝒙)). Let 𝑝(𝒙) ∈𝗉𝗋𝖾′(𝑜𝑝(𝒙)), and suppose by contradiction that 𝑝(𝒙) ∉𝗉𝗋𝖾(𝑜𝑝(𝒙)).
+Let 𝑠 be a state in which all the literals are true with the exception of 𝑝(𝒄), for some tuple of constants 𝒄 in . Since 𝑝(𝒙) ∉
+0
+𝗉𝗋𝖾(𝑜𝑝(𝒙)), we have that 𝑜𝑝(𝒄)is applicable in 𝑠 , and therefore (𝑠 , 𝑜𝑝(𝒄), 𝑠 ) ∈𝛿for some 𝑠 . But in ′(), as 𝑝(𝒙) ∈𝗉𝗋𝖾′(𝑜𝑝(𝒙)),
+0 0 1 1
+𝑜𝑝(𝒄)is not applicable in every state 𝑠′ that satisfies condition 1 of Definition14, and therefore there is no such (𝑠′, 𝑜𝑝(𝒄), 𝑠′) ∈𝛿′,
+0 0 1
+which contradicts the fact that  ⪯𝑝′.
+2. Let us prove that the second condition of the proposition is true, i.e., that 𝑝(𝒙) ∈𝖾𝖿𝖿(𝑜𝑝(𝒙)) ⇒𝑝(𝒙) ∈𝖾𝖿𝖿′(𝑜𝑝(𝒙)). Let 𝑝(𝒙) ∈
+𝖾𝖿𝖿(𝑜𝑝(𝒙)), and suppose by contradiction that 𝑝(𝒙) ∉𝖾𝖿𝖿′(𝑜𝑝(𝒙)). Since 𝑝(𝒙) ∈𝖾𝖿𝖿(𝑜𝑝(𝒙)), because of our definition of action
+schema, 𝑝(𝒙) ∉𝗉𝗋𝖾(𝑜𝑝(𝒙)). By the previous point, we have that 𝑝(𝒙) ∉𝗉𝗋𝖾′(𝑜𝑝(𝒙)). Let 𝑠 the state in which all the literals are
+0
+true except 𝑝(𝒄) for some tuple of constants 𝒄 of . We have that in () 𝑜𝑝(𝒄) is applicable in 𝑠 . This implies that there
+0
+exists (𝑠 , 𝑜𝑝(𝒄), 𝑠 ) ∈𝛿and since 𝑝(𝒄) ∈𝖾𝖿𝖿(𝑜𝑝(𝒄)), ¬𝑝(𝒄) ∉𝑠 ∩𝑠 . For every transition (𝑠′, 𝑜𝑝(𝒄), 𝑠′)such that ¬𝑝(𝒄) ∈𝑠′, since
+0 1 0 1 0 1 0
+𝑝(𝒄) ∉𝖾𝖿𝖿′(𝑜𝑝(𝒄))we have that ¬𝑝(𝒄) ∈𝑠′∩𝑠′, which contradicts condition 3 of Definition14, and hence contradicts the fact that
+0 1
+ ⪯𝑝′.
+3. The same argument used to prove the second condition applies to the third one, where 𝑠 is a state in which all literals are true,
+0
+which leads us to contradict condition 2 of Definition14.
+5
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Let us now prove the opposite direction, i.e., that if  and ′ satisfy properties 1–3 of Proposition 1 then  ⪯𝑝′. Let
+(𝑠 , 𝑜𝑝(𝒄), 𝑠 ) ∈𝛿, and 𝑠′ be the state in which all and only the atoms in 𝗉𝗋𝖾′(𝑜𝑝(𝒄))are true, therefore 𝑜𝑝(𝒄)is applicable in 𝑠′, i.e.,
+0 1 0 0
+there exists (𝑠′, 𝑜𝑝(𝒄), 𝑠′) ∈𝛿′ for some 𝑠′. By condition 1 of Proposition1, we have that all atoms in 𝗉𝗋𝖾′(𝑜𝑝(𝒄))are in 𝗉𝗋𝖾(𝑜𝑝(𝒄)),
+0 1 1
+hence they must be true in 𝑠 . Therefore, condition 1 of Definition14is satisfied by construction of 𝑠′. Concerning condition 2 of
+0 0
+Definition14, we have that, if 𝑝(𝒄)is true in 𝑠 and 𝑠′ and 𝑝(𝒄) ∈𝑠′ ∩𝑠′ for some tuple of constants 𝒄, then ¬𝑝(𝒙) ∉𝖾𝖿𝖿′(𝑜𝑝(𝒙))and
+0 0 0 1
+therefore by condition 2 of Proposition1¬𝑝(𝒙) ∉𝖾𝖿𝖿(𝑜𝑝(𝒙)), which implies that 𝑝(𝒄) ∈𝑠 ∩𝑠 . A similar argument can be done for
+0 1
+condition 3 of Proposition1. □
+An immediate consequence of Proposition1is the following proposition.
+Proposition 2.  ⪯′if and only if for any operator 𝑜𝑝 ∈
+1. 𝗉𝗋𝖾′(𝑜𝑝(𝒙)) ⊆𝗉𝗋𝖾(𝑜𝑝(𝒙));
+2. 𝖾𝖿𝖿(𝑜𝑝(𝒙)) ⊆𝖾𝖿𝖿′(𝑜𝑝(𝒙)).
+The above propositions state that the relationship between two action models does not depend on a set of constants. Indeed, it is
+sufficient to consider the preconditions and effects of the operators. A second consequence of the above proposition is that the binary
+relation ⪯is a partial order on the set of action models with fixed predicates and operators. This allows us to provide the following
+definition.
+Definition 15 (Minimal action model for a set of partial traces). An action model is a minimal modelfor a set of partial traces ̂ if
+is consistent with all 𝒕̂ ∈̂ , and for all ′consistent with all 𝒕̂ ∈̂ , it is not true that ′≺. The set of minimal models for a
+set of partial traces ̂ is denoted by 𝕄 (̂ ).
+min
+As a first remark, one can see that partial traces can have more than one minimal model. Consider the following example.
+𝒕̂
+Example 2. Let be the following partial trace
+𝑎(𝑐) 𝑏(𝑐)
+𝒕̂ 𝑝(𝑐) ¬𝑝(𝑐)
+=
+where each circle represents a partial state that contains the literals shown in the circle, and each edge represents an action. This
+partial trace shows that 𝑝(𝑐)becomes false between the first and the third state, but since we do not observe the truth value of 𝑝(𝑐)
+in the second state, it could be that either 𝑝(𝑐)is falsified by the first action (i.e., 𝑎(𝑐)) or by the second action (i.e., 𝑏(𝑐)) or by both.
+If 𝑝is the only predicate and 𝑐 is the only constant, then the only two possible completions 𝒕 and 𝒕 of the partial trace 𝒕̂ are the
+1 2
+following traces:
+𝑎(𝑐) 𝑏(𝑐)
+𝒕 = 𝑝(𝑐) 𝑝(𝑐) ¬𝑝(𝑐)
+1
+𝑎(𝑐) 𝑏(𝑐)
+𝒕 = 𝑝(𝑐) ¬𝑝(𝑐) ¬𝑝(𝑐)
+2
+The smallest model consistent with 𝒕 and 𝒕 are respectively the models  and  that are shown in the following table:
+1 2 1 2
+𝑎(𝑥) 𝑏(𝑥)
+Models
+𝗉𝗋𝖾 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿
+ 𝑝(𝑥) 𝑝(𝑥) ¬𝑝(𝑥)
+1
+ 𝑝(𝑥) ¬𝑝(𝑥)
+2
+ is minimal since 𝗉𝗋𝖾cannot be further extended, and if we remove ¬𝑝(𝑥)from the effects of 𝑏the model will not be consistent
+1
+with 𝒕 . Similarly,  is minimal because if we add 𝑝(𝑥)to the precondition of 𝑏(𝑥)or we remove it from the negative effect of 𝑎(𝑥)
+1 2
+we obtain a model that is not consistent with 𝒕 .
+2
+Furthermore  1⊀ 2since 𝖾𝖿𝖿 1(𝑏(𝑥)) ⊈𝖾𝖿𝖿 2(𝑏(𝑥))and  2⊀ 1since 𝖾𝖿𝖿 2(𝑎(𝑥)) ⊈𝖾𝖿𝖿 1(𝑎(𝑥)), where 𝖾𝖿𝖿 𝑖(𝑜𝑝(𝒙))indicates the
+set of effects of 𝑜𝑝(𝒙)in model  𝑖. Therefore,  1and  2are both minimal for 𝒕̂ .
+6
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+For total traces, instead, there is only one minimal model, as it is stated by the following proposition.
+Proposition 3. For every set of total traces , 𝕄 ()contains only one model.
+min
+Proof. For every operator 𝑜𝑝 ∈we define a model consistent with  as follows
+𝗉𝗋𝖾(𝑜𝑝(𝒙))=(𝒙)⧵{𝑝(𝒙)∣(𝑠,𝑜𝑝(𝒄),𝑠′)∈,¬𝑝(𝒄)∈𝑠}
+𝖾𝖿𝖿(𝑜𝑝(𝒙))={𝑙(𝒙)∈𝑖𝑡(𝑃(𝒙))∣(𝑠,𝑜𝑝(𝒄),𝑠′)∈,𝑙(𝒄)∈𝑠′⧵𝑠}
+It is easy to show that this is the only minimal model consistent with . □
+Definition 16. The cautious modelfor a set of partial trace ̂ is the model  𝑐 where for each 𝑜𝑝 ∈:
+⋃ ⋂
+𝗉𝗋𝖾 𝑐(𝑜𝑝)= 𝗉𝗋𝖾 (𝑜𝑝), 𝖾𝖿𝖿 𝑐(𝑜𝑝)= 𝖾𝖿𝖿 (𝑜𝑝)
+∈𝕄 min(̂ ) ∈𝕄 min(̂ )
+where 𝗉𝗋𝖾 (𝑜𝑝)and 𝖾𝖿𝖿 (𝑜𝑝)are the sets of preconditions and effects of 𝑜𝑝in .
+Notably, if an action 𝑎is applicable in a state 𝑠according to the cautious model, then it is applicable in 𝑠according to all the
+models compatible with ̂ , including the ground truth models ⋆ . Similarly, the changes performed by 𝑎 on 𝑠 according to the
+̂ ⋆
+cautious model are done also by all the models compatible with and therefore by . However, this does not guarantee that a
+⋆
+plan executable in the cautious model is also executable in . Consider the following example.
+Example 3. Suppose that in ⋆ an atom, 𝑝(𝑥), is a negative effect and a positive precondition of two actions 𝑎(𝑥) and 𝑏(𝑥), re-
+spectively. Suppose also that in the cautious model, 𝑝(𝑥)is not included in the negative effects of 𝑎(𝑥). While the plan (𝑎(𝑐), 𝑏(𝑐))is
+executable in the cautious model from an initial state where 𝑝(𝑐)is true, it is not executable in ⋆ because 𝑝(𝑐)becomes false after
+the execution of 𝑎(𝑐), making 𝑏(𝑐)inapplicable.
+The cautious model preserves the single transitions of the ground truth model, but the changes in the resulting state of a transition
+for the cautious model can be a subset of those of the ground truth model. This might compromise the executability of sequences of
+transitions in the ground truth model because of negative effects. Some approaches (e.g., [7,24,28]) compute safe action models that
+preserve the executability of sequences of transitions.
+In our work, we focus on the computation of the minimal action models, which are the smallest models consistent with the set
+of input traces. However, we acknowledge there exist other models interesting to learn, such as, e.g., safe models [28]. Notably,
+the minimal action models can be useful even for deriving a safe model, as well as for the cautious model. Indeed, assuming that
+preconditions and goals are not negative, it is easy to see that a safe action model can be defined from the minimal action models
+as shown in Definition16for preconditions and positive effects, and considering all the negative effects that are consistent with the
+input traces as the set of negative effects.
+4. Learning action models from partial traces
+In this section, we present a methodology for learning an action model, which is based on a set of completion rules. The application
+of the completion rules gradually refines the action model based on the evidence in the traces and extends the partial traces using
+the action models under construction. This iterative process continues until no rules are applicable. Subsequently, we compute both
+the minimal models and the cautious model from the resulting learned model. We conclude the section by proving that the method
+is sound and complete, meaning that it identifies all and only the minimal action models compatible with a set of partial traces
+The completion rules are applied on a structure defined by a 4-tuple (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), where:
+? ! ?
+• for every 𝑜𝑝 ∈, 𝗉𝗋𝖾 (𝑜𝑝)is a superset of the preconditions of 𝑜𝑝in every (minimal) model of ̂ . The elements of 𝗉𝗋𝖾 (𝑜𝑝)are
+? ?
+called potential preconditions;
+• for every 𝑜𝑝 ∈, 𝖾𝖿𝖿 (𝑜𝑝) is a subset of the effects of 𝑜𝑝 in every (minimal) model of ̂ . The elements of 𝖾𝖿𝖿 (𝑜𝑝) are called
+! !
+definite (positive/negative) effects;
+• for every 𝑜𝑝 ∈, 𝖾𝖿𝖿 (𝑜𝑝)is a set of literals disjoint from 𝖾𝖿𝖿 (𝑜𝑝), such that 𝖾𝖿𝖿 (𝑜𝑝) ∪𝖾𝖿𝖿 (𝑜𝑝)is a superset of the effects of 𝑜𝑝
+in every (minimal) m? odel of ̂ . The elements of 𝖾𝖿𝖿 (𝑜𝑝)are ! called potential (pos! itive/negat? ive) effects;
+̂ ?
+• is a set of partial traces.
+𝗉𝗋𝖾 ∶ →2(), 𝖾𝖿𝖿 ∶ →2𝑖𝑡(()) and 𝖾𝖿𝖿 ∶ →2𝑖𝑡(()) are functions that associate operators with their sets of potential
+? ! ?
+preconditions, definite effects and potential effects, respectively, while 𝖾𝖿𝖿 (𝑜𝑝)denotes the union of 𝖾𝖿𝖿 (𝑜𝑝)and 𝖾𝖿𝖿 (𝑜𝑝).
+Intuitively, the tuple (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )provides a lower-bound and an! ? upper-bound of the action mo! dels consiste? nt with ̂ , the
+? ! ?
+lower-bound being (𝗉𝗋𝖾 , 𝖾𝖿𝖿 )and the upper-bound being (∅, 𝖾𝖿𝖿 ). We formalize this concept in the following definition.
+? ! !?
+7
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Definition 17 ( ⊧ (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )). An action model satisfies(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), in symbols  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), if is
+consistent with ̂ , 𝗉𝗋𝖾 (? 𝑜𝑝) ⊆! 𝗉𝗋𝖾 ?? (𝑜𝑝), and 𝖾𝖿𝖿 !(𝑜𝑝) ⊆𝖾𝖿𝖿 (𝑜𝑝) ⊆𝖾𝖿𝖿 !?(𝑜𝑝? ), for! any? operator 𝑜𝑝in . ? ! ?
+The completion rules transform a 4-tuple (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )into either another 4-tuple or two alternative 4-tuples that preserve
+? ! ?
+the satisfiability relation defined above. More precisely, the rules can have one of the following three forms:
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )
+? ! ?
+(1)
+(𝗉𝗋𝖾′,𝖾𝖿𝖿′,𝖾𝖿𝖿′,̂
+)
+? ! ?
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )
+? ! ?
+(2)
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂′)
+? ! ?
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )
+? ! ?
+(3)
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂′) (𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂′′)
+? ! ? ? ! ?
+The rules of form (1)update the sets of potential preconditions, potential and definite effects by observing the literals in the states
+̂ ̂
+involved in the transitions contained in . The rules of form (2), instead, update the partial traces with the information contained
+̂
+in the potential preconditions, potential and definite effects. Finally, the rules of form (3)update a partial state in where an atom
+𝑝(𝒄) is not observed by considering the two cases in which 𝑝(𝒄) is true or 𝑝(𝒄) is false, which produce the two alternative sets of
+̂′and ̂′′.
+partial traces
+4.1. Rules for learning preconditions and effects
+The rule of type (1)consists in applying for every transition (𝑠̂, 𝑜𝑝(𝒄), 𝑠̂′)that appears in some trace 𝒕̂ ∈̂ (in short (𝑠̂, 𝑜𝑝(𝒄), 𝑠̂′) ∈̂ )
+the following transformations on the (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )4-tuple:
+? ! ?
+(𝑠̂,𝑜𝑝(𝒄),𝑠̂′)∈̂
+(4)
+𝖾𝖿𝖿 (𝑜𝑝)←𝖾𝖿𝖿 (𝑜𝑝)∪{𝑙(𝒙)∣𝑙(𝒄)∈𝑠̂and𝑙(𝒄)∈𝑠̂′}
+! !
+(𝑠̂,𝑜𝑝(𝒄),𝑠̂′)∈̂
+(5)
+𝖾𝖿𝖿 (𝑜𝑝)←𝖾𝖿𝖿 (𝑜𝑝)⧵{𝑙(𝒙)∣𝑙(𝒄)∈𝖾𝖿𝖿 (𝑜𝑝)or𝑙(𝒄)∈𝑠̂′}
+? ? !
+(𝑠̂,𝑜𝑝(𝒄),𝑠̂′)∈̂
+(6)
+𝗉𝗋𝖾 (𝑜𝑝)←𝗉𝗋𝖾 (𝑜𝑝)⧵{𝑝(𝒙)∣¬𝑝(𝒄)∈𝑠̂}
+? ?
+which augment the set of definite effects, and reduce the sets of potential preconditions and potential effects. In particular, rule (4)
+adds 𝑝(𝒙)(resp. ¬𝑝(𝒙)) to the definite effects of 𝑜𝑝, if ̂ contains an execution of 𝑜𝑝where ¬𝑝(𝒄)(resp. 𝑝(𝒄)) is observed in the state
+immediately before the execution of 𝑜𝑝(𝒄)and 𝑝(𝒄)(resp. ¬𝑝(𝒄)) is observed in the state immediately after. Rule (5)removes 𝑝(𝒙)
+(resp. ¬𝑝(𝒙)) from the potential effects of 𝑜𝑝if it is in the set of definite effects of 𝑜𝑝or the opposite literal ¬𝑝(𝒙)(resp. 𝑝(𝒙)) is in the
+state 𝑠̂′ resulting from the execution of 𝑜𝑝(𝒄). Finally, rule (6)removes 𝑝(𝒙)from the potential precondition of 𝑜𝑝if ¬𝑝(𝒄)is in the
+state from which 𝑜𝑝(𝒄)is executed. Basically, rules (4)–(6)are the same defined by Juba etal.(see Observation 1 in [18]). Notice that
+these rules construct sets of liftedliterals for operator 𝑜𝑝from the set of ground literals observed in the traces. The mapping among
+the constants involved in the literals observed in the traces and the variables used for the definition of 𝑜𝑝is unique and can be easily
+determined because of the adoption of the injective binding assumption.
+Example 4. Consider the following partial trace:
+𝑎(𝑑) 𝑏(𝑑) 𝑐(𝑑)
+𝑝(𝑑) ¬𝑝(𝑑) ¬𝑞(𝑑)
+From the first transition we have that 𝑝(𝑑)is a negative effect of action 𝑎(𝑑), and therefore rule (4)adds ¬𝑝(𝑥)to the set of definite
+effect of operator 𝑎(𝑥); the second transition instead tells us that 𝑝(𝑑)cannot be a precondition of action 𝑏(𝑑)and therefore rule (6)
+removes 𝑝(𝑥) from the potential preconditions of operator 𝑏(𝑥); finally, the third transition implies that 𝑞(𝑑) cannot be a positive
+effect of action 𝑐(𝑑), and therefore rule (5)removes 𝑝(𝑥)from the potential effects of operator 𝑐(𝑥).
+4.2. Rules for propagating (non) effects
+The rule of type (2)consists in applying for every transition (𝑠̂, 𝑜𝑝(𝒄), 𝑠̂′) ∈̂ the following transformations on the (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )
+? ! ?
+4-tuple:
+8
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+(𝑠̂,𝑜𝑝(𝒄),𝑠̂′)∈̂
+(7)
+𝑠̂′←𝑠̂′∪𝖾𝖿𝖿 (𝑜𝑝(𝒄))
+!
+(𝑠̂,𝑜𝑝(𝒄),𝑠̂′)∈̂
+𝑠̂←𝑠̂∪(𝑠̂′⧵𝖾𝖿𝖿 (𝑜𝑝(𝒄))) (8)
+!?
+𝑠̂′←𝑠̂′∪(𝑠̂⧵𝖾𝖿𝖿 (𝑜𝑝(𝒄)))
+!?
+which extends the states of ̂ that occur immediately before and after the execution of operator 𝑜𝑝with literals according to the set
+of definite and potential effects of 𝑜𝑝. In particular, rule (7)simply extends the state obtained from the execution of the action 𝑜𝑝(𝒄)
+with the definite effects of the action. Rule (8)implements the inertia principle that states the property that the states before and
+after an action 𝑜𝑝(𝒄)agree on all the literals that are not changed by 𝑜𝑝(𝒄), i.e., that are not in the potential or definite effects of
+the action. Indeed, for every action 𝑜𝑝(𝒄), 𝖾𝖿𝖿 (𝑜𝑝(𝒄))contains the effects that we have learned so far, while 𝖾𝖿𝖿 (𝑜𝑝(𝒄))contains the
+! ?
+literals that we have not excluded from the set of possible effects so far. So, if an atom is not in 𝖾𝖿𝖿 (𝑜𝑝(𝒄))it is certainly not changed
+!?
+by 𝑜𝑝(𝒄), and therefore it should have the same truth value in the states before and after the execution of 𝑜𝑝(𝒄).
+Example 5. Consider the following partial trace:
+𝑚𝑜𝑣𝑒(𝑎,𝑏) 𝑚𝑜𝑣𝑒(𝑏,𝑐)
+¬𝑎𝑡(𝑐) 𝑎𝑡(𝑏) 𝑎𝑡(𝑐)
+Since action 𝑚𝑜𝑣𝑒(𝑎, 𝑏)does not involve constant 𝑐, rule (8)propagates literal ¬𝑎𝑡(𝑐)from the first partial state to the second, obtaining
+the partial trace:
+𝑚𝑜𝑣𝑒(𝑎,𝑏) 𝑚𝑜𝑣𝑒(𝑏,𝑐)
+𝑎𝑡(𝑏)
+¬𝑎𝑡(𝑐) 𝑎𝑡(𝑐)
+¬𝑎𝑡(𝑐)
+From this updated trace, rule (4)adds 𝑎𝑡(𝑦)to the set of definite effect of operator 𝑚𝑜𝑣𝑒(𝑥, 𝑦).
+One would expect a similar rule for potential preconditions to extend the state prior to the execution of an action with its precon-
+ditions. However, 𝗉𝗋𝖾 (𝑜𝑝)are preconditions that have not been verified yet. Formally, the set of preconditions of an action 𝑜𝑝(𝒄)in
+?
+the ground truth model is a subset of 𝗉𝗋𝖾 (𝑜𝑝(𝒄)). The only way to find out that an atom needs to be a precondition of 𝑜𝑝(𝒄)is trying
+?
+to perform the action from a state where the atom is false and obtain a failure. Since in our setting there is no trace containing action
+failures, we have no evidence to state that an atom must bea precondition of an action. The reader interested in methods that learn
+preconditions from failures can see paper [22].
+4.3. Rules for case reasoning on unobserved atoms
+̂
+The above rules are not sufficient to complete the set of partial traces in order to obtain fully observable traces. One possible
+situation happens with partial traces where the truth value of some atom 𝑝(𝒄)changes after executing a sequence of more than one
+action but we do not have enough clues to decide which action in the sequence affects 𝑝(𝒄). An instance of such a partial trace is
+provided in Example2. To deal with these situations, we have to reason by cases, i.e., we have to consider two alternatives: 𝑝(𝒄)is/is
+not affected by the first action. Another situation that requires reasoning by case is described in the following example:
+Example 6. Consider the following partial trace:
+𝑎(𝑑) 𝑏(𝑑)
+¬𝑝(𝑑)
+and assume that 𝑝(𝑑) ∈𝗉𝗋𝖾 (𝑏(𝑑)). If 𝑝(𝑑)is true in the second state of the trace, 𝑝(𝑥)can be added to the set of definite effects of
+?
+operator 𝑎(𝑥). If, instead, 𝑝(𝑑) is false in the second state of the trace, then 𝑝(𝑥) is not a definite positive effect, and 𝑝(𝑥) can be
+removed from the set of potential preconditions of 𝑎(𝑥). These two cases correspond to two models that are incomparable w.r.t. the
+order ≺, and therefore they are both minimal.
+9
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+The rules of type (3)cope with the situations shown in Examples2and 6by splitting the search of the minimal models in two
+“parallel” cases, as stated by the following transformations:
+(𝑠̂ 𝑖,𝑎 𝑖+1,𝑠̂ 𝑖+1),…,(𝑠̂ 𝑘−1,𝑎 𝑘,𝑠̂ 𝑘)∈̂
+{𝑝(𝒄),¬𝑝(𝒄)}∩(𝑠̂ 𝑗∪𝗉𝗋𝖾 ?(𝑎 𝑗))=∅for𝑖<𝑗<𝑘
+¬𝑝(𝒄)∈𝑠̂ 𝑖and𝑝(𝒄)∈𝑠̂ 𝑘∪𝗉𝗋𝖾 ?(𝑎 𝑘) (9)
+𝑠̂ 𝑖+1←𝑠̂ 𝑖+1∪{𝑝(𝒄)} 𝑠̂ 𝑖+1←𝑠̂ 𝑖+1∪{¬𝑝(𝒄)}
+(𝑠̂ 𝑖,𝑎 𝑖+1,𝑠̂ 𝑖+1),…,(𝑠̂ 𝑘−1,𝑎 𝑘,𝑠̂ 𝑘)∈̂
+{𝑝(𝒄),¬𝑝(𝒄)}∩(𝑠̂ 𝑗∪𝗉𝗋𝖾 ?(𝑎 𝑗))=∅for𝑖<𝑗<𝑘
+¬𝑝(𝒄)∈𝑠̂ 𝑘and𝑝(𝒄)∈𝑠̂ 𝑖∪𝗉𝗋𝖾 ?(𝑎 𝑖+1) (10)
+𝑠̂ 𝑘−1←𝑠̂ 𝑘−1∪{𝑝(𝒄)} 𝑠̂ 𝑘−1←𝑠̂ 𝑘−1∪{¬𝑝(𝒄)}
+In particular, for every transition (𝑠̂ 𝑖, 𝑎 𝑖+1, 𝑠̂ 𝑖+1)in ̂ , if ¬𝑝(𝒄)is in 𝑠̂ 𝑖, the truth value of 𝑝(𝒄)is unknown in every state 𝑠̂ 𝑗with 𝑖 <𝑗<𝑘,
+a tun pd l e𝑝 s( 𝒄 (𝗉) 𝗋i 𝖾s ,i 𝖾n 𝖿 𝖿e !i ,t h 𝖾𝖿e 𝖿r 𝑠 ,̂ 𝑘 ̂ 1o )r a nth de ( 𝗉se 𝗋𝖾t ?o , f 𝖾 𝖿p 𝖿o !,t e 𝖾n 𝖿𝖿ti ?a , l  ̂ 2p )re suco cn hd ti ht aio t n 𝑝 (o 𝑐f ) a isn i na c tt hi eo n s ta𝑎 t𝑘 e, 𝑠t ̂h 𝑖+e 1n o r fu ̂l 1e a( n9) d d ¬e 𝑝r (i 𝑐v )e is s f ir no tm h e( 𝗉 st𝗋 a𝖾 t? e, 𝖾 𝑠̂𝖿 𝑖𝖿 +! 1, 𝖾 o𝖿 f𝖿 ?̂ 2, .̂ I) ntt uw ito i vn ee lyw ,
+? ?
+rule (9)makes two different assumptions on the truth value of 𝑝(𝑐)in 𝑠̂ 𝑖+1 from which one can derive different conclusions for the
+effects of action 𝑎 𝑖+1: the first tuple implies a set of models where 𝑝(𝒄)is in the definite positive effects of 𝑎 𝑖+1, while the second tuple
+implies another set of models where 𝑝(𝒄)is not in the definite and potential positive effects of 𝑎 𝑖+1.
+(𝗉𝗋𝖾S ?i ,m 𝖾𝖿i 𝖿la !,r 𝖾ly 𝖿, 𝖿 f ?o , r ̂ 2e )v se ury ch t r ta hn as ti t 𝑝i (o 𝑐n ) i( s𝑠̂ 𝑘 in− 1 t, h 𝑎 e𝑘 s, t𝑠̂ a𝑘 t) ei n 𝑠̂ 𝑘  −̂ 1, oru f l e ̂ 1 ( a1 n0 d) d ¬e 𝑝r (i 𝑐v )e is s f ir no m th e(𝗉 s𝗋 t𝖾 a? t, e 𝖾 𝑠𝖿 ̂ 𝑘𝖿 −!, 1 𝖾 o𝖿𝖿 f ? , ̂ 2̂ . ) Tt hw ero e n foe rw e, t ru up ll ee (s 1 ( 0𝗉 )𝗋𝖾 m?, a 𝖾 k𝖿 e𝖿 s! , t 𝖾 w𝖿 o𝖿 ? d,  î ff1 e) ra en nd t
+assumptions on the truth value of 𝑝(𝑐)in 𝑠̂ 𝑘−1from which one derives different conclusions for the preconditions and effects of action
+𝑎 𝑘: the first tuple implies a set of models for which 𝑝(𝒄)is in the definite negative effects of 𝑎 𝑘, while the second tuple implies another
+set of models for which it is not in the potential preconditions of 𝑎 𝑘. These two sets of models are incomparable w.r.t. the order ≺,
+and therefore we need to consider both of them for the computation of the minimal models.
+Definition 18 (Completion tree). A completion tree for a set of traces̂ is a tree with root (𝗉𝗋𝖾0, 𝖾𝖿𝖿0, 𝖾𝖿𝖿0, ̂ )where each node is a tuple
+? ! ?
+(𝗉𝗋𝖾′, 𝖾𝖿𝖿′, 𝖾𝖿𝖿′, ̂′)obtained by applying the rules (4)–(10)and, for any operator 𝑜𝑝 ∈, we have that
+? ! ?
+• 𝗉𝗋𝖾0(𝑜𝑝) =(𝒙)where  is the set of predicates with their arity occurring in̂ ;
+?
+• 𝖾𝖿𝖿0(𝑜𝑝) =𝑖𝑡((𝒙))where 𝑖𝑡()is the set of literals with their arity occurring in ̂ ;
+?
+• 𝖾𝖿𝖿0(𝑜𝑝) =∅.
+!
+Intuitively, at the beginning of the search of the minimal models, we have not yet ruled out any predicate (literal) from the set of
+the potential preconditions (effects), and hence the set of potential preconditions of an operator includes all the possible predicates,
+and the set of potential effects includes all the possible literals. Similarly, at the beginning, we have not included any literal to the set
+of the definite effects of an operator yet, and therefore such a set is empty. The application of rules (4)–(8)connects a node to exactly
+one child in the tree, while the application of rules (9)–(10)connects a node to two children. Let us see an example of completion
+tree.
+{ }
+̂ 𝒕̂(1),𝒕̂(2),𝒕̂(3)
+Example 7. Consider the following set of partial traces = .
+0
+𝑠̂(1) 𝑠̂(1) 𝑠̂(1)
+1 𝑎(𝑑) 2 𝑏(𝑑) 3
+𝒕̂(1)
+= ¬𝑝(𝑑) 𝑝(𝑑)
+𝑠̂(2) 𝑠̂(2) 𝑠̂(2)
+̂ 0= 𝒕̂(2) 1 𝑐(𝑑) 2 𝑏(𝑑) 𝑝(3
+= 𝑑)
+𝑠̂(3) 𝑠̂(3) 𝑠̂(3)
+1 𝑎(𝑑) 2 𝑐(𝑑) 3
+𝒕̂(3)
+= ¬𝑝(𝑑)
+At the beginning, the set of preconditions of each action is 𝑝(𝑥), the set of definite effects is empty, and the set of potential effects
+is {𝑝(𝑥), ¬𝑝(𝑥)}. The root of the completion tree is (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )where sets 𝗉𝗋𝖾 , 𝖾𝖿𝖿 , and 𝖾𝖿𝖿 are defined as shown in the next
+? ! ? ? ! ?
+table.
+10
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+𝑎(𝑥) 𝑏(𝑥) 𝑐(𝑥)
+Traces
+𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿
+? ! ? ? ! ? ? ! ?
+𝑝(𝑥) ∅ 𝑝(𝑥),¬𝑝(𝑥) 𝑝(𝑥) ∅ 𝑝(𝑥),¬𝑝(𝑥) 𝑝(𝑥) ∅ 𝑝(𝑥),¬𝑝(𝑥) ̂
+0
+By applying rules (5)to the second transition of 𝒕̂(1) and 𝒕̂(3) , we remove ¬𝑝(𝑥)and 𝑝(𝑥)from the potential effects of operators
+𝑏and 𝑐, respectively. Furthermore we apply rule (6)to the first transition of 𝒕̂(1) to remove 𝑝(𝑥)from the potential preconditions of
+operator 𝑎. The only applicable rules are then rule (9)to 𝒕̂(1) and rule (10)to 𝒕̂(2) and 𝒕̂(3) . Specifically, by applying rule (9)to 𝒕̂(1) ,
+we obtain two sets of traces. After applying all possible rules for propagating effects and learning potential preconditions, definite
+and potential effects, we end up with two nodes of the completion tree representing the two tuples defined in the next table and
+figure.
+𝑎(𝑥) 𝑏(𝑥) 𝑐(𝑥)
+Traces
+𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿
+? ! ? ? ! ? ? ! ?
+∅ 𝑝(𝑥) ∅ ∅ 𝑝(𝑥) ∅ 𝑝(𝑥) ¬𝑝(𝑥) ∅ ̂
+1
+∅ ∅ 𝑝(𝑥),¬𝑝(𝑥) ∅ 𝑝(𝑥) ∅ 𝑝(𝑥) ∅ ¬𝑝(𝑥) ̂
+2
+̂ ̂
+where and are defined as follows.
+1 2
+𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1)
+1 𝑎(𝑑) 2 𝑏(𝑑) 3 1 𝑎(𝑑) 2 𝑏(𝑑) 3
+𝒕̂(1) 𝒕̂(1)
+= ¬𝑝(𝑑) p(d) 𝑝(𝑑) = ¬𝑝(𝑑) ¬𝑝(𝑑) 𝑝(𝑑)
+𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2)
+̂ 1= 𝒕̂(2) 1 𝑐(𝑑) ¬𝑝2 𝑏(𝑑) 𝑝(3 ̂ 2= 𝒕̂(2) 1 𝑐(𝑑) 2 𝑏(𝑑) 𝑝(3
+= (𝑑) 𝑑) = 𝑑)
+𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3)
+1 𝑎(𝑑) 2 𝑐(𝑑) 3 1 𝑎(𝑑) 2 𝑐(𝑑) 3
+𝒕̂(3) 𝒕̂(3)
+= p(d) ¬𝑝(𝑑) = ¬𝑝(𝑑)
+Since 𝑝(𝑑)is in the current set of potential preconditions of 𝑐(𝑑), we can apply rule (10)to 𝒕̂(2) in ̂ obtaining the following two set
+1
+̂ ̂
+of traces and .
+11 12
+𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1)
+1 𝑎(𝑑) 2 𝑏(𝑑) 3 1 𝑎(𝑑) 2 𝑏(𝑑) 3
+𝒕̂(1) 𝒕̂(1)
+= ¬𝑝(𝑑) p(d) 𝑝(𝑑) = ¬𝑝(𝑑) p(d) 𝑝(𝑑)
+𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2)
+̂ 11= 𝒕̂(2) 𝑝(1 𝑐(𝑑) ¬𝑝2 𝑏(𝑑) 𝑝(3 ̂ 12= 𝒕̂(2) ¬𝑝1 𝑐(𝑑) ¬𝑝2 𝑏(𝑑) 𝑝(3
+= 𝑑) (𝑑) 𝑑) = (𝑑) (𝑑) 𝑑)
+𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3)
+1 𝑎(𝑑) 2 𝑐(𝑑) 3 1 𝑎(𝑑) 2 𝑐(𝑑) 3
+𝒕̂(3) 𝒕̂(3)
+= p(d) ¬𝑝(𝑑) = p(d) ¬𝑝(𝑑)
+After applying all possible rules, we end up with two leaf nodes of the completion tree representing the two tuples defined in the
+next table.
+𝑎(𝑥) 𝑏(𝑥) 𝑐(𝑥)
+Traces
+𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿
+? ! ? ? ! ? ? ! ?
+∅ 𝑝(𝑥) ∅ ∅ 𝑝(𝑥) ∅ 𝑝(𝑥) ¬𝑝(𝑥) ∅ ̂
+11
+∅ 𝑝(𝑥) ∅ ∅ 𝑝(𝑥) ∅ ∅ ¬𝑝(𝑥) ∅ ̂
+12
+𝒕̂(3) ̂
+Similarly, we can apply rule (10)to of obtaining the following partial traces:
+2
+11
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1) 𝑠̂(1)
+1 𝑎(𝑑) 2 𝑏(𝑑) 3 1 𝑎(𝑑) 2 𝑏(𝑑) 3
+𝒕̂(1) 𝒕̂(1)
+= ¬𝑝(𝑑) ¬𝑝(𝑑) 𝑝(𝑑) = ¬𝑝(𝑑) ¬𝑝(𝑑) 𝑝(𝑑)
+𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2) 𝑠̂(2)
+̂ 21= 𝒕̂(2) 1 𝑐(𝑑) 2 𝑏(𝑑) 𝑝(3 ̂ 22= 𝒕̂(2) 1 𝑐(𝑑) 2 𝑏(𝑑) 𝑝(3
+= 𝑑) = 𝑑)
+𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3) 𝑠̂(3)
+1 𝑎(𝑑) 2 𝑐(𝑑) 3 1 𝑎(𝑑) 2 𝑐(𝑑) 3
+𝒕̂(3) 𝒕̂(3)
+= 𝑝(𝑑) ¬𝑝(𝑑) = ¬𝑝(𝑑) ¬𝑝(𝑑)
+Finally, by applying all the possible rules we obtain two other leaf nodes of the completion tree representing the two tuples defined
+in the next table.
+𝑎(𝑥) 𝑏(𝑥) 𝑐(𝑥)
+Traces
+𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝖾𝖿𝖿
+? ! ? ? ! ? ? ! ?
+∅ ∅ 𝑝(𝑥) ∅ 𝑝(𝑥) ∅ 𝑝(𝑥) ¬𝑝(𝑥) ∅ ̂
+21
+∅ ∅ ¬𝑝(𝑥) ∅ 𝑝(𝑥) ∅ ∅ ∅ ¬𝑝(𝑥) ̂
+22
+As one can see from the previous example, the application of rules (4)–(10) can still end up in a set of traces which are not
+̂
+complete. However, we have now enough information to derive the minimal models of the initial partial traces . Indeed, as we
+prove in the next section, if (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′)is a leaf node of the completion tree for ̂ , then: (i)the model represented by the
+leaf, i.e., having precondition fu? nctio! n 𝗉𝗋𝖾? =𝗉𝗋𝖾 ?and effect function 𝖾𝖿𝖿 =𝖾𝖿𝖿 !, is a model consistent with ̂ ; (ii)all the minimal
+̂
+models for are in the set of models represented by the leaves of the tree.
+Example 8. The minimal models for the four sets of partial traces corresponding to the four leaves of the completion tree of Example7
+are the following.
+𝑎(𝑥) 𝑏(𝑥) 𝑐(𝑥)
+Models
+𝗉𝗋𝖾 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿 𝗉𝗋𝖾 𝖾𝖿𝖿
+ ∅ 𝑝(𝑥) ∅ 𝑝(𝑥) 𝑝(𝑥) ¬𝑝(𝑥)
+11
+ ∅ 𝑝(𝑥) ∅ 𝑝(𝑥) ∅ ¬𝑝(𝑥)
+12
+ ∅ ∅ ∅ 𝑝(𝑥) 𝑝(𝑥) ¬𝑝(𝑥)
+21
+ ∅ ∅ ∅ 𝑝(𝑥) ∅ ∅
+22
+̂
+Each model is minimal for the set of traces of the corresponding leaf, but not all of them are minimal w.r.t. the initial traces .
+0
+Indeed we have the following partial order.
+
+12
+≺
+≻
+ 
+11 22
+≻
+𝑀
+21
+Therefore, only  and  are minimal models for ̂ . As we will see later, we can also say that there is no model different from
+ and  that2 1 is minim2 a2 l for ̂ . 0
+21 22 0
+5. Soundness and completeness of the completion rules
+̂
+The main objective of this section is to formally prove that the set of leaves of a completion tree for a set of partial traces
+̂
+contains all the minimal models for .
+Lemma 1 (Soundness of definite effects). If (𝗉𝗋𝖾 , 𝖾𝖿𝖿′, 𝖾𝖿𝖿 , ̂ )is derived by applying rule (4)to a node of a completion tree representing
+? ! ?
+(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), then for every action model ,  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )if and only if  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿′, 𝖾𝖿𝖿 , ̂ ).
+? ! ? ? ! ? ? ! ?
+12
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Proof. (⟹)Let  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ ), and let ⟨𝑠̂ 𝑖, 𝑜𝑝(𝒄), 𝑠̂ 𝑖+1⟩ ∈̂ be the premise of rule (4). If the application of the rule adds
+literal 𝑙(𝒙)to 𝖾𝖿𝖿 !(𝑜𝑝), then 𝑙(𝒄)∈𝑠̂ 𝑖and 𝑙(𝒄) ∈𝑠̂ 𝑖+1. If 𝑠 𝑖and 𝑠 𝑖+1are completions of 𝑠̂ 𝑖and 𝑠̂ 𝑖+1, respectively, then from the fact that
+𝑠 𝑖+1=𝑠 𝑖∪𝖾𝖿𝖿 (𝑜𝑝(𝒄)) ⧵𝖾𝖿𝖿 (𝑜𝑝(𝒄))we can conclude that 𝑙(𝒙) ∈𝖾𝖿𝖿 (𝑜𝑝), and therefore  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿′ !, 𝖾𝖿𝖿 ?, ̂ ).
+(⟸)If  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿′, 𝖾𝖿𝖿 , ̂ )then  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), since is consistent with ̂ , 𝗉𝗋𝖾 and 𝖾𝖿𝖿 are not changed, 𝖾𝖿𝖿 ⊆
+? ! ? ? ! ? ? ? !
+𝖾𝖿𝖿′ !⊆𝖾𝖿𝖿 , and 𝖾𝖿𝖿 ⊆𝖾𝖿𝖿′ !∪𝖾𝖿𝖿 ?=𝖾𝖿𝖿 !∪𝖾𝖿𝖿 ?. The latter equality holds because 𝖾𝖿𝖿′ !⧵𝖾𝖿𝖿 !⊆𝖾𝖿𝖿 ?. Indeed, in the root node of the
+completion tree 𝖾𝖿𝖿 is 𝑖𝑡((𝒙)), and a literal 𝑙(𝒄)can be removed from 𝖾𝖿𝖿 (𝑜𝑝)only if (i) 𝑙(𝒄)has already been added to 𝖾𝖿𝖿 (𝑜𝑝),
+? ? !
+or (ii) 𝑙(𝒄)∈𝑠̂ 𝑖+1; in this latter case rule (4)could not add 𝑙(𝒄)to 𝖾𝖿𝖿′ !(𝑜𝑝). □
+Lemma 2 (Soundness of potential effects). If (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿′, ̂ )is derived by applying rule (5)to a node of a completion tree representing
+? ! ?
+(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), then for every action model ,  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )if and only if  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿′, ̂ ).
+? ! ? ? ! ? ? ! ?
+Proof. (⟹)Let  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ ), and let ⟨𝑠̂ 𝑖, 𝑜𝑝(𝒄), 𝑠̂ 𝑖+1⟩ ∈̂ be the premise of rule (5). Suppose that the rule removes 𝑙(𝒙)
+from 𝖾𝖿𝖿 ?(𝑜𝑝). Then 𝑙(𝒄) ∈𝖾𝖿𝖿 !(𝑜𝑝) or 𝑙(𝒄)∈𝑠̂ 𝑖+1. In the first case, 𝑙(𝒄) has already been added to 𝖾𝖿𝖿 !(𝑜𝑝) by rule (4). Therefore,
+𝖾𝖿𝖿 !?(𝑜𝑝) =𝖾𝖿𝖿′ !?(𝑜𝑝), and we can say that  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿′ ?, ̂ ). In the second case, if 𝑠 𝑖 and 𝑠 𝑖+1 are completions of 𝑠̂ 𝑖 and 𝑠̂ 𝑖+1,
+respectively, then, from the fact that 𝑠 𝑖+1=𝑠 𝑖∪𝖾𝖿𝖿 (𝑜𝑝(𝒄)) ⧵𝖾𝖿𝖿 (𝑜𝑝(𝒄))we can conclude that 𝑝(𝒙) ∉𝖾𝖿𝖿 (𝑜𝑝), and therefore that
+ ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿′, ̂ ).
+? ! ?
+(⟸) If  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿′, ̂ ) then  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), since  is consistent with ̂ , 𝗉𝗋𝖾 and 𝖾𝖿𝖿 are not changed, and
+? ! ? ? ! ? ? !
+𝖾𝖿𝖿 !⊆𝖾𝖿𝖿 ⊆𝖾𝖿𝖿 !∪𝖾𝖿𝖿′ ?⊆𝖾𝖿𝖿 !∪𝖾𝖿𝖿 ?. The latter inclusion relationship holds because 𝖾𝖿𝖿′ ?⊆𝖾𝖿𝖿 ?. □
+Lemma 3 (Soundness of potential preconditions). If (𝗉𝗋𝖾′, 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ) is derived by applying rule (6) to a node of a completion tree
+? ! ?
+representing (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), then for every action model ,  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )if and only if  ⊧(𝗉𝗋𝖾′, 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ).
+? ! ? ? ! ? ? ! ?
+Proof. (⟹)Let  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ ), and let ⟨𝑠̂ 𝑖, 𝑜𝑝(𝒄), 𝑠̂ 𝑖+1⟩ ∈̂ be the premise of rule (6). Suppose that the rule removes 𝑝(𝒙)
+f cr ao nm o𝗉 n𝗋𝖾 c? lu(𝑜 d𝑝 e( 𝒙 th)) a. T 𝑝h (e 𝒙n ∉¬𝑝 𝗉( 𝗋𝒄 𝖾) ∈ (𝑜𝑠̂ 𝑝𝑖. ,I f n𝑠 𝑖 di ts a rc eo fm orp el e thti ao tn of ⊧𝑠̂ 𝑖 (, t 𝗋h 𝖾e ?,n 𝖿si 𝖿n !,c 𝖾e 𝑜 ?𝑝 ,( 𝒄 ̂) ).can be executed in 𝑠 𝑖 if and only if 𝗉𝗋𝖾(𝑜𝑝(𝒄)) ⊆𝑠 𝑖, we
+c t )  ) a h e  𝗉 ′ 𝖾 𝖿 𝖿
+(⟸) If  ⊧(𝗉𝗋𝖾′, 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ) then  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ) since  is consistent with ̂ , 𝖾𝖿𝖿 and 𝖾𝖿𝖿 are not changed, and
+? ! ? ? ! ? ! ?
+𝗉𝗋𝖾 ⊆𝗉𝗋𝖾′ ?⊆𝗉𝗋𝖾 ?. □
+Lemma 4 (Soundness of propagating effects). If (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′)is derived by applying rule (7)to a node of a completion tree representing
+(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), then for every action model ,?  ⊧! (𝗉𝗋𝖾? , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )if and only if  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′).
+? ! ? ? ! ? ? ! ?
+Proof. (⟹)Let  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ ), and let ⟨𝑠̂ 𝑖, 𝑜𝑝(𝒄), 𝑠̂ 𝑖+1⟩ ∈̂ be the premise of rule (7). If the rule adds 𝑙(𝒄)to 𝑠̂ 𝑖+1 in ̂ ,
+then 𝑙(𝒙) ∈𝖾𝖿𝖿 !(𝑜𝑝), which implies that 𝑙(𝒙) ∈𝖾𝖿𝖿 (𝑜𝑝). Let  be a completion of ̂ generated by ; such a  exists since is
+consistent with ̂ . The completion of 𝑠̂ 𝑖+1 in  must contain 𝑙(𝒄)because 𝑙(𝒄) ∈𝖾𝖿𝖿 (𝑜𝑝). Therefore  is also a completion of ̂′,
+and therefore is consistent with ̂′.
+(⟸)If  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′)then  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )since 𝗉𝗋𝖾 , 𝖾𝖿𝖿 and 𝖾𝖿𝖿 are not changed, and is consistent with ̂′,
+compl? etion! ̂? i? also! con? ̂? □! ?
+which is a of , and therefore s sistent with .
+Lemma 5 (Soundness of propagating non effects). If (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′) is derived by applying rule (8) to a node of a completion tree
+representing (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), then for every action mode? l ,!  ⊧? (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )if and only if  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′).
+? ! ? ? ! ? ? ! ?
+Proof. (⟹)Let  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ), and let ⟨𝑠̂, 𝑜𝑝(𝒄), 𝑠̂′⟩ ∈̂ be the premise of rule (8). Suppose that the rule adds 𝑙(𝒄)to 𝑠̂′.
+? ! ?
+This implies that 𝑙(𝒄) ∈𝑠̂and 𝑙(𝒙)∉𝖾𝖿𝖿 !?(𝑜𝑝). This in turn implies that 𝑙(𝒙)∉𝖾𝖿𝖿 (𝑜𝑝). Let  be a completion of ̂ generated by
+, and let 𝑠and 𝑠′be the completion of 𝑠̂and 𝑠̂′, respectively, in . The fact that 𝑙(𝒄) ∈𝑠̂⊆𝑠and that 𝑙(𝒙)∉𝖾𝖿𝖿 (𝑜𝑝)implies that
+𝑙(𝒄) ∈𝑠′. Therefore,  is also a completion of ̂′generated by . A similar argument can be done if 𝑙(𝒄)is added to𝑠.
+(⟸)If  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′)then  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )since 𝗉𝗋𝖾 , 𝖾𝖿𝖿 and 𝖾𝖿𝖿 are not changed, and is consistent with ̂′,
+compl? etion! ̂? i? con! sisten? ̂ □? ! ?
+which is a of , and therefore s t with .
+Lemma 6 (Soundness of case reasoning). If (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ) and (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ) are derived by applying rule (9) or (10) to a
+node of a completion tree representing (𝗉𝗋𝖾 , 𝖾𝖿𝖿 ,? 𝖾𝖿𝖿 ,! ̂ ), t? hen1 for every a? ction! mod? el 2 ,  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ) if and only if  ⊧
+(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )or  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 ? , ̂ ).! ? ? ! ?
+? ! ? 1 ? ! ? 2
+Proof. We prove the case of rule (9). The proof for rule(10)is similar.
+(⟹)Let  be the completion of ̂ according to . Then the completion of 𝑠̂ 𝑖+1contains either 𝑝(𝒄)or ¬𝑝(𝒄), which implies that it
+is either a completion of ̂ or of ̂ . From this we can conclude that either  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )or  ⊧(𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ ).
+1 2 ? ! ? 1 ? ! ? 2
+13
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+( ⟸ ⊧) (𝗉If 𝖾 ⊧ 𝖿𝖿(𝗉 𝗋 𝖾𝖾 𝖿? 𝖿, 𝖾 ,𝖿 ̂𝖿 ! ), 𝖾𝖿𝖿 □?, ̂ 𝑖)for 𝑖 ∈{1, 2}, from the fact that every completion of ̂ 𝑖 is a completion of ̂ , we can conclude that
+𝗋 , 𝖾 , .
+? ! ?
+Since we are interested in finding the minimal modelsof a set of partial traces, it is crucial to determine how we can obtain these
+models from the leaves of the completion tree. First of all, recall that the leaves of a completion tree can contain non-minimal models
+of the initial partial trace. For instance, the completion tree of Example7contains four leaves that correspond to four action models
+consistent with the initial set of partial traces, but not all of them are minimal. From the partial order shown in Example8, one can
+see that only two of them are minimal models. However, we can prove that all the minimal models are among the models represented
+by the leaves of the completion tree. In order to prove this completeness result, as the set of traces in a tuple represented by a leave of
+the completion tree may be partial, we introduce a way to complete these traces to obtain fully observable traces. For this purpose,
+we define the following transformations.
+(𝑠̂,𝑜𝑝(𝒄),𝑠̂′)∈̂ (𝑠̂,𝑜𝑝(𝒄),𝑠̂′)∈̂
+𝑙(𝒄)∈𝑠̂ 𝑙(𝒄)∈𝑠̂′
+{𝑙(𝒄),𝑙(𝒄)}∩𝑠̂′=∅ {𝑙(𝒄),𝑙(𝒄)}∩𝑠̂=∅ (11)
+𝑠̂′←𝑠̂′∪{𝑙(𝒄)} 𝑠̂←𝑠̂∪{𝑙(𝒄)}
+𝒕̂ ∈̂,{𝑝(𝒄),¬𝑝(𝒄)}∩𝑠̂=∅, ∀𝑠̂∈𝒕̂
+(12)
+𝑠̂←𝑠̂∪{𝑝(𝒄)}, ∀𝑠̂∈𝒕̂
+If 𝑙(𝒄) ∈𝑠̂for some state 𝑠̂in a trace of ̂ , then rule (11)propagates this literal forward and backward along the trace. Note that
+it cannot happen that 𝑙(𝒄) ∈𝑠̂and 𝑙(𝒄)∈𝑠̂′ for some states 𝑠̂and 𝑠̂′ of the same trace in ̂ , because in this case rules (9)and (10)
+would be applicable and therefore ̂ would not be part of the tuple in a leaf node of the completion tree. If neither 𝑝(𝒄)nor ¬𝑝(𝒄)is
+in 𝑠̂for any state 𝑠̂of a trace, then rule (12)arbitrarilyadds 𝑝(𝒄)to every 𝑠̂of that trace. It is easy to see that the application of rules
+(11)and (12)to the partial traces in a leaf of a completion tree derives a fully observable set of traces.
+Lemma 7. Assume that (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )is a leaf node of a completion tree, and  is the completion of ̂ according to rules (11)and
+? ! ?
+(12). Then, for every transition (𝑠, 𝑜𝑝(𝒄), 𝑠′) ∈ that changes the truth value of 𝑙(𝒄), it must be 𝑙(𝒄) ∈𝑠̂and 𝑙(𝒄)∈𝑠̂′where 𝑠̂and 𝑠̂′are the
+partial states of ̂ that have been completed in 𝑠and 𝑠′, respectively, with rules (11)and (12).
+Proof. We prove the case in which the truth value of 𝑝(𝒄)is changed from true to false; the converse case can be proved in the same
+̂ ̂
+way. Rules (11)and (12)never introduce transitions that change the truth of literals along a trace of , as is part of the tuple
+represented by a leaf of the completion tree. This implies that, if 𝑝(𝒄) ∈𝑠and ¬𝑝(𝒄) ∈𝑠′, then 𝑝(𝒄) ∈𝑠̂and ¬𝑝(𝒄) ∈𝑠̂′. Suppose by
+contradiction that 𝑝(𝒄) ∉𝑠̂or ¬𝑝(𝒄) ∉𝑠̂′. In the latter case, ¬𝑝(𝒄) ∉𝑠̂′′for any partial state 𝑠̂′′occurring after 𝑠̂′in the trace, otherwise
+the rule (10)would have been applied. Therefore state 𝑠̂′ can only be filled by the application of rules (11)and (12)applied on the
+transition (𝑠̂, 𝑜𝑝(𝒄), 𝑠̂′), but these rules would add 𝑝(𝒄)to 𝑠′, contradicting the assumption that ¬𝑝(𝒄) ∈𝑠′. An analogous argument
+can be done for the case in which 𝑝(𝒄) ∉𝑠̂. □
+Lemma 8. If (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )is a leaf node of a completion tree and every partial state 𝑠̂∈̂ is not contradictory, i.e., {𝑝(𝒄), ¬𝑝(𝒄)} ⊈𝑠̂,
+then the model ? havi! ng pr? econdition function 𝗉𝗋𝖾 =𝗉𝗋𝖾 ?and effect function 𝖾𝖿𝖿 =𝖾𝖿𝖿 !is a model consistent with ̂ .
+Proof. Let  be the results of the application of rules (11)and (12)to ̂ . The applications of rules (11)and (12)complete every
+trace of ̂ and do not introduce contradictory states. We show that generates . For every (𝑠, 𝑜𝑝(𝒄), 𝑠′) ∈, for every atom 𝑝(𝒄)
+we consider the four cases deriving from the combination of 𝑝(𝒄) ∈𝑠or ¬𝑝(𝒄) ∈𝑠and 𝑝(𝒄) ∈𝑠′or ¬𝑝(𝒄) ∈𝑠′.
+1. If 𝑝(𝒄) ∈𝑠and ¬𝑝(𝒄) ∈𝑠′, then by Lemma7𝑝(𝒄) ∈𝑠̂and ¬𝑝(𝒄) ∈𝑠̂′, where 𝑠̂and 𝑠̂′are the partial states in ̂ corresponding to 𝑠
+and 𝑠′respectively. Therefore, since (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )is a leaf node, ¬𝑝(𝒙)has already been added to 𝖾𝖿𝖿 (𝑜𝑝)by rule (4).
+? ! ? !
+2. If ¬𝑝(𝒄) ∈𝑠and 𝑝(𝒄) ∈𝑠′, we can reason as in previous case and show that 𝑝(𝒙)is part of 𝖾𝖿𝖿 (𝑜𝑝).
+!
+3. If 𝑝(𝒄) ∈𝑠and 𝑝(𝒄) ∈𝑠′, then ¬𝑝(𝒙) ∉𝖾𝖿𝖿 (𝑜𝑝)because, if ¬𝑝(𝒙)were in 𝖾𝖿𝖿 (𝑜𝑝), rule (7)would have added ¬𝑝(𝒄)to 𝑠̂′. Therefore,
+! !
+¬𝑝(𝒄) ∈𝑠′and state 𝑠′would contain a contradiction.
+4. If ¬𝑝(𝒄) ∈𝑠 and ¬𝑝(𝒄) ∈𝑠′, for the effects we can reason as in the previous case and show that 𝑝(𝒙) ∉𝖾𝖿𝖿 (𝑜𝑝). Furthermore,
+!
+concerning the set of preconditions, we distinguish two cases. First, suppose that ¬𝑝(𝒄) ∈𝑠̂. Then rule (6)has already removed
+𝑝(𝒙)from 𝗉𝗋𝖾 (𝑜𝑝). In the other case, when ¬𝑝(𝒄) ∉𝑠̂, then ¬𝑝(𝒄)has been added to 𝑠by rule (11). But this means that, even
+?
+in such a case, 𝑝(𝒙)has already been removed from 𝗉𝗋𝖾 (𝑜𝑝), otherwise one of the two rules (9)and (10)would be applicable,
+?
+while rule (11)can be only applied to the tuples represented by the leaves of the completion tree. Therefore, we can conclude
+that 𝑝(𝒙) ∉𝗉𝗋𝖾 (𝑜𝑝). □
+?
+̂
+The next theorem states that rules (4)–(10)are sound w.r.r. the input set of partial traces , i.e., the models derived using these
+̂
+rules are consistent with .
+14
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Algorithm 1OffLAM .
+PT
+̂
+Require: set of partial traces
+1 3: r( ( et,  r𝗋, 𝗉 𝗋 (𝖾𝖾 𝖿? ,, 𝖾 ←𝖿 ,𝖿 𝗉! 𝗋) o← 𝖾mC 𝖿o )um tp eu Ct ae uM tii on uim sMal oM do ed l(e ls (̂ 𝗉)
+2 :  , 𝗉 n𝖾 , 𝖿 ) C 𝖿p , , 𝗋𝖾 ?, 𝖾𝖿𝖿 !)
+: u 𝖾 ,
+Theorem 1 (Soundness of the derivation rules). If (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′)is a leaf node of the completion tree for ̂ and every partial state 𝑠̂∈̂′
+? ! ?
+is not contradictory, i.e., {𝑝(𝒄), ¬𝑝(𝒄)} ⊈𝑠̂, then the model having precondition function 𝗉𝗋𝖾 =𝗉𝗋𝖾 ?and effect function 𝖾𝖿𝖿 =𝖾𝖿𝖿 !is
+̂
+a model consistent with the initial partial traces .
+Proof. Lemma8states that is consistent with the partial traces ̂′ in the leaf node. By the “⟸” direction of Lemmas(4)–(6),
+is also consistent with the traces in the parent node of the leaf; hence, by iterating this reasoning, we can say that is consistent
+with the partial traces ̂ in the root node of the completion tree. □
+Lemma 9. If (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂ )is a leaf node of a completion tree and every partial state 𝑠̂∈̂ is not contradictory, i.e., {𝑝(𝒄), ¬𝑝(𝒄)} ⊈𝑠̂,
+then the model ? havi! ng pr? econdition function 𝗉𝗋𝖾 =𝗉𝗋𝖾 ?and effect function 𝖾𝖿𝖿 =𝖾𝖿𝖿 !is the only minimal model for ̂ .
+Proof. Theorem1states that  is consistent with ̂ . Let ′ be another model consistent with ̂ . First, we show that 𝗉𝗋𝖾 ′ ⊆
+𝗉𝗋𝖾 =𝗉𝗋𝖾 ?. By contradiction, suppose that this is not the case, i.e., there is a 𝑝(𝒙) ∈𝗉𝗋𝖾 ′(𝑜𝑝)such that 𝑝(𝒙) ∉𝗉𝗋𝖾 ?(𝑜𝑝). This means
+that 𝑝(𝒙)has been removed from 𝗉𝗋𝖾 (𝑜𝑝)by the application of rule (6), which implies that there is a transition (𝑠̂, 𝑜𝑝(𝒄), 𝑠̂′) ∈̂ such
+?
+that ¬𝑝(𝒄) ∈𝑠̂, which implies in turn that, according to ′, 𝑜𝑝(𝒄), is not applicable in any completion of 𝑠̂, which contradicts the fact
+that ′is consistent with ̂ . Then, we show that 𝖾𝖿𝖿 !=𝖾𝖿𝖿 ⊆𝖾𝖿𝖿 ′. By contradiction, suppose that this is not the case, i.e., there
+is a literal 𝑝(𝒙) ∈𝖾𝖿𝖿 !(𝑜𝑝)such that 𝑝(𝒙) ∉𝖾𝖿𝖿 ′(𝑜𝑝). This means that 𝑝(𝒙)has been added to 𝖾𝖿𝖿 !(𝑜𝑝)by the application of rule (4),
+which implies that there is a transition (𝑠̂, 𝑜𝑝(𝒄), 𝑠̂′) ∈̂ such that ¬𝑝(𝒄) ∈𝑠̂and 𝑝(𝒄) ∈𝑠̂′, which in turn implies that ¬𝑝(𝒄) ∈𝑠and
+𝑝(𝑐) ∈𝑠′, which contradicts the fact that ′is consistent with ̂ . Therefore, since there cannot exist a model consistent with ̂ with
+a precondition set larger than 𝗉𝗋𝖾 orwith an effect set smaller than 𝖾𝖿𝖿 , we can conclude that is the onlyminimal model for
+̂ . □
+The previous lemma states that is the only minimal model for a leaf node (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′), but this does not necessarily
+mean that is minimal w.r.t. the initial traces ̂ , as pointed out in Example8. Howeve? r, we! can ? show that all the minimal models of
+̂ ̂
+are represented by some leaf of the completion tree for , i.e., all the minimal models can be computed by applying rules (4)–(10).
+Theorem 2 (Completeness of the completion rules). For every minimal model of a set of partial traces ̂ , there is a leaf of the completion
+tree of ̂ , labelled with (𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂′)having precondition function 𝗉𝗋𝖾 =𝗉𝗋𝖾 ?and effect function 𝖾𝖿𝖿 =𝖾𝖿𝖿 !.
+Proof. If is a minimal model for ̂ , then there must exists a leaf node (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′)of the completion tree for ̂ where
+𝗉𝗋𝖾 =𝗉𝗋𝖾 ?and 𝖾𝖿𝖿 =𝖾𝖿𝖿 !. Indeed, if is a minimal model for ̂ , then is c? onsis! tent w? ith ̂ . Since all models consistent with ̂
+satisfy (𝗉𝗋𝖾0, 𝖾𝖿𝖿0, 𝖾𝖿𝖿0, ̂ ), then satisfies (𝗉𝗋𝖾0, 𝖾𝖿𝖿0, 𝖾𝖿𝖿0, ̂ ). Every model satisfying (𝗉𝗋𝖾0, 𝖾𝖿𝖿0, 𝖾𝖿𝖿0, ̂ )also satisfies at least one
+? ! ? ? ! ? ? ! ?
+of the leaf nodes (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′), because of the “⟹” direction of Lemmas1–5and the “or” in the claim of Lemma6. Therefore,
+there must exists a le? af no! de (𝗉? 𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 , ̂′)such that satisfies the node. By Lemma9, there exists only one minimal model
+′consistent with ̂′such that 𝗉? 𝗋𝖾 ′! =𝗉𝗋? 𝖾 ?and 𝖾𝖿𝖿 ′=𝖾𝖿𝖿. Since is minimal and consistent with ̂′then  =′. □
+6. AlgorithmOffLAM
+PT
+This section describes a sound and complete algorithm, calledOffLAM (Offline Learning of Action Models from Partial Traces),
+modeP lT ̂
+which computes the set of minimal action models and the cautious for a set of partial traces . In this section, we focus on
+traces with totally observable actions and partially observable states. In the next section, we will show how to modifyOffLAM to
+PT
+treat traces with both partially observable states and actions.
+Algorithm1shows the pseudo-code of OffLAM . In line 1,OffLAM invokes algorithmComputeMinimalModelsto compute
+tP rT ̂ DefinitiP oT
+allthe minimal models for an input set of partial aces (see n15); in line 2,OffLAM invokes algorithmComputeCau-
+̂ reP tuT
+tiousModelto compute the cautious model for (see Definition16). Finally, the algorithm rns the set of predicates with their
+arity, and the set of operators with their arity, preconditions and effects (line 3).
+̂
+Given an input set of partial traces, , basically,ComputeMinimalModelsiteratively applies the completion rules presented in
+Section4; the iterative application of these rules constructs the completion tree, from which one can derive all the minimal models.
+However,ComputeMinimalModelsdoes not construct the completion tree as depicted in Examples 7and 8, but it constructs a
+compact representation of the tree. In particular, the algorithm sequentially applies all the completion rules with the exception of
+rules (9)and (10)that generate two sub-trees in the completion tree. Since a large number of expansion rules can be applied in both
+the sub-trees, instead of splitting the tree into two sub-trees with rules (9)and (10),ComputeMinimalModelsuses two alternative
+transformations. In place of rule (9), the algorithm adopts the following rule:
+15
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Algorithm 2ComputeMinimalModels.
+̂
+Require: set of partial traces
+1: ←{𝑝 ∣𝑝(𝒄) ∈̂ ∨¬𝑝(𝒄) ∈̂ }
+2:  ←{𝑜𝑝 ∣𝑜𝑝(𝒄) ∈̂ }
+3: for𝑜𝑝 ∈do
+4 6: 𝗉 𝖿𝗋𝖾 𝖿? !(( 𝑜𝑜 𝑝𝑝 )) ←← ∅ 𝑖( 𝑡𝒙 ()
+5 : 𝖾 𝖾𝖿 𝖿 ? ( 𝑜 𝑝 ) ← (𝒙))
+:
+7: endfor
+8: repeat
+9: repeat
+1 1 1 11 40 2: :: : uu A rn p n(pt 𝗉A i l (l 𝗋y p 𝖾( p ?r𝗉 l u 𝗋y 𝖾𝖾 l ,e?r 𝗉s,u 𝗋𝖾 ,(l 𝖾𝖿 e 1 ?𝖿s 𝖿3 ,! 𝖾, )( ?-4 𝖿𝖾 ( 𝖿𝖿) 1 !– 𝖿 )4?( )8 ), d) t̂ oot ) o (d 𝗉 ( o n𝗋𝗉 e 𝖾 o𝗋 s ?𝖾 ,? n 𝖾 c, o 𝖿 h𝖾 t 𝖿𝖿 !𝖿 c n,! h 𝖾 g, a 𝖿𝖾 e𝖿n𝖿 ?𝖿 g ,? e , ̂ ̂ ))
+1 3 : u ren tt il ,, 𝖿 𝖿 ! 𝖾 𝖿 ,  ̂ e s t a
+
+(𝑠̂ 𝑖,𝑎 𝑖+1,𝑠̂ 𝑖+1)…(𝑠̂ 𝑘−1,𝑎 𝑘,𝑠̂ 𝑘)∈̂
+{𝑝(𝒄),¬𝑝(𝒄)}∩(𝑠̂ 𝑗∪𝗉𝗋𝖾 ?(𝑎 𝑗))=∅∀𝑗s.t.𝑖<𝑗<𝑘
+¬𝑝(𝒄)∈𝑠̂ 𝑖and𝑝(𝒄)∈𝑠̂ 𝑘∪𝗉𝗋𝖾 ?(𝑎 𝑘) (13)
+𝑠̂ 𝑖+1←𝑠̂ 𝑖+1∪{𝑝 1(𝒄),¬𝑝 2(𝒄)}
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )←(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )[𝑝∕{𝑝 ,𝑝 }]
+? ! ? ? ! ? 1 2
+where notation (𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ )[𝑝∕{𝑝 1, … , 𝑝 𝑛}] means that every literal with 𝑝 as predicate in potential preconditions, definite
+effects, potential preconditions or set of traces is replaced with 𝑛 literals, 𝑝 1, … , 𝑝 𝑛. For example, {𝑝(𝑥, 𝑦)}[𝑝∕𝑝 1, 𝑝 2] is equal to:
+{𝑝 1(𝑥, 𝑦), 𝑝 2(𝑥, 𝑦)}. Intuitively, the two alternative assumptions made by rule (9)on the truth value of 𝑝(𝒄)in 𝑠̂ 𝑖+1 are both in the
+(single) consequence of (13), as 𝑝 1(𝒄)in 𝑠̂ 𝑖+1 represents the assumption that the truth value of 𝑝(𝒄)is true in 𝑠̂ 𝑖+1, while ¬𝑝 2(𝒄)in
+𝑠̂ 𝑖+1 represents the opposite assumption. Therefore, the two different conclusions that can be subsequently derived on the effects of
+action 𝑎 𝑖+1from the assumptions made by rule (9)can be still both derived by using 𝑝 1and 𝑝 2in place of𝑝.
+Similarly, in place of rule (10)the algorithm adopts the following rule:
+(𝑠̂ 𝑖,𝑎 𝑖+1,𝑠̂ 𝑖+1)…(𝑠̂ 𝑘−1,𝑎 𝑘,𝑠̂ 𝑘)∈̂
+{𝑝(𝒄),¬𝑝(𝒄)}∩(𝑠̂ 𝑗∪𝗉𝗋𝖾 ?(𝑎 𝑗))=∅∀𝑗s.t.𝑖<𝑗<𝑘
+¬𝑝(𝒄)∈𝑠̂ 𝑘and𝑝(𝒄)∈𝑠̂ 𝑖∪𝗉𝗋𝖾 ?(𝑎 𝑖+1) (14)
+𝑠̂ 𝑘−1←𝑠̂ 𝑘−1∪{𝑝 1(𝒄),¬𝑝 2(𝒄)}
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )←(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )[𝑝∕{𝑝 ,𝑝 }]
+? ! ? ? ! ? 1 2
+Intuitively, both the two alternative assumptions made by rule (10) on the truth value of 𝑝(𝒄) in 𝑠̂ 𝑘−1 are in the consequence of
+(14), because 𝑝 1(𝒄)in 𝑠̂ 𝑘−1represents the assumption that the truth value of 𝑝(𝒄)is true in 𝑠̂ 𝑘−1, while ¬𝑝 2(𝒄)in 𝑠̂ 𝑘−1represents the
+opposite assumption.
+We are now ready to describe the algorithm used byOffLAM for the computation of the minimal models consistent with a set of
+PT
+partial traces; its pseudo code is shown in Algorithm2. Lines 1and 2of the algorithm define the sets of predicates  and operators
+on the basis of the input set of partial traces ̂ . Loop 3–7defines 𝗉𝗋𝖾 , 𝖾𝖿𝖿 , and 𝖾𝖿𝖿 for the root of the completion tree for ̂ .
+Loop 8–12applies the rules (4)–(8)and (13)-(14)to the tuple (𝗉𝗋𝖾 , 𝖾𝖿𝖿 ,? 𝖾𝖿𝖿 ,! ̂ ). These? operations are repeated until a fix point is
+? ! ?
+reached. For the sake of efficiency, before making any assumption on the truth value of an atom in the set of partial traces (line 12),
+we derive all the possible potential preconditions and potential/definite effects from the current set of partial traces, and extend the
+partial traces on the basis of the action models under construction (loop 9–11). Finally, line 14of the algorithm returns the set of
+predicates with their arity, , the set of operators with their arity, , the function associating operators with their own potential
+preconditions, 𝗉𝗋𝖾 , and the function associating operators with their own definite effects, 𝖾𝖿𝖿 .
+? !
+Note that the computation of the minimal models could be done one predicate at a time. However, our rules (4)–(8)and (13)–(14)
+are defined on single transitions, rather than single predicates. Therefore, for the sake of presentation, in loop 8–13, Algorithm 2
+updates the potential preconditions and effects, the definite effects, and the partial traces by considering all the predicates in 
+together.
+byComputeMinimalModels(̂
+The output returned )is defined on signatures of predicates that are different from the ones in
+the original partial traces ̂ . In particular, for every predicate 𝑝in ̂ , the output returned byComputeMinimalModels(̂ )uses 𝑝 𝜎,
+where 𝜎is a string in {1, 2}∗. If 𝜎is the empty string 𝜖, then no split rule (13)or (14)has been applied on the atoms with predicate
+𝑝; on the contrary, if 𝜎≠𝜖, then some split rule has been applied to an atom of the form 𝑝(𝒄)for some constant 𝒄. To extract all the
+minimal models for ̂ from the output ofComputeMinimalModels(̂ ), it is sufficient to select, for every predicate 𝑝, one particular
+string 𝜎, substitute 𝑝 𝜎 with 𝑝, and drop all the other predicates having signatures derivedfrom𝑝.
+Theorem 3 (Termination). ComputeMinimalModelsterminates.
+16
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Algorithm 3ComputeCautiousModel.
+Require: , , 𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !
+1: repeat
+2: for𝑜𝑝 ∈do⋃
+3 4: 𝗉 𝖾𝖿𝗋𝖾 𝖿? !(( 𝑜𝑜 𝑝𝑝 )) ←← ⋂ 𝑖𝑖 ∈∈ {{ 11 ,, 22 }} 𝖾𝗉 𝖿𝗋𝖾 !? [[ 𝑝𝑝 𝜎𝜎 𝑖𝑖 ∕∕ 𝑝𝑝 𝜎𝜎 ]] (( 𝑜𝑜 𝑝𝑝 ))
+: 𝖿
+5: endf⋃or
+6 7: unt il← n𝑖∈ o{ t1 ,2 c} h an[𝑝 g𝜎 e𝑖 d∕𝑝 𝜎]
+: is
+8: return(, 𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !)
+Proof. At every iteration,ComputeMinimalModelseither extends some state 𝑠̂ of ̂ with a ground literal, or adds some lifted
+literals to 𝖾𝖿𝖿 (𝑜𝑝), or removes some lifted literal from 𝗉𝗋𝖾 (𝑜𝑝)or 𝖾𝖿𝖿 (𝑜𝑝), for some 𝑜𝑝. Since the number of partial states in ̂ are
+! ? ?
+finite, and the number of ground and lifted literals are finite, after a finite number of steps the process must converge to a fixpoint,
+and the algorithm terminates. □
+Theorem 4 (Computational complexity). The time complexity ofComputeMinimalModelsis 𝑂((2𝐿𝑒𝑛(̂ )⋅|̂| ⋅𝐿𝑒𝑛(̂ ))3), where 𝐿𝑒𝑛(̂ )
+̂ |̂|is
+is the sum of the length of all the input partial traces, i.e., the total number of transitions in , and the size of the input partial traces,
+̂
+i.e., the sum of the number of literals and actions in .
+𝑂(|̂|)
+Proof. Lines 1–2 require iterating over all literals and actions in the input set of traces, which requires operations. Loop
+3–7 iterates || times, and the most expensive operation in the loop requires Θ(||) operations. Therefore, the total number of
+operations required by loop 3–7 is Θ(|| ⋅|𝑃|) ≤Θ(𝐿𝑒𝑛(̂ ) ⋅|̂|). As for the loop 8–13, the most expensive rules are (13)-(14),
+because they apply to pairs of transitions, while rules (4)–(8)apply to single transitions. Moreover, it is important to note that all
+𝑂(2𝐿𝑒𝑛(̂
+rules in loop 8–13apply to the set of literals augmented by rules (13)-(14). For each atom, these rules introduce up to ))
+dummy atoms into the current set of traces. Therefore, in the worst case the number of atoms in the set of augmented traces is up
+to 𝑂(2𝐿𝑒𝑛(̂ )⋅|()|) ≤𝑂(2𝐿𝑒𝑛(̂ )⋅|̂|). For each atom, rules (13)-(14)scan the states and the precondition sets of actions included
+between a pair of transitions. Hence, in the worst case, the computational cost of these rules is 𝑂((2𝐿𝑒𝑛(̂ )⋅|̂|))2⋅(𝐿𝑒𝑛(̂ ))2). In the
+worst case, each iteration of the loop 8–13either adds or removes a (dummy) atom in a (partial) state, precondition or effect sets in
+𝑂(2𝐿𝑒𝑛(̂ )⋅|̂| ⋅𝐿𝑒𝑛(̂
+the current set of traces. Therefore, the number of iterations of loop 8–13is )), and hence its time complexity
+is 𝑂((2𝐿𝑒𝑛(̂ )⋅|̂| ⋅𝐿𝑒𝑛(̂ ))3). □
+Algorithm 3 shows the pseudo-code of ComputeCautiousModel. Intuitively, the algorithm applies the operations in Defini-
+tion16with the signatures of predicates returned byComputeMinimalModels. Notation [𝑝 𝜎𝑖∕𝑝 𝜎]indicates the set obtained by
+changing 𝑝 𝜎𝑖to 𝑝 𝜎, for some string 𝜎𝑖. For example, if both 𝑝 𝜎1(𝒙)and 𝑝 𝜎2(𝒙)are in 𝖾𝖿𝖿 !(𝑜𝑝), then they are both substituted in 𝖾𝖿𝖿 !(𝑜𝑝)
+with 𝑝 𝜎(𝒙). This is iteratively repeated so that 𝑝(𝒙)is included into 𝖾𝖿𝖿 !(𝑜𝑝)if 𝖾𝖿𝖿 !(𝑜𝑝)initially contains all the signatures introduced
+byComputeMinimalModelsfor 𝑝(Line 4). Similarly, 𝑝(𝒙)is included into 𝗉𝗋𝖾 (𝑜𝑝)if 𝗉𝗋𝖾 (𝑜𝑝)initially contains at least one signature
+? ?
+introduced byComputeMinimalModelsfor 𝑝(Line 3). Moreover, all the signature introduced byComputeMinimalModelsfor 𝑝
+in set  are replaced with 𝑝(Line 6). At the end,ComputeCautiousModelreturns the restored set , and the revised functions
+𝗉𝗋𝖾 and 𝖾𝖿𝖿 (Line 8). Essentially, the output of the algorithm states an action model having 𝗉𝗋𝖾 as precondition function, and 𝖾𝖿𝖿
+? ! ? !
+as effect function. Such an action model is the cautious model for the set of partial traces given as input toOffLAM .
+PT
+7. Learning action models from partial traces with partial actions
+In this section, we focus on traces that contain partial information about the executed actions. In particular, we extend the set of
+completion rules and the algorithms presented in Section6to cope with these traces with partially observable actions. A partially
+observed action 𝑎̂is a regular expression that describes a set of ground actions with terminal symbols ∪ ∪𝐷where 𝐷is the set
+of delimiters containing “(”, “)”, and “,”. A partial action matches a set of ground actions. For instance, the expression ⋆ matches
+all the ground actions; ⋆(𝑎, ⋆)matches the ground actions that apply some binary operator in to the constant 𝑎and some other
+constants in , e.g., 𝑚𝑜𝑣𝑒(𝑎, 𝑏), and 𝑚𝑜𝑣𝑒(𝑎, 𝑐). Given a partial transition ⟨𝑠̂, 𝑎̂, 𝑠̂′⟩, 𝑎̂ can be grounded with a subset of actions that
+match 𝑎̂, depending on the specific partial transition and from the model that we have learned so far. We therefore define the set
+𝐴 ⟨𝑠̂,𝑎̂,𝑠̂′⟩(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?)of ground actions that are compatible with ⟨𝑠̂, 𝑎̂, 𝑠̂′⟩w.r.t. ⟨𝗉𝗋𝖾 ?,𝖾𝖿𝖿 !,𝖾𝖿𝖿 ?⟩as:
+⎧ ⎫
+| |𝑜𝑝(𝒄)matcheswith𝑎̂
+⎪ ⎪
+|
+⎪ |if𝑙(𝒙)∈𝖾𝖿𝖿 (𝑜𝑝)then𝑙(𝒄)∉𝑠̂′ ⎪
+𝐴 ⟨𝑠̂,𝑎̂,𝑠̂′⟩(𝗉𝗋𝖾 ?,𝖾𝖿𝖿 !,𝖾𝖿𝖿 ?)=⎨ ⎪ ⎪𝑜𝑝(𝒄)| | | | |i if f𝑙 𝑙( (𝒙 𝒅) )∉ ∈𝖾 𝑠̂𝖿 a𝖿 n! !? d(𝑜 𝑙𝑝 () 𝒅t )h ∈en 𝑠̂′𝑙( t𝒄 h) en∉ 𝒅𝑠̂o ⊆r 𝒄𝑙(𝒄)∉𝑠̂′ ⎬ ⎪ ⎪ (15)
+⎩ ⎭
+Intuitively, 𝐴 ⟨𝑠̂,𝑎̂,𝑠̂′⟩(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?)is the set of candidate actionsof a model larger than or equal to (𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !)and smaller than or
+equal to (∅, 𝖾𝖿𝖿 )that can produce a transition from a state 𝑠to 𝑠′, such that 𝑠̂⊆𝑠and 𝑠̂′⊆𝑠′.
+!?
+17
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Example 9. Consider the following partial trace with partial information about the first action in the trace.
+𝑚𝑜𝑣𝑒(⋆,⋆) 𝑚𝑜𝑣𝑒(𝑏,𝑐)
+¬𝑎𝑡(𝑎)
+𝒕̂
+= 𝑎𝑡(𝑎) ¬𝑎𝑡(𝑐)
+𝑎𝑡(𝑐)
+𝑠 𝑠 𝑠
+0 1 2
+Suppose that 𝖾𝖿𝖿 (𝑚𝑜𝑣𝑒(𝑥, 𝑦)) is empty. The trace contains the three constants 𝑎, 𝑏, and 𝑐. By the first condition in Formula (15),
+!
+w me vc ea (n ,s ca )y mth oa vt 𝐴 (c⟨ ,𝑠 a0 ),𝑚 𝑜 m𝑣𝑒 o(⋆ v, e⋆ () c,𝑠 ,1 b⟩ )( }𝗉 .𝗋 B𝖾 ? y, 𝖾 a𝖿 p𝖿 p! l, y𝖾 i𝖿 n𝖿 g? ) ruis et h (6e )s te ot to hf a sl el ct oh ne dp to rs as nib sil te og nr o ou n 𝒕̂d wa ect rio emns o, vi. ee p., { em dio cav te e( a 𝑎, 𝑡b () 𝑦, m fro ov me ( 𝗉a 𝗋, 𝖾c) (, 𝑚m 𝑜o 𝑣v 𝑒e (𝑥(b 𝑦,a )) ),
+o b , e , l e i f , r ) , .
+?
+Moreover, by applying rule (8)to the second transition of 𝒕̂ , we add ¬𝑎𝑡(𝑎)to state 𝑠 of 𝒕̂ obtaining the following trace:
+1
+𝑚𝑜𝑣𝑒(⋆,⋆) 𝑚𝑜𝑣𝑒(𝑏,𝑐)
+¬𝑎𝑡(𝑎) ¬𝑎𝑡(𝑎)
+𝒕̂
+= 𝑎𝑡(𝑎)
+¬𝑎𝑡(𝑐) 𝑎𝑡(𝑐)
+𝑠 𝑠 𝑠
+0 1 2
+By applying rule (4)to the second transition of 𝒕̂ , we add 𝑎𝑡(𝑦)to set 𝖾𝖿𝖿 (𝑚𝑜𝑣𝑒(𝑥, 𝑦)). Therefore, by the second condition in Formula
+!
+( to1 5 t) h, e𝐴 ir⟨ 𝑠 s0 e,𝑚 𝑜 o𝑣 f𝑒 (⋆ d, e⋆ fi), n𝑠 1 i⟩ t( e𝗉 𝗋 e𝖾 ff? e, 𝖾 ct𝖿 s𝖿 ,! , 𝖾 s𝖿 𝖿 th?) esi es t ph re ds ie ct to ef g ar ro eu n fad sa ec it nio n 𝑠s t ah na dt 𝑎m 𝑡(a 𝑦t )ch ise s 𝑚 d𝑜 e𝑣 fi𝑒 n( i⋆ te, ⋆ e) ffesu ctc h ft h 𝑚a 𝑜t 𝑣𝑎 𝑒𝑡 (( 𝑥𝑎 ,) 𝑦a ).n Td 𝑎 is𝑡( 𝑐 ru) ld eso on uo tt ab ce tl io on ng
+t a e a s l a o h s
+1
+𝑚 th𝑜 e𝑣 t𝑒 r( u⋆ t, h 𝑎 ) vaa ln ud e 𝑚 of𝑜 𝑣 p𝑒 r( e⋆ d, i c𝑐 a) tf er o 𝑎m 𝑡( 𝑎𝐴 )⟨ i𝑠 n0, 𝑚 𝑠𝑜𝑣𝑒 i( s⋆ , d⋆ i) ff,𝑠 1 e⟩ r( e𝗉 n𝗋 t𝖾 ? f, r 𝖾 o𝖿 m𝖿 ! , 𝑠 𝖾𝖿𝖿 a? n) d, a tn hd e t oh ne lr ye f ao cr te i ow ne i na vre o ll ve if nt gw cit oh n s𝑚 ta𝑜 n𝑣 t𝑒 ( 𝑎𝑎, i 𝑏 n) ta hn ed s e𝑚 l𝑜 a𝑣 tt𝑒 e( r𝑐 , t 𝑏 w). o M aco tr ie oo nv se ir s,
+1 0
+𝑚 fir𝑜 s𝑣 t 𝑒 a( c𝑎 t, i 𝑏 o) n. S ino , 𝒕̂ b iy s t nh ee c efo ssu ar rt ih ly c o 𝑚n 𝑜d 𝑣i 𝑒t (io 𝑎n , 𝑏 i )n . TF hor ism au ll sa o ( e1 n5 a) b, lw ese fc ua rn th s ea ry r t eh aa st o 𝐴 ni⟨ n𝑠 0 g, .𝑚 I𝑜 n𝑣𝑒 d(⋆ ee,⋆ d), ,𝑠 1 w⟩( e𝗉 c𝗋𝖾 a? n, 𝖾 a𝖿 p𝖿 p!, l y𝖾 𝖿 r𝖿 u? l) e = (4{ )𝑚 t𝑜 o𝑣 t𝑒 h(𝑎 e, fi𝑏) r} st, a trn ad n sh ie tin oc ne oth f e 𝒕̂
+by adding ¬𝑎𝑡(𝑥)to 𝖾𝖿𝖿 (𝑚𝑜𝑣𝑒(𝑥, 𝑦)), apply rule (7)to the first and second transition of 𝒕̂ , and apply rule (8)to the second transition
+!
+𝒕̂
+of by deriving the following trace.
+𝑚𝑜𝑣𝑒(𝑎,𝑏) 𝑚𝑜𝑣𝑒(𝑏,𝑐)
+¬𝑎𝑡(𝑎) ¬𝑎𝑡(𝑎)
+𝑎𝑡(𝑎)
+𝑎𝑡(𝑏) ¬𝑎𝑡(𝑏)
+¬𝑎𝑡(𝑐)
+¬𝑎𝑡(𝑐) 𝑎𝑡(𝑐)
+𝑠 0 𝑠 1 𝑠 2
+From which we get that the final model is 𝗉𝗋𝖾 (𝑚𝑜𝑣𝑒(𝑥, 𝑦)) ={𝑎𝑡(𝑥)}and 𝖾𝖿𝖿(𝑚𝑜𝑣𝑒(𝑥, 𝑦)) ={¬𝑎𝑡(𝑥), 𝑎𝑡(𝑦)}.
+?
+The previous example shows that the reasoning on the partial actions contributes to extend the partial traces and discover further
+knowledge about the action model. In the example, the set 𝐴 ⟨𝑠̂,𝑎̂,𝑠̂′⟩(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?)ends up with only a single element; however, in
+general, such a set could contain more than one action. To deal with this situation, we extend the set of rules provided for partially
+observable states with a new rule.
+⟨𝑠̂,𝑎̂,𝑠̂′⟩∈̂
+𝐴 ⟨𝑠̂,𝑎̂,𝑠̂′⟩(𝗉𝗋𝖾 ?,𝖾𝖿𝖿 !,𝖾𝖿𝖿 ?)={𝑎 1,…,𝑎 𝑛} (16)
+𝑎̂←𝑎 1∣𝑎̂←𝑎 2∣⋯∣𝑎̂←𝑎
+𝑛
+This rule splits the search for a minimal model in as many cases as the number of actions that are compatible with the transition
+⟨𝑠̂, 𝑎̂, 𝑠̂′⟩according to the already learned approximated model (𝗉𝗋𝖾 , 𝖾𝖿𝖿 , 𝖾𝖿𝖿 ). Consequently, partial actions is a source of complexity,
+? ! ?
+as in the worst case, when no information is available in states 𝑠and 𝑠′, the set can contain the entire set of ground actions, and we
+have to consider 𝑂(|| ×||𝑚)cases, where 𝑚is the maximum arity of the operator contained in the partial traces. Since rule (16)
+considers all the possible cases, we have the following Lemma.
+Lemma 10 (Partially observable rule soundness). If {(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ 𝑖)}𝑛 𝑖=1is derived by applying rule (16)to a node of a completion tree
+(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ ), then for every action model ,  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ )if and only if  ⊧(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !, 𝖾𝖿𝖿 ?, ̂ 𝑖)for some 1 ≤𝑖 ≤𝑛.
+Proof. To prove the lemma it is enough to show that any completion of 𝒕̂ instantiate partial action 𝑎̂ 𝑖+1 in 𝒕̂ with at least one
+a 𝑜𝑝ct (i 𝒄o )n ∉ 𝑎 𝐴i (n 𝑠̂𝑖 ,𝑎𝐴 𝑖+( 1𝑠̂ ,𝑖 𝑠̂, 𝑖𝑎 +𝑖+ 1)1 (,𝑠 𝗉̂𝑖+𝗋𝖾1) ?( , 𝗉 𝖾𝗋 𝖿𝖾 𝖿? !, , 𝖾 𝖾𝖿 𝖿𝖿 𝖿! ?𝖾 )𝖿 . 𝖿 T? h). i sS iu mp pp lo iese s tb hy a tc oo nn etr oa fd i tc ht eio fn o llt oh wat i nt gh e cr oe n dis i tia o nc so m hop ll de st :ion of 𝑎̂ with an action 𝑜𝑝(𝒄) such that
+• 𝑙(𝒙) ∈𝖾𝖿𝖿 !(𝑜𝑝)and 𝑙(𝒄)∈𝑠̂ 𝑖+1. This implies that 𝑙(𝒄) ∈𝖾𝖿𝖿 !(𝑜𝑝(𝒄))and therefore 𝑙(𝒄) ∈𝑠 𝑖+1 for all the completions of 𝒕̂ , contra-
+dicting the fact that 𝑙(𝒄)∈𝑠̂ 𝑖+1⊆𝑠 𝑖+1.
+18
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+• 𝑙(𝒙) ∉𝖾𝖿𝖿 (𝑜𝑝) and 𝑙(𝒄)∈𝑠̂ and 𝑙(𝒄) ∈𝑠̂′. This is also impossible because the effects of 𝑜𝑝 in all the models  that satisfy
+(𝗉𝗋𝖾 ?, 𝖾𝖿𝖿 !,! ? 𝖾𝖿𝖿 ?, ̂ ) cannot contain 𝑙(𝒙) as effect, while in every completion of the transition (𝑠̂ 𝑖, 𝑎̂ 𝑖+1, 𝑠̂ 𝑖+1) the value of 𝑙(𝒄)
+changes, which is a contradiction.
+• 𝑙(𝒅) ∈𝑠̂and 𝑙(𝒅)∈𝑠̂and 𝒅⊈𝒄. This implies that some literal that contains a constant not in the parameters of 𝑜𝑝(𝒄)changes.
+But this contradicts the assumption that if an action changes the truth value of a literal, then all the constants that appear in the
+literals are arguments of the actions. □
+The above Lemma guarantees that Theorems1and 2also hold in the case of partially observable actions.
+To apply rule (16), we can follow the same approach used for rules (9)and (10). Indeed, instead of splitting the completion tree
+into several sub-trees, we duplicate the set of predicates for which we have not taken a decision about being a potential precondition
+or a definite effect. Formally, given a subset of ground actions ′⊆,
+ ′(𝗉𝗋𝖾 ?,𝖾𝖿𝖿 !,𝖾𝖿𝖿 ?)={𝑝∈∣𝑝(𝒄)∈𝗉𝗋𝖾 ?(′)or{𝑝(𝒄),¬𝑝(𝒄)}∩𝖾𝖿𝖿 !(′)=∅}
+⋃ ⋂
+where 𝗉𝗋𝖾 ?(′) = 𝑎∈′𝗉𝗋𝖾 ?(𝑎)and 𝖾𝖿𝖿 !(′) = 𝑎∈′𝖾𝖿𝖿 !(𝑎). In place of rule (16),OffLAM PTadopts the following rule:
+⟨ ⟩
+𝑠̂ 𝑖,𝑎̂ 𝑖+1,𝑠̂ ∈𝒕̂,𝒕̂ ∈̂
+𝑖+1
+𝐴⟨ 𝑠̂𝑖,𝑎̂𝑖+1 ,𝑠̂ {𝑖+ 𝑎1 1⟩ ,…(𝗉 ,𝑎𝗋 𝑛𝖾 }?, =𝖾𝖿 {𝖿 𝑝! 1, ,𝖾 𝑝𝖿 2𝖿 ,? …)= ,{ 𝑝𝑎 𝑚1 },…,𝑎 𝑛}
+(17)
+̂ ←̂ ⧵{𝒕̂ }∪{𝒕̂ [𝑎̂ 𝑖+1∕𝑎 1],…,𝒕̂ [𝑎̂ 𝑖+1∕𝑎 𝑛]}
+(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )←(𝗉𝗋𝖾 ,𝖾𝖿𝖿 ,𝖾𝖿𝖿 ,̂ )[𝑝1∕{𝑝1,…,𝑝1},…,𝑝𝑚∕{𝑝𝑚,…,𝑝𝑚}]
+? ! ? ? ! ? 1 𝑛 1 𝑛
+Rule (17)creates 𝑛copies of the trace in 𝒕̂ that contains transition (𝑠̂ 𝑖, 𝑎̂ 𝑖+1, 𝑠̂ 𝑖+1). In each copy of the trace, the partially observed action
+𝑎̂ 𝑖+1 is instantiated with a ground action that is compatible with 𝑎̂ 𝑖+1. Let 𝑝be a predicate that has not been already removed from
+the potential preconditions, or added to the definite effects of all the actions compatible with 𝑎̂ 𝑖+1. Then every occurrence of a literal
+with predicate equal to 𝑝is replaced with 𝑛copies of the literal, where 𝑝is replaced with 𝑝 1, … , 𝑝 𝑛. For example, suppose that the set
+of actions that are initially compatible with partial action 𝑚𝑜𝑣𝑒(⋆, ⋆)is 3 and 𝑎𝑡(𝑦)has not been already added to 𝖾𝖿𝖿 (𝑚𝑜𝑣𝑒(𝑥, 𝑦)).
+!
+Let 𝑎and 𝑏be the constants mentioned in the partial traces. Then, 𝑎𝑡(𝑎)is replaced with 𝑎𝑡 (𝑎), 𝑎𝑡 (𝑎), and 𝑎𝑡 (𝑎), and similarly for
+1 2 3
+𝑎𝑡(𝑏).
+The pseudo-code of AlgorithmComputeMinimalModelsfor traces with both partially observable states and actions is the same
+as in Algorithm2with the addition of rule (17)into Line 12. Furthermore, Algorithm3is modified to consider 𝑝 1, … , 𝑝 𝑛instead of 𝑝
+1
+and 𝑝 . If we applied rule (17)to traces that contain a large amount of partially observed actions, the number of dummy predicates
+2
+added to the trace would blowup. Therefore, the application of this rule can be much more expensive than others; for instance, while
+an application of rules (13)and (14)introduces 2dummy predicates, an application of rule (17)introduces up to || ⋅|| ⋅2𝐿𝑒𝑛(̂ )
+ComputeMinimalModels(̂
+dummy predicates. For this reason, in the implementation of ), we apply rule (17) only in certain
+circumstances. Specifically, when the set of possible actions shares the same operator, we apply rule (17)only once for every branch
+of the completion tree. Consequently, the implementation of the algorithm does not guarantee completeness in the computation of
+̂
+all the minimal models for , i.e., some false preconditions could not be discharged from the set of potential preconditions, or some
+true effect could not be added to the set of definite effect. However, notice that soundness is still guaranteed, as of Lemma10.
+8. Experiments
+In this section, we present and discuss the results of an experimental study that we conducted with the aim of: (i)evaluating the
+quality of the learned models for different settings and observability degrees of the plan traces; (ii)comparing the quality and the
+efficacy of the learned models w.r.t. a state-of-the-art approach to learning action models from partially observable plan traces.
+8.1. Experimental setting
+We experimented OffLAM on 18 classical planning domains adopted in the past International Planning Competitions (IPCs).
+PT
+The plan traces used for our experiments are built as follows. For each domain, we randomly generated 10 small or medium size
+problem instances. Table1shows the domains used for our experiments and the size of the generated problems. Then, we computed
+a plan for these problems by using the FastDownward planning system [16] with a lazy greedy best-first search and a context-
+enhanced additive heuristic [17,13]. For each FastDownward’s plan (𝑎 1, … , 𝑎 𝑛), we construct a trace 𝒕=(𝑠 0, 𝑎 1, 𝑠 1), … , (𝑠 𝑛−1, 𝑎 𝑛, 𝑠 𝑛),
+where each state 𝑠 𝑖 in the trace contains all the (positive/negative) literals that hold at time-step 𝑖. We randomly select a time
+step 𝑖 between 0 and 𝑛 −10, and extract the sub-trace 𝒕′=(𝑠 𝑖, 𝑎 𝑖+1, 𝑠 𝑖+1), … , (𝑠 𝑖+9, 𝑎 𝑖+10, 𝑠 𝑖+10) from 𝒕. Finally, we constructed a
+number of additional traces by removing literals and/or actions from 𝒕′. Specifically, we considered the ten degrees of observability
+in set Ω ={0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1}, and three different settings of the input traces: (i)traces with partially observable
+states and fully observable actions; (ii)traces with fully observable states and partially observable actions; (iii)traces with partially
+observable states and actions. When states in traces are partially observable, for each literal 𝑙in each state of 𝒕′we randomly remove
+𝑙with a probability equal to 1 −𝜔, ∀𝜔 ∈Ω. Therefore, the higher the observability degree, the lower the number of removed literals.
+When 𝜔 =1, no literal is removed, the trace remains complete, and the observability is full. Similarly, when actions in traces are
+19
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Table1
+Numberofobjecttypes(2ndcolumn),numberofpredicates(3rdcolumn),numberofoperators(4thcolumn),maximum
+arityforpredicates(5thcolumn),maximumarityforoperators(6thcolumn),rangeofobjectnumber(7ndcolumn),
+rangeofgroundactions(8rdcolumn)andrangeofgroundatoms(9thcolumn).
+Domain #types || || maxarity maxarity || || |()|
+Blocksworld 1 5 4 2 2 [3,8] [18,128] [16,81]
+Driverlog 6 6 6 2 4 [9,27] [22,740] [29,246]
+Ferry 2 5 3 2 2 [4,13] [12,136] [14,110]
+Grid 3 9 5 2 4 [14,43] [98,1924] [81,393]
+Hanoi 3 3 1 2 3 [5,10] [38,328] [32,122]
+Miconic 2 6 4 2 2 [3,12] [4,52] [7,48]
+N-puzzle 2 3 1 2 3 [17,49] [192,1920] [105,705]
+Parking 2 5 4 2 3 [6,18] [60,2448] [24,187]
+Satellite 4 8 5 2 4 [17,32] [156,731] [67,188]
+Transport 7 5 3 2 5 [17,30] [408,1824] [70,216]
+Depots 10 6 5 2 4 [17,54] [27,3384] [26,408]
+Elevators 6 8 6 2 5 [10,18] [188,1462] [67,209]
+Gold-miner 1 12 7 2 2 [10,43] [73,456] [63,310]
+Gripper 4 4 3 3 4 [6,20] [12,1155] [8,171]
+Nomystery 6 6 3 3 6 [7,21] [18,224] [28,139]
+Sokoban 3 4 2 3 5 [24,58] [80,448] [96,364]
+Spanner 6 6 3 2 4 [7,24] [5,42] [13,55]
+Tpp 8 7 4 3 7 [9,27] [36,18784] [33,687]
+partially observable, for each action 𝑎in 𝒕′we randomly remove 𝑎with a probability equal to 1 −𝜔, ∀𝜔 ∈Ω. When both states and
+actions in traces are partially observable, we randomly remove both literals and actions as mentioned. Therefore, for each considered
+setting of the input traces, observability degree, and domain, we derived a set of ten (partial) traces from which we learn an action
+model.
+We focus our experimental study on the cautious models learned byOffLAM . We evaluate both the quality and the efficacy of the
+PT
+learned models. As for the quality, we compared the learned models with the ground truth model by using the well-known metrics
+precision and recall [2]. Given a model and a ground truth model ⋆ , the precision and recall for preconditions of w.r.t. ⋆
+(denoted by 𝑃 𝗉𝗋𝖾and 𝑅 𝗉𝗋𝖾) are defined as follows:
+∑ ∑
+𝑜𝑝|𝗉𝗋𝖾(𝑜𝑝)∩𝗉𝗋𝖾⋆(𝑜𝑝)| 𝑜𝑝|𝗉𝗋𝖾(𝑜𝑝)∩𝗉𝗋𝖾⋆(𝑜𝑝)|
+𝑃 𝗉𝗋𝖾= ∑ , 𝑅 𝗉𝗋𝖾= ∑ ,
+𝑜𝑝|𝗉𝗋𝖾(𝑜𝑝)| 𝑜𝑝|𝗉𝗋𝖾⋆(𝑜𝑝)|
+where 𝗉𝗋𝖾(𝑜𝑝)and 𝗉𝗋𝖾⋆(𝑜𝑝)are the precondition sets of 𝑜𝑝in and in ⋆ , respectively. Intuitively, 𝑃 𝗉𝗋𝖾 measures the (relative)
+amount of extrapreconditions in w.r.t. ⋆ ; 𝑅 𝗉𝗋𝖾 measures the (relative) amount of missingpreconditions in w.r.t. ⋆ . The
+lower these amounts, the greater and better the metrics. If the values of precision and recall for 𝗉𝗋𝖾are 1, then the set of preconditions
+in the learned model is exactly the same as in the ground truth model. Similarly, we define precision and recall for 𝖾𝖿𝖿− and 𝖾𝖿𝖿+.
+The overallprecision 𝑃 and recall 𝑅of w.r.t. ⋆ are defined considering 𝗉𝗋𝖾, 𝖾𝖿𝖿−, and 𝖾𝖿𝖿+together:
+∑
+𝑜𝑝|𝗉𝗋𝖾(𝑜𝑝)∩𝗉𝗋𝖾⋆(𝑜𝑝)|+|𝖾𝖿𝖿+(𝑜𝑝)∩𝖾𝖿𝖿⋆+ (𝑜𝑝)|+|𝖾𝖿𝖿−(𝑜𝑝)∩𝖾𝖿𝖿⋆− (𝑜𝑝)|
+𝑃 = ∑ ,
+𝑜𝑝|𝗉𝗋𝖾(𝑜𝑝)|+|𝖾𝖿𝖿+(𝑜𝑝)|+|𝖾𝖿𝖿−(𝑜𝑝)|
+where 𝖾𝖿𝖿+∕−(𝑜𝑝)and 𝖾𝖿𝖿⋆+∕− (𝑜𝑝)are the sets of positive/negative effects in and ⋆ , respectively. The overall recall is defined
+similarly.
+Evaluating action models in terms of their amounts of unnecessary (or missing) knowledge is appropriate when, e.g., the learned
+models need to be validated by humans, and hence the learned models should not contain unnecessary knowledge (as is typically the
+case for the ground truth models considered in our experiments). On the other hand, the impact of unnecessary or missing knowledge
+can be significantly different on the efficacy of the learned models for computing valid plans. For example, suppose that in the learned
+model there is a missing precondition for an operator, which is implied by a different learned precondition for the same operator;
+then the missing precondition has no impact on the validity of the computed plans with the learned model. Therefore, as for the
+efficacy, we also compared the learned models in terms of percentage of valid plans w.r.t. the ground truth model. In particular, we
+constructed a set of test problems different from the set of problems used to generate the traces and hence to learn the model. We
+run a state-of-the-art planning system with this set of test problems and the learned models, and validated the computed plans w.r.t.
+the ground truth model. The higher the percentage of valid plans w.r.t. the ground truth model, the more effective the learned model
+used to compute those plans. Similarly, we measured the percentage of plans lost by using the learned models among those computed
+by a state-of-the-art planning system using the ground truth model. The lower the percentage of lost plans, the more permissive the
+learned models.
+All the experiments have been conducted on a CPU Apple M1 Pro with 16GB of RAM, and a CPU time limit of 1000seconds.
+20
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Fig. 1.Ave rage preci sion an d reca ll of theOffL AM P T’s mod els fo r different deg rees of ob servability, and for our traces with partial states, traces with partial actions,
+andtraceswithbothpartialstatesandactions.Theshapedarearepresentsthestandarddeviation.
+8.2. Quality of the learned models
+The models computed byOffLAM are evaluated for three different settings of traces: (i) partially observable states and fully
+PT
+observable actions; (ii)fully observable states and partially observable actions; and (iii)partially observable states and actions. For
+each setting, Fig. 1 shows the average precision and recall. The curves represent the values averaged over the 18 action models
+learned for the considered benchmark domains, whereas the shaped area around each curve represents the standard deviation.
+The results in Fig.1indicate that when traces have partially observable states and fully observable actions, the quality of the
+learned models is high. SinceOffLAM defines the cautious model from the sets of potential preconditions and definite effects, the
+PT
+model does not miss any precondition but can contain extra preconditions, and does not contain any extra effect but can miss some
+effect. Therefore, the results in Fig.1indicate that the number of extra preconditions and missing effects in the learned models is
+low. More specifically, while the recall is very often equal to 1, the precision is more frequently lower than 1, because in our learned
+models there are very few missing effects but they sometimes contain some extra preconditions. The reason why this happens is that
+certain literals, such as the static ones, cannot be ruled out from the set of the potential preconditions, as their negation never appears
+in the set of input traces. Remarkably, the performance is good even when the observability rate is low (e.g. 0.1), which means that
+the rules used byOffLAM are quite effective in inferring or making assumptions on the truth value of the missing literals in the
+PT
+partial states of the traces, and therefore refining the sets of action preconditions and effects. The results for traces with partially
+observable actions and fully observable states are similar. The quality of the learned models becomes poor only when both states and
+actions are partially observable and the observability degree is lower than 0.4. With this setting, the amount of missing evidence is
+large, and the rules ofOffLAM fail to infer useful knowledge to refine the sets of action preconditions and effects.
+PT
+The standard deviation of the precision and recall achieved byOffLAM is comparable for the three considered settings of traces,
+PT
+and does not drastically change fordifferent observability degrees. The performance of the approach is more affected by the nature
+of the domain, and the amount of useful evidence in the input traces. For example, when the traces have partially observable states
+and fully observable actions, the overall precision of the model learned for the Blocksworld domain is always 1, while it ranges from
+0.48to 0.72for the Gold-miner domain. Similarly, the range of the overall recall for Blocksworld is smaller than for Gold-miner: the
+overall recall for Blocksworld ranges from 0.93(with observability degree equal to 0.1) to 1, while for Gold-miner it ranges from 0.71
+to 0.95. In particular, the models learned for Blocksworld contain no extra preconditions and almost always no missing effects (only
+one missing effect when the observability degree is equal to 0.1), while in the models learned for Gold-miner the number of extra
+preconditions ranges from 15to 83and the number of missing effects ranges from 2to 20.
+Appendix A shows the detailed results about the precision and recall of OffLAM domain by domain. For traces with either
+PT
+partial states or partial actions,OffLAM is usually capable to draw all the useful knowledge from the traces when the observability
+PT
+degree is greater than 0.3. Indeed, for all domains but three,OffLAM achieved the same best performance as with fully observable
+PT
+traces when the observability degree is 0.4(or greater). As expected, the picture deteriorates for traces with both partial states and
+partial actions, since, for all domains but three,OffLAM achieved the best performance only when the observability degree is 0.6(or
+PT
+greater). Another remarkable result is that for domains Blocksworld, Gripper, and Miconic,OffLAM is capable of deriving exactly
+PT
+the same action model as the ground truth model even when the observability is poor.
+8.3. Performance w.r.t. an increasing number of input traces
+We also investigate the scalability of OffLAM and the quality of the learned models when the number of input traces becomes
+PT
+large. We considered a number of input traces ranging from 10to 100. Such a set of traces was randomly generated as follows: for
+each of the 10problems of every considered domain, in addition to the FastDownward’s plan 𝜋 solving the problem, we generated
+nine traces by performing random walks starting from the first nine states of 𝜋. From the trajectories obtained by the random walks,
+we derived the input traces for our experiment as described in Section8.1.
+For this experiment, we focus on the most complex setting of input traces and the (seven) most complex domains in our benchmark,
+i.e., traces with both partially observable states and actions, an observability degree in {0.1, 0.2, 0.3}, and domains with a number of
+predicates and operators greater than 5and 3, respectively.
+21
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Fig. 2.Aver age pr ecisi on and recall of the models learn ed byOffL AM PT, and a verage CPU time required byOffLAM PTfor different amounts of input traces having
+bothpartialstatesandpartialactions.Theshapedarearepresentsthestandarddeviation.
+For each considered number of input traces,OffLAM successfully learns all the 21action models learned for the seven benchmark
+PT
+domains and the three observability degrees used in this experiment. Fig.2shows the CPU time used byOffLAM and the precision
+PT
+and recall of theOffLAM ’s models, averaged over the seven domains and three observability degrees, for different number of input
+PT
+traces. Remarkably, the CPU time required byOffLAM tends to degrade only when the number of input traces is quite high, i.e.
+PT
+greater than 80. As expected, the precision and recall of the learned models increase with the number of input traces. However, we
+empirically observed that, for a number of test problems, the models learned from a large set of input traces allow solving the same
+set of problems solved by the models learned from only 10input traces. Therefore, for some complex settings, the effectiveness of the
+action models learned byOffLAM may not benefit from an increasing number of input traces.
+PT
+8.4. Comparison with FAMA
+In this section, we compareOffLAM withFAMA[2], which is a state-of-the-art method for learning action models from partially
+PT
+observable traces.ARMSis another approach proposed for learning action models, encoded using the STRIPS language [30]. How-
+ever, we do not considerARMSas an additional baseline for our experiment, becauseARMSdeals with plan traces having partially
+observable states and fully observable actions; i.e.,ARMSsolves a more specific problem thanOffLAM , which can deal with traces
+PT
+having both partially observable states and actions. Therefore,ARMSmight be used as an additional baseline for only one over three
+settings of plan traces considered for our experiments. Moreover, Aineto etal.[2]show thatFAMAoutperformsARMSfor input traces
+with partially observable states and fully observable actions; therefore, we considerFAMAas the state-of-the-art baseline to compare
+with in our experiments.
+FAMAfails to derive an action model from our plan traces, becauseFAMArequires that the initial and final states of the trace are
+complete, while we do not make such an assumption for the generation of our traces. Moreover, we observed thatFAMAsuccessfully
+compute a model from a very small set of traces but it does not scale well with larger set of traces. The benchmark described in
+Section8.1consists of sets of 10 plan traces from which we learn an action model; we empirically observed that, even when the
+initial and final state of our traces are complete,FAMAoften fails to compute an action model from our sets of 10traces. Therefore,
+for this comparison, we adopted the benchmark provided by the developers of FAMA. This benchmark consists of 15domains, and
+for each of these domains 10complete traces (from which we select smaller subsets of traces). The domains are the first 10listed in
+Table1plus Floortile, Rovers, Visitall, Goldminer, and the single-agent version of the Gripper domain. We used the tool provided
+by the developers of FAMAto generate three sets of (partial) traces related to the settings: (i) partially observable states and fully
+observable actions; (ii)fully observable states and partially observable actions; and (iii)partially observable states and actions. Each of
+these sets contains traces with an observability degree ranging from 0.1to 1. Each (partial) trace in the sets consists of 10transitions.
+Similarly to Aineto etal.[2], we conducted two sets of experiments with 𝑛 =2and 𝑛 =5: for 10times, we randomly selected 𝑛traces
+from the set of 10 traces provided by Aineto etal.[2], runOffLAM andFAMAwith the selected set of traces, and compared the
+PT
+required CPU times and the quality and efficacy of the learned action models.
+It is worth noting that, for every set of selected traces,OffLAM computes an action model successfully, whileFAMAsometimes
+PT
+fails to compute an action model within the given CPU time limit. We also observed that, even increasing the time limit to 1 hour for
+FAMA, the number of action models learned byFAMAhas remained the same. The percentage of failure ofFAMAwith 2and 5traces is
+respectively 3and 5.2; this confirms thatOffLAM tends to scale better thanFAMAw.r.t. an increasing number of input plan traces.
+PT
+Fig.3shows the average CPU time required byOffLAM andFAMAto compute an action model from a set of 2traces. The CPU time
+PT
+is averaged over the 15considered planning domains and 10pairs of selected traces. WhenFAMAruns out of time we considered 1000
+seconds as the CPU time ofFAMA. For every considered observability degree and every setting of the input traces,OffLAM is faster
+PT
+thanFAMA. The performance gap is higher when learning from traces with partially observable states and actions. For this setting of
+the input traces, when the observability is partial,OffLAM is about three orders of magnitude faster thanFAMA; it is still one order
+PT
+of magnitude better when the observability is full. Finally, we empirically observed that the performance gap betweenOffLAM and
+PT
+FAMAis even greater, in favourofOffLAM , when learning from 5input traces.
+PT
+The rest of the section focuses on the quality and efficacy of the learned action models. For this experimental study, we considered
+only the set of traces with whichFAMAsuccessfully learns an action model. The average precision and recall of the action models
+learned byOffLAM andFAMAwith 2partial traces are shown in Fig.4. The curves represent the values averaged over (almost) 150
+PT
+22
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+F sti ag t. e3 . (dA ev ne ora teg de C byP U ̂t ,i 𝑎m ))e o trf aO ceff sL wAM ithP T pa an rtd iaF lA aM ctA iow nsh e (dn l ne oa tr en din bg m (o 𝑠,d 𝑎̂e )l )s f aro nm ta as ce et so wf 2 ithp a br oti ta hl t pr aa rc te ias lf o str d teiff e ar ne dn t d ae rg tir ae le as co tf o nb ss e (drv ea nb oi tl eit dy , a yn (d ,f 𝑎o ̂)r t .r Tac he es sw hi at ph p da art ri ea al
+s (𝑠 , e y , d r a s p io b 𝑠̂ ) e
+representsthestandarddeviation.
+F paig r. tia4 l. sA tav te er sa g (de p nr oe tc ei dsi o bn (a 𝑠̂n d )r )e c ta rall eo sf wth ie m po ad rte il as l ae ca tr in oe nd (b dy enO off tL eA M byPT (𝑠a ,n 𝑎̂d )),F A anM dA tru as ci en sg w2 tp ha r bt oia thl t pr aa rc te is lf o str d teiff e ar ne dn t ad re tg iare e as to iof no sb s (der ev na ob ti el dit y b, a (n 𝑠̂d ̂f )o )r Ttr ha ec e ss aw pi eth
+e y , 𝑎 , c th l s d i a a s p l c y , 𝑎 . h d
+arearepresentsthestandarddeviation.
+action models, one for each of the 15planning domains and 10pairs of traces (excepting the pairs of traces from whichFAMAfails
+to compute a model). The results in Fig.4show that when the states are partially observable and the actions are fully observable,
+OffLAM is clearly better than FAMA, as it is always the best in terms of both precision and recall. Notably, in terms of recall
+PT
+OffLAM performs better thanFAMAby a large margin, i.e., more than 10%. When the states are fully observable and the actions are
+PT
+partially observable,OffLAM is still better thanFAMA, as it is much better in terms of recall and is comparable in terms of precision.
+PT
+Specifically, the recall ofOffLAM is always better thanFAMAby a large margin; when the degree of observability is lower than 0.4,
+PT
+the precision ofFAMAis slightly better thanOffLAM ; when it is between 0.4and 0.7, the precision of the two approaches is similar;
+PT
+when it is higher than 0.7, the precision ofOffLAM is slightly better. Finally, when both states and actions are partially observable,
+PT
+the picture is less clear. Indeed, the recall obtained byOffLAM is almost always much better thanFAMA, whileFAMAis almost always
+PT
+much better in terms of precision. Indeed, the precision of OffLAM is better than or similar toFAMAonly when the observability
+PT
+degree is greater than 0.6. The reason why the performance ofOffLAM is sometimes very poor for this setting of traces is that rules
+PT
+(13)and (14)are more frequently applied when the observability degree is low, they introduce a large amount of dummy predicates
+from which Algorithm3fails to derive useful knowledge for the computation of the cautious model. Moreover, one can observe that
+overall the standard deviation of OffLAM is lower than or similar to FAMA. This means that the efficacy of FAMAchanges more
+PT
+frequently thanOffLAM , i.e., the performance ofFAMAis more affected from the input pair of traces w.r.t.OffLAM .
+PT PT
+23
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+F paig r. ti5 al. sA tav te er sa g (de p nr oe tc ei dsi o bn a (𝑠̂n ,d )r )e c ta rl al o ef t wh ie hm po ad re til as ll e aa cr tin oe nd b (dy eO noff tL edA M byP T (𝑠a 𝑎n ̂)d ),F aA nM A tru acsi en sg 5 tp ha brt oi ta hl ptr aa rc te ias f so tr td ei sff ae nre dn pt ad re tg iar le e as to iof no sb (s de erv na ob teil dit y b, a (n 𝑠̂d ̂f )o ).r Ttr ha ec e ss aw pi et dh
+e y 𝑎 , c s t s , d w i l a c y , 𝑎 h
+arearepresentsthestandarddeviation.
+Fig.5shows the performance of OffLAM andFAMAwith 5partial traces. The results in this figure lead to conclusions similar
+PT
+to those draw from Fig. 4. The main difference w.r.t. Fig. 4 regards the performance when both states and actions are partially
+observable. Indeed, with 5traces the performance gaps are higher than with 2traces. With 5traces, we can draw that in terms of
+bothprecision and recallFAMAis better thanOffLAM only when the observability degree is really low (between 0.1and 0.2), while
+PT
+OffLAM is better when the observability degree is greater than 0.6.
+PT
+We also compared the efficacy of the models computed by OffLAM and FAMA in terms of percentage of valid plans and lost
+PT
+plans. For this experiment, we generated 10 small and middle-size problem instances for every domain but Visitall and the single-
+agent version of Gripper, for which we could not find an available problem generator. Then, we run the FastDownward planner
+with a lazy greedy best-first search and a context-enhanced additive heuristic [16]using the action models learned from 2traces.
+The results of FastDownward with the action models learned from 5 traces are similar. For each observability degree, the number
+of action models used for this experiment is (almost) 130, because we useOffLAM andFAMAto learn 10action models (using the
+PT
+procedure mentioned before) for each of the 13domains used for this experiment. ForFAMA, the number of planning domains in
+slightly lower than 130, as sometimesFAMAfails to output an action model. Therefore, for each observability degree we considered
+(almost) 1300planning problems.
+Table2shows the percentage of valid plans computed by FastDownward using the action models learned byOffLAM andFAMA.
+PT
+A plan is considered valid if it is executable and reaches the goals using the ground truth model. The performance gap between
+OffLAM andFAMAis very large in favourofOffLAM , as the percentage of valid plans with the action models learned byOffLAM
+PT PT PT
+is almost always greater than 90, while such a percentage with the action models learned byFAMAis at most 20.
+Notably, when the observability degree is greater than or equal to 0.8almost all the plans computed with the action models learned
+byOffLAM are valid. This is because, as mentioned before, for such observability degrees the recall is almost equal to 1. Sometimes
+PT
+it happens that a plan is not valid because some action models have a missing negative effect that compromise the validity of the
+plan. The percentage of valid plan is lower than 90only when both states and actions are partially observable and the observability
+degree ranges from 0.2to 0.4. However, even for these settings the action models learned byOffLAM for all domain but N-puzzle
+PT
+allow to compute a percentage of valid plan close to 100. For N-puzzle, a half of the learned action models allow to solve a large
+amount of problems with invalid plans. Indeed, in half of the N-puzzle models there is one missing negative effect that make the
+problem easy to solve with a plan that is invalid according to the ground truth model.
+Table3gives the percentage of plans lost by using the action models learned byOffLAM andFAMA. The lost plan percentage is
+PT
+defined as the ratio of plans that are not valid for the learned models among the (1300) plans computed by FastDownward using the
+ground truth models. Plans that are not valid for a model cannot be computed using the model and, in this sense, we say that they
+are lost by the model. The results in Table3show thatOffLAM loses much more plans thanFAMA, and hence theOffLAM ’s models
+PT PT
+are much less permissive than those computed byFAMA.
+The reason why the ratio of invalid plans is often quite high forOffLAM is that the models learned byOffLAM contain extra-
+PT PT
+preconditions that make the plans computed using the ground truth model not valid for the learned models.OffLAM fails to rule
+PT
+24
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Table2
+Average ratio of the valid plans computed by FastDownward using the models learned byOffLAM
+partiP aT
+andFAMAfrom 2 partial traces for different degrees of observability, and for traces with l
+states (denoted by (𝑠̂, 𝑎)), traces with partial actions (denoted by (𝑠, 𝑎̂)), and traces with both partial
+states and partial actions (denoted by (𝑠̂, 𝑎̂)). Subscript indicates the number of plans over which
+theratioiscomputed.Thebestresultsareinbold:thehigher,thebetter.
+(𝑠̂,𝑎) (𝑠,𝑎̂) (𝑠̂,𝑎̂)
+Observability
+OffLAM FAMA OffLAM FAMA OffLAM FAMA
+PT PT PT
+0.10 𝟎.𝟗𝟗 0.14 𝟏.𝟎𝟎 0.09 𝟏.𝟎𝟎 0.06
+319 1027 217 1117 24 614
+0.20 𝟎.𝟗𝟑 0.12 𝟏.𝟎𝟎 0.12 𝟎.𝟔𝟐 0.11
+598 1061 261 1158 39 761
+0.30 𝟎.𝟗𝟓 0.16 𝟎.𝟗𝟖 0.13 𝟎.𝟓𝟓 0.08
+701 1172 516 1107 55 872
+0.40 𝟎.𝟗𝟑 0.13 𝟏.𝟎𝟎 0.10 𝟎.𝟖𝟑 0.08
+763 1068 539 1087 119 942
+0.50 𝟎.𝟗𝟔 0.20 𝟏.𝟎𝟎 0.09 𝟎.𝟗𝟑 0.13
+794 1143 615 1138 268 998
+0.60 𝟎.𝟗𝟗 0.18 𝟏.𝟎𝟎 0.11 𝟎.𝟗𝟕 0.11
+906 1132 641 1145 329 1017
+0.70 𝟎.𝟗𝟓 0.15 𝟏.𝟎𝟎 0.12 𝟎.𝟗𝟒 0.14
+918 1130 816 1143 580 1167
+0.80 𝟏.𝟎𝟎 0.18 𝟎.𝟗𝟗 0.14 𝟎.𝟗𝟕 0.11
+911 1148 918 1159 846 1149
+0.90 𝟏.𝟎𝟎 0.17 𝟏.𝟎𝟎 0.11 𝟏.𝟎𝟎 0.13
+924 1108 852 1074 828 1072
+1.00 𝟏.𝟎𝟎 0.15 𝟏.𝟎𝟎 0.15 𝟏.𝟎𝟎 0.14
+908 1089 908 1086 908 1122
+Table3
+Average ratio of the lost plans using the modelsOffLAM andFAMAfrom 2 partial traces for
+partiP aT
+different degrees of observability, and for traces with l states (denoted by (𝑠̂, 𝑎)), traces with
+partial actions (denoted by (𝑠, 𝑎̂)), and traces with both partial states and partial actions (denoted
+by (𝑠̂, 𝑎̂)). The best results are in bold: the lower, the better.
+(𝑠̂,𝑎) (𝑠,𝑎̂) (𝑠̂,𝑎̂)
+Observability
+OffLAM FAMA OffLAM FAMA OffLAM FAMA
+PT PT PT
+0.10 0.83 𝟎.𝟓𝟑 0.89 𝟎.𝟔𝟓 0.98 𝟎.𝟕𝟕
+0.20 0.70 𝟎.𝟒𝟔 0.85 𝟎.𝟓𝟐 0.96 𝟎.𝟔𝟔
+0.30 0.60 𝟎.𝟑𝟕 0.75 𝟎.𝟒𝟗 0.94 𝟎.𝟓𝟓
+0.40 0.58 𝟎.𝟑𝟗 0.73 𝟎.𝟓𝟏 0.93 𝟎.𝟓𝟏
+0.50 0.58 𝟎.𝟑𝟔 0.64 𝟎.𝟒𝟓 0.88 𝟎.𝟒𝟗
+0.60 0.51 𝟎.𝟑𝟕 0.63 𝟎.𝟒𝟒 0.84 𝟎.𝟒𝟖
+0.70 0.51 𝟎.𝟑𝟓 0.61 𝟎.𝟒𝟎 0.72 𝟎.𝟑𝟕
+0.80 0.51 𝟎.𝟑𝟖 0.53 𝟎.𝟑𝟐 0.59 𝟎.𝟑𝟒
+0.90 0.49 𝟎.𝟒𝟎 0.56 𝟎.𝟑𝟔 0.58 𝟎.𝟑𝟗
+1.00 0.52 𝟎.𝟑𝟗 0.52 𝟎.𝟑𝟗 0.52 𝟎.𝟑𝟖
+out these extra preconditions from the learned models because of missing information in the input traces. For instance, for the Ferry
+domain, actionsailcontains the extra preconditionempty-ferryin the models learned byOffLAM ; the presence of this extra
+PT
+precondition makes all the plans computed by FastDownward using the ground truth model invalid for theOffLAM ’s model; and
+PT
+the reason why such a precondition is part of the OffLAM ’s model is that in the input traces ferries always sail with an empty
+PT
+cargo. Notably, the quite high ratios forOffLAM in Table3do not mean thatOffLAM loses the capability of solving problems.
+PT PT
+For instance, when the observability degree is greater than or equal to 0.8, althoughOffLAM loses more than one plan over two,
+PT
+we empirically also observed that the percentage of problems solved using the OffLAM ’s models is between 60and 70for every
+PT
+considered setting of traces. Fig.4shows that for such observability degrees the recall is almost equal to 1, and hence there are few
+or none missing effects. Therefore, we conjecture that the reason why about one out of three problems is unsolved by FastDownward
+using theOffLAM ’s models is the presence of extra preconditions in these action models.
+PT
+9. Conclusions
+Automated planning requires the specification of a model of the actions that the controlled agents can execute in their world. The
+hand-crafted specification of such a model is often a complex task, which can take a long time and may result in a wrong specification.
+Researching in AI proposed a number of approaches for automatically learning an action model from observations of the acting of the
+agents that one intends to control. In this work, we focused on learning an action model from a set of traces that provides knowledge
+about a sequence of actions successfully executed by the agents, and knowledge about the states of the world before and after the
+executions of these actions. Such traces can be partial, i.e., traces of partially observable states and actions.
+There may be many action models that are consistent with a set of partial traces. The first contribution of our work is the preference
+criteria for determining the best action model among those consistent with the set of input partial traces: the smaller, the better. We
+consider a model  smaller than another model,  , if from a given state the transitions enabled by  are a subset of those
+1 2 1
+enabled by  , and the changes performed by each of these transitions for  are a subset of those for  . However, there may
+2 1 2
+be still more than one minimal model consistent with the input set of traces. Thus, we compute a model, the cautious model, that
+25
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+consists of the effects present in all the minimal models and the preconditions present in at least one minimal model. The cautious
+model is such that it contains the effects that are necessarily present in all the possible models consistent with the input traces, and
+the preconditions that are potentially present in at least one model consistent with the input traces.
+The second contribution of our work is a set of rules for the problem of computing all the minimal models consistent with a set
+of traces. We prove that the iterative application of these rules is sound and complete for this problem. Therefore, we propose an
+algorithm that first computes all the minimal models for an input set of traces, and subsequently derives the cautious model. We
+conducted an extensive experimental study to evaluate the quality of the models learned using the proposed algorithm w.r.t. the
+ground truth model. Our study considers input plan traces ranging from having very little knowledge about the executed actions and
+traversed states to having fully observable states and actions. The comparison between the output model and the ground truth model
+used for the generation of the input traces shows that our approach performs very well. Briefly, when traces have either partially
+observable states or actions, our approach generates action models with very high values for precision and recall, which means
+that our models contain few extra preconditions and miss few effects of the ground truth model. With traces having both partially
+observable states and actions, the precision and recall are very high when at least a half of the knowledge about the executed actions
+and the traversed states is in the input traces.
+Another contribution of the work is proposing to experimentally evaluate the efficacy of the learned models for planning, in
+addition to the evaluation of their quality w.r.t. the ground truth model. We propose to evaluate their effectiveness in terms of
+percentage of valid plans and percentage of lost plans. A plan computed using the learned action model is considered valid if it
+is executable and reaches the problem goals by using the ground truth model. A plan computed using the ground truth model is
+considered lost by a learned model if it is not executable or does not reach the problem goals by using the model. We compared the
+models learned by our approach with those learned by a state-of-the-art approach,FAMA. For the considered large set of benchmarks,
+our models are generally better than those learned byFAMAwhen the set of input traces have either partially observable states or
+partially observable actions, and when the input traces have partially observable states, partially observable actions, and the observed
+knowledge in the input traces is roughly at least as much as the missing knowledge. Most importantly, our approach outperforms
+FAMAin terms of percentage of valid plans, showing that the models learned using our approach are much more effective for acting
+in the world where the set of input traces was originated. Finally,FAMAloses less plans than our models, showing that the models
+learned using our approach are much less permissive than those computed byFAMA.
+There are several research directions to extend our work. We intend to adopt our algorithms to learn from partial traces generated
+by an onlineapproach, similarly to [22]. Another direction for the future work consists in learning from partial traces with states
+containing numerical variables or traces with states and actions labelled by times, which aims to output an action model with
+numerical preconditions and effects, or an action model with durative actions as in PDDL2.1 [14].
+CRediT authorship contribution statement
+Leonardo Lamanna: Writing – review & editing, Writing – original draft, Validation, Software, Methodology, Investigation,
+Formal analysis, Data curation, Conceptualization.Luciano Serafini:Writing – review & editing, Writing – original draft, Supervision,
+Resources, Project administration, Methodology, Investigation, Funding acquisition, Formal analysis, Conceptualization.Alessandro
+Saetti:Writing – review & editing, Supervision, Methodology, Formal analysis, Conceptualization.AlfonsoEmilio Gerevini:Writing
+– review & editing, Supervision, Resources, Methodology, Funding acquisition, Conceptualization.Paolo Traverso:Writing – original
+draft, Supervision, Resources, Project administration, Funding acquisition, Conceptualization.
+Declaration of competing interest
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Acknowledgements
+We acknowledge the support of the PNRR project FAIR -Future AI Research (PE00000013), under the NRRP MUR program funded
+by the NextGenerationEU, and the EU H2020 project AIPlan4EU (GA n. 101016442). This work was also partially supported by EU
+ICT-48 2020 project TAILOR (No. 952215) and MUR PRIN project RIPER (No. 20203FFYLK).
+AppendixA
+The next tables show the precision and recall of the models learned by OffLAM using 10 partial traces with an observability
+PT
+degree ranging from 0.1(poor) to 1.0(full), and for traces with partially observable states (top table), traces with partially observable
+actions (middle table), and traces with both partially observable states and partially observable actions (bottom table). The best pair
+of values of precision and recall is in bold.
+26
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+(𝑠̂,𝑎) 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+Domain 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅
+ferry 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00
+gripper 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+hanoi 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+miconic 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+n-puzzle 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00
+nomystery 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00
+sokoban 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+transport 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00
+blocksworld 1.00 0.93 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+grid 0.78 0.94 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00
+parking 0.89 0.97 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+depots 0.94 0.86 0.97 0.97 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00
+elevators 0.79 0.92 0.77 0.97 0.80 1.00 0.80 1.00 0.80 1.00 0.80 1.00 0.80 1.00 0.80 1.00 0.80 1.00 0.80 1.00
+spanner 0.93 0.88 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00
+tpp 0.80 0.77 0.82 0.87 0.81 0.84 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87
+driverlog 0.82 0.82 0.92 0.86 0.93 0.89 0.93 1.00 0.93 0.96 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00
+satellite 0.89 0.74 0.90 0.83 0.96 0.96 0.92 1.00 0.96 0.96 0.96 1.00 0.96 1.00 0.96 1.00 0.96 1.00 0.96 1.00
+gold-miner 0.48 0.71 0.51 0.73 0.57 0.80 0.64 0.93 0.65 0.90 0.66 0.90 0.72 0.93 0.72 0.93 0.71 0.95 0.72 0.95
+(𝑠,𝑎̂) 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+Domain 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅
+ferry 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 .00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00
+miconic 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+n-puzzle 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00
+nomystery 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00
+sokoban 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+transport 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00
+blocksworld 0.96 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+depots 0.87 0.92 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00
+gripper 0.92 0.86 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+parking 0.56 0.69 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+spanner 0.82 0.88 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00
+grid 0.74 0.90 0.64 0.94 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00
+hanoi 0.80 1.00 0.80 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+tpp 0.71 0.81 0.74 0.81 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87
+driverlog 0.66 0.82 0.71 0.79 0.71 0.79 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00
+gold-miner 0.47 0.83 0.62 0.90 0.52 0.83 0.62 0.88 0.53 0.83 0.61 0.88 0.72 0.95 0.72 0.95 0.72 0.95 0.72 0.95
+elevators 0.51 0.95 0.76 1.00 0.76 1.00 0.74 1.00 0.76 1.00 0.77 1.00 0.80 1.00 0.79 1.00 0.80 1.00 0.80 1.00
+satellite 0.74 0.74 0.87 0.87 0.82 0.78 0.96 0.96 0.96 0.96 0.92 1.00 0.96 1.00 0.96 0.96 0.96 1.00 0.96 1.00
+(𝑠̂,𝑎̂) 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+Domain 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅 𝑃 𝑅
+n-puzzle 0.43 0.43 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00 0.88 1.00
+sokoban 0.44 0.50 0.82 0.88 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+gripper 0.60 0.43 1.00 0.64 1.00 0.79 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+nomystery 0.21 0.59 0.29 0.59 0.79 0.88 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00 0.85 1.00
+transport 0.38 0.50 0.77 0.50 0.94 0.75 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00 0.95 1.00
+blocksworld 0.33 0.33 0.64 0.52 1.00 0.78 1.00 0.96 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+depots 0.55 0.49 0.77 0.65 0.91 0.78 0.97 0.92 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00 0.97 1.00
+ferry 0.57 0.53 0.91 0.67 0.85 0.73 0.93 0.93 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00
+grid 0.37 0.55 0.44 0.61 0.70 0.90 0.79 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00 0.82 1.00
+miconic 0.39 0.56 0.71 0.62 0.88 0.88 1.00 0.94 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00 1.00
+parking 0.40 0.44 0.66 0.66 0.85 0.72 0.89 0.97 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+driverlog 0.37 0.50 0.50 0.64 0.61 0.71 0.83 0.89 0.93 0.93 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00 0.93 1.00
+hanoi 0.75 0.75 0.75 0.75 0.80 1.00 0.89 1.00 0.80 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00 0.89 1.00
+spanner 0.64 0.56 0.85 0.69 0.93 0.88 0.93 0.81 0.94 0.94 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00 0.94 1.00
+tpp 0.20 0.58 0.32 0.58 0.47 0.68 0.72 0.74 0.71 0.81 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87 0.82 0.87
+satellite 0.58 0.61 0.70 0.61 0.73 0.70 0.86 0.78 0.87 0.87 0.86 0.78 0.96 0.96 0.96 1.00 0.96 1.00 0.96 1.00
+elevators 0.17 0.57 0.26 0.59 0.56 0.78 0.67 0.97 0.74 0.95 0.79 1.00 0.79 1.00 0.77 1.00 0.80 1.00 0.80 1.00
+gold-miner 0.20 0.51 0.28 0.59 0.33 0.63 0.38 0.66 0.47 0.83 0.55 0.80 0.57 0.83 0.71 0.95 0.72 0.95 0.72 0.95
+Tables4and 5show the percentage of plans computed by FastDownward, using the ground truth action models, that are valid
+in the action models learned byOffLAM andFAMAfrom a set of 2and 5traces, respectively. The experimental setting is the same
+PT
+adopted for comparing the efficacy of the action models learned byOffLAM andFAMAin Tables2and 3.
+PT
+27
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+Table4
+AverageratiooftheplanscomputedbyFastDownwardwiththeground-truthmodelsthatare
+valid for the models learned byOffLAM andFAMAfrom 2 partial traces for different degrees
+partP iT
+of observability, and for traces with al states (denoted by (𝑠̂, 𝑎)), traces with partial actions
+(denoted by (𝑠, 𝑎̂)), and traces with both partial states and partial actions (denoted by (𝑠̂, 𝑎̂)). The
+bestresultsareinbold.
+(𝑠̂,𝑎) (𝑠,𝑎̂) (𝑠̂,𝑎̂)
+Observability
+OffLAM FAMA OffLAM FAMA OffLAM FAMA
+PT PT PT
+0.10 0.17 𝟎.𝟒𝟕 0.11 𝟎.𝟑𝟓 0.02 𝟎.𝟐𝟑
+0.20 0.30 𝟎.𝟓𝟒 0.15 𝟎.𝟒𝟖 0.04 𝟎.𝟑𝟒
+0.30 0.40 𝟎.𝟔𝟑 0.25 𝟎.𝟓𝟏 0.06 𝟎.𝟒𝟓
+0.40 0.42 𝟎.𝟔𝟏 0.27 𝟎.𝟒𝟗 0.07 𝟎.𝟒𝟗
+0.50 0.42 𝟎.𝟔𝟒 0.36 𝟎.𝟓𝟓 0.12 𝟎.𝟓𝟏
+0.60 0.49 𝟎.𝟔𝟑 0.37 𝟎.𝟓𝟔 0.16 𝟎.𝟓𝟐
+0.70 0.49 𝟎.𝟔𝟓 0.39 𝟎.𝟔𝟎 0.28 𝟎.𝟔𝟑
+0.80 0.49 𝟎.𝟔𝟐 0.47 𝟎.𝟔𝟖 0.41 𝟎.𝟔𝟔
+0.90 0.51 𝟎.𝟔𝟎 0.44 𝟎.𝟔𝟒 0.42 𝟎.𝟔𝟏
+1.00 0.48 𝟎.𝟔𝟏 0.48 𝟎.𝟔𝟏 0.48 𝟎.𝟔𝟐
+Table5
+AverageratiooftheplanscomputedbyFastDownwardwiththeground-truthmodelsthatare
+valid for the models learned byOffLAM andFAMAfrom 5 partial traces for different degrees
+partP iT
+of observability, and for traces with al states (denoted by (𝑠̂, 𝑎)), traces with partial actions
+(denoted by (𝑠, 𝑎̂)), and traces with both partial states and partial actions (denoted by (𝑠̂, 𝑎̂)). The
+bestresultsareinbold.
+(𝑠̂,𝑎) (𝑠,𝑎̂) (𝑠̂,𝑎̂)
+Observability
+OffLAM FAMA OffLAM FAMA OffLAM FAMA
+PT PT PT
+0.10 0.37 𝟎.𝟔𝟖 0.21 𝟎.𝟒𝟖 0.02 𝟎.𝟐𝟎
+0.20 0.58 𝟎.𝟔𝟖 0.39 𝟎.𝟒𝟕 0.07 𝟎.𝟑𝟒
+0.30 0.63 𝟎.𝟔𝟗 0.50 𝟎.𝟓𝟓 0.12 𝟎.𝟒𝟓
+0.40 0.63 𝟎.𝟔𝟗 0.52 𝟎.𝟓𝟖 0.13 𝟎.𝟒𝟏
+0.50 0.61 𝟎.𝟕𝟏 0.53 𝟎.𝟓𝟕 0.21 𝟎.𝟒𝟔
+0.60 0.61 𝟎.𝟔𝟕 0.56 𝟎.𝟓𝟗 0.35 𝟎.𝟒𝟕
+0.70 0.63 𝟎.𝟔𝟖 0.59 𝟎.𝟔𝟎 𝟎.𝟓𝟏 0.48
+0.80 0.62 𝟎.𝟔𝟗 𝟎.𝟔𝟐 0.58 𝟎.𝟔𝟐 0.43
+0.90 0.60 𝟎.𝟔𝟗 0.60 𝟎.𝟔𝟐 𝟎.𝟔𝟎 0.48
+1.00 0.66 𝟎.𝟔𝟖 0.66 𝟎.𝟔𝟖 0.66 𝟎.𝟕𝟎
+AppendixB. Supplementary material
+Supplementary material related to this article can be found online at https://doi .org /10 .1016 /j .artint .2024 .104256.
+Data availability
+Data and code are publicly available.
+References
+[1]D.Aineto,S.Jiménez,E.Onaindia,LearningSTRIPSactionmodelswithclassicalplanning,in:Proceedingsofthe28thInternationalConferenceonAutomated
+PlanningandScheduling(ICAPS-18),2018,pp.399–407.
+[2]D.Aineto,S.Jiménez,E.Onaindia,Learningactionmodelswithminimalobservability,Artif.Intell.275(2019)104–137.
+[3]E.Amir,A.Chang,Learningpartiallyobservabledeterministicactionmodels,J.Artif.Intell.Res.33(2008)349–402.
+[4]M.Asai,Unsupervisedgroundingofplannablefirst-orderlogicrepresentationfromimages,in:Proceedingsofthe29thInternationalConferenceonAutomated
+PlanningandScheduling(ICAPS-19),2019,pp.583–591.
+[5]M.Asai,A.Fukunaga,Classicalplanningindeeplatentspace:bridgingthesubsymbolic-symbolicboundary,in:Proceedingsofthe32ndAAAIConferenceon
+ArtificialIntelligence(AAAI-18),2018,pp.6094–6101.
+[6]M.Asai,C.Muise,Learningneural-symbolicdescriptiveplanningmodelsviacube-spacepriors:thevoyagehome(toSTRIPS),in:Proceedingsofthe29th
+InternationalJointConferencesonArtificialIntelligence(IJCAI-21),2021,pp.2676–2682.
+[7]P.Bachor,G.Behnke,Learningplanningdomainsfromnon-redundantfully-observedtraces:theoreticalfoundationsandcomplexityanalysis,in:Proceedingsof
+the38thAAAIConferenceonArtificialIntelligence(AAAI-24),2024,pp.20028–20035.
+[8]B.Bonet,H.Geffner,Learningfirst-ordersymbolicrepresentationsforplanningfromthestructureofthestatespace,in:Proceedingsofthe24thEuropean
+ConferenceonArtificialIntelligence(ECAI-20),2020,pp.2322–2329.
+[9]M.Certicky,Real-timeactionmodellearningwithonlinealgorithm3SG,Appl.Artif.Intell.28(2014)690–711.
+[10] R.Chitnis,T.Silver,J.B.Tenenbaum,L.P.Kaelbling,T.Lozano-Pérez,Glib:efficientexplorationforrelationalmodel-basedreinforcementlearningviagoal-literal
+babbling,in:Proceedingsofthe35thAAAIConferenceonArtificialIntelligence(AAAI-21),2021,pp.11782–11791.
+[11] S.Cresswell,P.Gregory,Generaliseddomainmodelacquisitionfromactiontraces,in:Proceedingsofthe21stInternationalConferenceonAutomatedPlanning
+andScheduling(ICAPS-11),2011,pp.42–49.
+28
+
+L.Lamanna,L.Serafini,A.Saettietal. ArtificialIntelligence339(2025)104256
+[12] S.Cresswell,T.L.McCluskey,M.M.West,AcquiringplanningdomainmodelsusingLOCM,Knowl.Eng.Rev.28(2013)195–213.
+[13] P.Eyerich,R.Mattmüller,G.Röger,Usingthecontext-enhancedadditiveheuristicfortemporalandnumericplanning,in:TowardsServiceRobotsforEveryday
+Environments:RecentAdvancesinDesigningServiceRobotsforComplexTasksinEverydayEnvironments,Springer,2012,pp.49–64.
+[14] M.Fox,D.Long,PDDL2.1:anextensiontoPDDLforexpressingtemporalplanningdomains,J.Artif.Intell.Res.20(2003)61–124.
+[15] P.Gregory,S.Cresswell,DomainmodelacquisitioninthepresenceofstaticrelationsintheLOPsystem,in:Proceedingsofthe25thInternationalJointConference
+onArtificialIntelligence(IJCAI-16),2016,pp.4160–4164.
+[16] M.Helmert,Thefastdownwardplanningsystem,J.Artif.Intell.Res.26(2006)191–246.
+[17] J.Hoffmann,FF:thefast-forwardplanningsystem,AIMag.22(2001)57–62.
+[18] B.Juba,H.S.Le,R.Stern,Safelearningofliftedactionmodels,in:ProceedingsoftheInternationalConferenceonPrinciplesofKnowledgeRepresentationand
+Reasoning(KR-21),2021,pp.379–389.
+[19] B.Juba,R.Stern,Learningprobablyapproximatelycompleteandsafeactionmodelsforstochasticworlds,in:Proceedingsofthe36thAAAIConferenceon
+ArtificialIntelligence(AAAI-22),2022,pp.9795–9804.
+[20] R.Karia,P.Verma,A.Speranzon,S.Srivastava,Epistemicexplorationforgeneralizableplanningandlearninginnon-stationarysettings,in:Proceedingsofthe
+InternationalConferenceonAutomatedPlanningandScheduling,2024,pp.310–318.
+[21] L.Lamanna,OffLAM:1.0.0,https://doi.org/10.5281/zenodo.11634397,2024.
+[22] L.Lamanna,S.Alessandro,L.Serafini,A.E.Gerevini,P.Traverso,Onlinelearningofactionmodelsforpddlplanning,in:Proceedingsofthe30thInternational
+JointConferenceonArtificialIntelligence(IJCAI-21),2021,pp.4112–4118.
+[23] L.Lamanna,L.Serafini,Actionmodellearningfromnoisytraces:aprobabilisticapproach,in:ProceedingsoftheInternationalConferenceonAutomatedPlanning
+andScheduling,2024,pp.342–350.
+[24] H.S.Le,B.Juba,R.Stern,Learningsafeactionmodelswithpartialobservability,in:Proceedingsofthe38thAAAIConferenceonArtificialIntelligence,2024,
+pp.20159–20167.
+[25] A. Mordoch, R. Stern, B. Juba, Learning safe numeric action models, in: Proceedings of the 37th AAAI Conference on Artificial Intelligence, 2023,
+pp.12079–12086.
+[26] K.Mourão,L.S.Zettlemoyer,R.P.A.Petrick,M.Steedman,LearningSTRIPSoperatorsfromnoisyandincompleteobservations,in:Proceedingsofthe28th
+ConferenceonUncertaintyinArtificialIntelligence(UAI-12),2012,pp.614–623.
+[27] C.Rodrigues,P.Gérard,C.Rouveirol,H.Soldano,Activelearningofrelationalactionmodels,in:Proceedingsofthe21stInternationalConferenceonInductive
+LogicProgramming(ILP-11),2011,pp.302–316.
+[28] R.Stern,B.Juba,Efficient,safe,andprobablyapproximatelycompletelearningofactionmodels,in:Proceedingsofthe26thInternationalJointConferenceon
+ArtificialIntelligence(IJCAI-17),2017,pp.4405–4411.
+[29] J.Z.Xu,J.E.Laird,Instance-basedonlinelearningofdeterministicrelationalactionmodels,in:Proceedingsofthe24thAAAIConferenceonArtificialIntelligence
+(AAAI-10),2010,pp.1574–1579.
+[30] Q.Yang,K.Wu,Y.Jang,Learningactionmodelsfromplanexamplesusingweightedmax-sat,Artif.Intell.171(2007)107–143.
+[31] H.H.Zhuo,Crowdsourcedaction-modelacquisitionforplanning,in:Proceedingsofthe29thAAAIConferenceonArtificialIntelligence(AAAI-15),2015,
+pp.3439–3445.
+[32] H.H.Zhuo,S.Kambhampati,Action-modelacquisitionfromnoisyplantraces,in:Proceedingsofthe23rdInternationalJointConferenceonArtificialIntelligence
+(IJCAI2013),2013,pp.2444–2450.
+[33] H.H.Zhuo,Q.Yang,D.H.Hu,L.Li,Learningcomplexactionmodelswithquantifiersandlogicalimplications,Artif.Intell.174(2010)1540–1569.
+29
+

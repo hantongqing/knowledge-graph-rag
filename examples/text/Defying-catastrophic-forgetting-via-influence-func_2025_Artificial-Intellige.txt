@@ -1,0 +1,1365 @@
+ArtificialIntelligence339(2025)104261
+ContentslistsavailableatScienceDirect
+Artificial Intelligence
+journal homepage: www.elsevier.com/locate/artint
+Defying catastrophic forgetting via influence function
+Rui Gao, Weiwei Liu∗
+TheSchoolofComputerScience,WuhanUniversity,Wuhan,43000,China
+A R T I C L E I N F O A B S T R A C T
+Keywords: Deep-learning models need to continually accumulate knowledge from tasks, given that the
+Continual learning number of tasks are increasing overwhelmingly as the digital world evolves. However, standard
+Catastrophic forgetting deep-learning models are prone to forgetting about previously acquired skills when learning new
+Influencefunction
+ones. Fortunately, this catastrophic forgetting problem can be solved by means of continual
+learning. One popular approach in this vein is regularization-based method which penalizes
+parameters by giving their importance. However, a formal definition of parameter importance
+and theoretical analysis of regularization-based methods are elements that remain under-explored.
+In this paper, we first rigorously define the parameter importance by influence function, then
+unify the seminal methods (i.e., EWC, SI and MAS) into one whole framework. Two key
+theoretical results are presented in this work, and extensive experiments are conducted on
+standard benchmarks, which verify the superior performance of our proposed method.
+1. Introduction
+The digital world around us is continuously evolving [46]. Each day, huge amounts of data such as images and videos are produced
+on social media, which generates new emerging learning tasks [44,45]. It is important for learning systems to adapt quickly to
+changing environments [47,48,50]. For quick adaptation to occur, learning systems are required to memorize useful past experiences
+when new tasks appear. However, existing standard deep-learning methods quickly forget previously acquired experiences when
+learning new tasks [18]. This phenomenon, referred to as catastrophic forgetting [21], presents a significant challenge for some
+application scenarios in which previous training data cannot be obtained.
+Continual learning enables the continual accumulation of knowledge over different tasks, referred to as lifelong learning [8], se-
+quential learning [2]or incremental learning [1]. Many continual learning methods have been proposed to overcome the catastrophic
+forgetting problem. Among these, the regularization-based methods are popular due to their simplicity and promising experimental
+results. More specifically, when learning from new data, a regularization term is introduced in the loss function to consolidate pre-
+vious knowledge. Furthermore, different metrics are employed by existing regularization-based methods to measure the parameter
+importance. For example, EWC [18]uses the Fisher Information Matrix to measure the importance of parameters; SI [43]maintains
+an online estimate of the synapse’s importance toward solving problems encountered in the past; MAS [1]measures the importance
+according to the gradients of the squared 𝐿 -norm of the learned network output function. However, these methods lack both a
+2
+formal definition of parameter importance and substantive theoretical analysis.
+This paper first rigorously defines the parameter importance via influence function, then generalizes the EWC, SI and MAS into
+one unified framework. We provide the asymptotic statistical property of a regularization-based method’s estimator, the agnostic PAC
+* Correspondingauthor.
+E-mailaddresses:grcswhu1002@gmail.com(R.Gao),liuweiwei863@gmail.com(W.Liu).
+https://doi.org/10.1016/j.artint.2024.104261
+Received 29 April 2023; Received in revised form 11 June 2024; Accepted 22 November 2024
+Availableonline27November2024
+0004-3702/©2024ElsevierB.V.Allrightsarereserved,includingthosefortextanddatamining,AItraining,andsimilartechnologies.
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+learning results, and how the variance achieves the Cramer-Rao Lower Bound. Extensive experimental results demonstrate that the
+proposed method consistently outperforms state-of-the-art baselines.
+The remainder of this paper is organized as follows. We first discuss the related work in §2. §3provides preliminaries of continual
+learning. Theoretical results of regularization-based methods are presented in §4, after which §5introduces our proposed method. §6
+evaluates the performance of our proposed method. Finally, we draw our conclusions in §7.
+2. Related works
+The problem of overcoming catastrophic forgetting has been addressed in many previous works and many recent surveys have
+focused on continual learning [31,23,32,13,11]. These works can be broadly divided into three categories: (1) Replay methods, (2)
+Regularization-based methods and (3) Parameter isolation methods.
+Replay methodsstore samples or generate pseudo-samples using a generative model; these previous task samples are replayed
+while a new task is being learned [49]. iCaRL [33], the first of these replay methods, focuses on learning in a class-incremental
+way. Assuming fixed allocated memory, it selects and stores samples (exemplars) closest to the feature mean of each class. GEM [28]
+exploits exemplars to solve a constrained optimization problem, projecting the current task gradient in a feasible area, outlined by
+the previous task gradients. The major drawback of replay methods is that they require additional computation and storage of raw
+input samples.
+Regularization-based methodsadd an extra regularization term in the loss function instead of storing raw inputs. These methods
+penalize changes to important parameters during the training of current task. Elastic weight consolidation (EWC) [18]is the first
+seminal work to establish this strategy. Synaptic Intelligence (SI) [43]breaks the EWC paradigm of determining new task importance
+weights in a separate phase after training. Memory Aware Synapses (MAS) [1]is a method that obtains gradients of the squared 𝐿 -
+2
+norm of the learned network output function instead of calculating the gradients of the loss function. Incremental Moment Matching
+(IMM) [22]estimates Gaussian posteriors for task parameters, in the same vein as EWC, but inherently differs in its use of model
+merging. FROMP [30]is based on functional-regularization, and regularizes the network outputs directly [4].
+Parameter isolation methodsdedicate different model parameters to each task so as to prevent any possible forgetting. When
+no architectural size constraints apply, it is possible to grow new branches for new tasks while freezing previous task parameters
+[42,35]. PackNet [29]iteratively assigns parameter subsets to consecutive tasks by constituting binary masks. There are two phases
+for training new tasks. First, the network is trained without altering previous task parameter subsets; second, it retrains this remaining
+subset of important parameters. For its part, HAT [36]requires only one training phase, incorporating task-specific embeddings for
+attention masking. The per-layer embeddings are gated through a Sigmoid to attain unit-based attention masks in the forward pass.
+The influence function has a rich history in statistics and has recently been employed in the field of machine learning. Michael
+Wojnowicz et al. [41]introduce a method for approximating a quantity related to influence in generalized linear models. The influence
+function is used to trace a model prediction through the learning algorithm and identify the training points most responsible for a
+given prediction [19]. A multi-stage influence function score is developed to track predictions from a finetuned model all the way
+back to pretraining data and identify the pretraining examples in the pretraining task that make the highest contribution to prediction
+in the finetuning task with this score [7]. However, it is unclear whether the use of influence function is advantageous for continual
+learning. This work provides an answer in the affirmative.
+3. Preliminaries
+Continual learning consists of a sequence of disjoint tasks that are sequentially learned one at a time. These tasks often correspond
+to different datasets, or different splits of a dataset for which category labels do not overlap. This kind of setting is based on an
+assumption: only related data are allowed to be used for training the current task. While, under ideal circumstances, subsequent
+learning tasks would benefit from previous tasks, such a setting would result in the catastrophic forgetting of the knowledge learned
+from previous tasks for the model.
+In this paper, we consider the use of regularization-based methods to address catastrophic forgetting in classification tasks. We
+train a shared neural network for all tasks. The model parameters vector is defined as 𝜽=(𝜃 1, 𝜃 2, ..., 𝜃 𝑛).1 The regularization-based
+methods aim to obtain the important value Ω𝑖 for each parameter 𝜃 𝑖 with respect to the previous tasks. We assume that the model
+parameters follow a distribution 𝐹. We identify the parameter (𝜃 1, ..., 𝜃 𝑛)with its empirical parameter distribution 𝐹 𝑛. 𝑁 𝑡𝑎𝑠𝑘 tasks
+are denoted as: (𝜏 1, 𝜏 2, ..., 𝜏 𝑁𝑡𝑎𝑠𝑘). Let (𝑋 𝑡, 𝑌 𝑡) be the training dataset for task 𝜏 𝑡, where 𝑋 𝑡 and 𝑌 𝑡 represent the feature and label
+respectively. 𝐿 𝑡is the loss function and 𝜽̂𝒕 = (𝜃̂ 1𝑡, 𝜃̂ 2𝑡, ..., 𝜃̂ 𝑛𝑡)is a local minimum for task 𝜏 𝑡.
+The regularization-based methods use a regularization term to penalize changes to important parameters. Classical methods such
+as EWC and MAS adopt the following expression form:
+∑ ( )
+𝐿(𝜽)=𝐿 𝑡(𝜽)+𝜆 Ω𝑖 𝜃 𝑖−𝜃 𝑖∗ 2 (1)
+𝑖
+where 𝜆is the hyperparameter indicating the strength of the penalty, Ω𝑖 represents the corresponding parameter importance with
+respect to the previous tasks, and 𝜃 𝑖∗denotes the “old” network parameters.
+1 The vectors in this paper are denoted as bold letters.
+2
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+A fundamental question pertaining to regularization-based methods is that of which parameters are important for previous tasks.
+Assuming that model parameters follow specific distributions, we contend that if the parameter distribution with respect to a specific
+parameter is slightly perturbed, leading to a large change in performance, then this parameter can be considered important. The
+influence function has been used to figure out how the model’s predictions change if a training input is modified [19]. This paper
+adopts theconcept of influence function to measure the importance of parameters so as to address catastrophic forgetting in deep
+neural networks (DNNs). The important notations are shown in TableF.14of AppendixF. In the following section, this paper analyzes
+the regularization-based methods in terms of the estimator’s asymptotic statistical properties and agnostic PAC learning algorithm.
+4. Theoretical results
+The theoretical analysis of regularization-based methods is an element that remain under-explored. In this section, we contribute
+three main theoretical results: (1) that the estimator of a regularization-based method is asymptotically normal; (2) that the learning
+algorithm of a regularization-based method is successful, according to agnostic PAC learning; (3) that how the variance theoretically
+reaches the asymptotic minimum variance.
+Typically, continual learning methods are effective in helping the model defy catastrophic forgetting on one task; however, this
+does not mean that the model can always achieve great performance on this task. For regularization-based methods, the reason may
+be that the estimator provided by methods for one task is far from the “correct value”. In the following Theorem1, we illustrate this
+point in terms of the asymptotic statistical properties of the estimator.
+Theorem 1. The estimator of a regularization-based method for task 𝑡can be represented as:
+{ }
+∑𝑛
+𝑇 𝜆(𝐷 𝑚𝑡 𝑡)=arg 𝜽min 𝐿 𝑡(𝜽;𝑆𝑡 )+𝜆 𝑗=1Ω𝑡 𝑗−1(𝜃 𝑗−𝜃̂ 𝑗𝑡−1)2 . (2)
+{ }
+We define 𝑇(𝐷𝑡) =argmin𝜽 ∫ 𝑙 𝑡(𝜽; 𝑥)𝑑𝐷𝑡(𝑥) . The estimator 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)is then asymptotically normal. That is:
+√ ( ) √
+𝑚 𝑡 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)−𝑇(𝐷𝑡 ) →𝑁( 𝑚 𝑡𝐶 𝑚𝑡𝜆,𝜎2) (3)
+where 𝐶 𝑚𝑡=𝑑𝑇𝜆 𝑑(𝐷 𝜆𝑚𝑡 𝑡)| | | |𝜆=0and 𝜎2=𝔼Φ𝐷𝑡2(𝑋) =∫ Φ𝐷𝑡2(𝑥)𝑑𝐷𝑡(𝑥). Φ𝐷𝑡(𝑥)is the influence function of 𝑇(⋅)at 𝐷𝑡 .
+∑
+The proof of Theorem1can be found in AppendixC. In Theorem1, 𝐿 𝑡(𝜽; 𝑆𝑡) = 𝑚1 𝑚 𝑖=𝑡 1𝑙 𝑡(𝜃; 𝑥 𝑖). 𝑙 𝑡 is the loss function. 𝐷𝑡 is the
+𝑡
+distribution function and 𝐷 𝑚𝑡 is the empirical distribution function for task 𝜏 𝑡. 𝑚 𝑡is the size of the sample set 𝑆𝑡 .
+𝑡
+Remark 1. It is obvious that the estimator 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)is not unbiased. As 𝑚 𝑡tends to be infinite, the bias approaches 𝐶 𝑚𝑡𝜆. According to
+[38], the notion of “best” limit distribution is usually translated into asymptotic unbiasedness and minimum variance. Therefore, the
+asymptotic bias 𝐶 𝑚𝑡𝜆should be small. This implies that 𝜆cannot be too large and that some restrictions of 𝜆are needed. Moreover,
+we provide some conditions under which 𝜎2 can achieve the Cramér-Rao Lower Bound. More details can be found in the proof of
+Theorem1.
+Before we illustrate Theorem2, we present some related definitions according to [37].
+Definition 1 (Agnostic PAC learnability). A hypothesis class is agnostic PAC learnable if there exist a function 𝑚 ∶(0, 1)2→ℕand
+a learning algorithm with the following property: For every 𝜁, 𝛿∈(0, 1)and for every distribution 𝐷over 𝑋×𝑌, when running the
+learning algorithm on 𝑚 ≥𝑚 (𝜁, 𝛿)i.i.d. examples generated by 𝐷, the algorithm returns a hypothesis ℎsuch that, with probability
+of at least 1 −𝛿(over the choice of the m training examples),
+( )
+𝐿 (ℎ)≤ min𝐿  ℎ′ +𝜁 (4)
+ℎ′∈
+where 𝐿 (ℎ) d =ef 𝔼 [𝑙(ℎ; 𝑧)]. 𝑙(ℎ; 𝑧)is the loss function.
+𝑧∼
+Definition 2 (𝜁-representative sample). A training set 𝑆is called 𝜁-representative (w.r.t. domain 𝑍, hypothesis class 𝐻, loss function
+𝑙, and distribution 𝐷) if
+∀ℎ∈𝐻,| |𝐿 𝑆(ℎ)−𝐿 (ℎ)| |≤𝜁 (5)
+∑ ( )
+where 𝐿 (ℎ) d =ef 𝑧∼𝔼 [𝑙(ℎ; 𝑧)]and 𝐿 𝑆(ℎ) d =ef 𝑚1 𝑚 𝑖=1𝑙 ℎ;𝑧 𝑖 . 𝑙(ℎ; 𝑧)is the loss function and 𝑧 𝑖is randomly drawn from 𝐷.
+3
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Definition 3 (Uniform convergence). We say that a hypothesis class 𝐻has the uniform convergence property (w.r.t. a domain Z and a
+loss function 𝑙) if there exists a function 𝑚UC∶(0, 1)2→ℕsuch that for every 𝛿∈(0,1) and for every probability distribution 𝐷over
+
+𝑍, if 𝑆is a sample of 𝑚 ≥𝑚UC(𝜁, 𝛿)examples drawn i.i.d. according to 𝐷, then, with probability of at least 1 −𝛿, 𝑆is 𝜁-representative.
+
+The following theorem states that the learning algorithm of a regularization-based method is a successful agnostic PAC learning
+algorithm and provides a clear limitation of 𝜆.
+Theorem 2. We denote the pointwise multiplication operation using ◦. 𝑡 is a finite hypothesis class for task 𝜏 𝑡. 𝑍𝑡 is a domain. 𝐷𝑡 is the dis-
+t pr li eb xu it ti yo n o v Ce (r 𝑍 𝛿𝑡 . 𝑙 )𝑡 ∶ Le ℎ𝑡× 𝜆𝑍 =𝑡 𝜽̂→ 𝝀∈[0 , 1 𝑡] bis t th he l ho yss f ou thn ec sti io n f ao tr ata cs tsk a𝜏 s𝑡. A hes s mum ine th iza et r o𝑡 h 𝜽̂a 𝝀s =th ae u gn mif io nr 𝜽m { c 𝐿o 𝑡n (v 𝜽e ;r 𝑆ge 𝑡)n +ce 𝜆pr ∑op 𝑗e =r 1ty ( 𝑗w −1it (h 𝑗sa −m 𝜃̂p 𝑗𝑡l −e c )o 2m}-
+𝑚 U 𝜁 ′, ) . t 𝑡 𝒕 e e p s th t im f 𝒕 r 𝑛 Ω 𝑡 𝜃 1 .
+𝐴𝑡 𝜆is the algorithm that generates ℎ𝑡 𝜆. 𝑆𝑡 is the sample set of task 𝜏 𝑡with 𝑚 𝑡≥𝑚U C(𝜁′, 𝛿)samples drawn independent and identical distributed
+𝐷𝑡
+(i.i.d.) according to . If the condition
+𝜁 ∈(0,1) (6)
+is satisfied, where
+{ }
+𝜁=4𝜁′+2∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀;𝑆𝑡 )⋅𝐻 𝜽− ̂𝒕1 𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 ) 𝑇 𝜆, (7)
+⌈ ⌉
+then 𝐴𝑡 𝜆 is a successful agnostic PAC learning algorithm with sample complexity 𝑚 (𝜁, 𝛿) ≤𝑚U C(𝜁′, 𝛿) ≤ log(2 2| 𝜁 ′2𝑡|∕𝛿) . 𝐻 𝜽̂𝒕 is the Hessian
+matrix.
+The proof of Theorem2can be found in AppendixD.
+Rema {rk 2. The restricti }on that 𝜁∈(0, 1)is a condition and provides a limitation of 𝜆. Under the conditions (𝜁=4𝜁′+2∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀; 𝑆𝑡) ⋅
+𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 𝑇
+𝐻−1 ) 𝜆, 𝜁∈(0, 1)), Theorem2proves that the learning algorithm of using a regularization-based method will
+𝜽̂𝒕 ⌈ ⌉
+b ree a is tu ec tc he ess f cu ol a dg itn io os nt i ac sP 𝜁AC l 4e 𝜁ar ′n +in 2g a ∑lg 𝑖o =r 1it Ωh 𝑖m w 𝑖it 𝑖h 𝑓s 𝒈a 𝑯mp 𝑖,l e c ho em rep l Ωex 𝑖i −t 1y i𝑚  a( n𝜁 , 𝛿 le) m≤ e𝑚 nU  C o( f𝜁 𝛀′, 𝛿 𝒕−) 𝟏≤ Δl 𝑖o 𝑖g 𝑓(2 2 𝑓| 𝜁 ′ i2𝑡 s| ∕ a𝛿) . lF eo mr ec no tn v oe n 𝜽̂ie 𝒕−n 𝟏ce −, w 𝜽̂𝒕e
+w r n = 𝜆 𝑛 𝑡 −1 Δ𝑑 𝑓 w 𝑡 s e t , 𝑑 n e f ,
+𝒈=∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀; 𝑆𝑡), 𝑯 𝑖is a column of the matrix 𝐻 𝜽− ̂𝒕1. 𝜁 is the error difference upper bound of using the regularization-based method
+on task 𝑡. According to the proof of Theorem2in AppendixD, 𝜁′ is the error difference upper bound of using 𝐄𝐑𝐌(i.e. empirical
+risk minimization) algorithm on task 𝑡. When 𝜆 =0, 𝜁 is totally dependent on 𝜁′. In this case, the learning algorithm of using a
+regularization-based method can be regarded as the 𝐄𝐑𝐌 paradigm. This is consistent with setting 𝜆 =0 of Eq. (1), i.e. 𝐿(𝜽) =
+∑ ( )
+𝐿 𝑡(𝜽) +𝜆 𝑖Ω𝑖 𝜃 𝑖−𝜃 𝑖∗ 2 , in the main file. When 𝜆 >0, we first focus on 𝜁′. The condition implies that: the error of using the
+𝐄 ∑𝐑𝐌algorithm is larger, the error of using the regularization-based method is larger. We thus let 𝜁′ very small and ignore it. For
+𝑛 𝑖=1Ω𝑡 𝑖−1Δ𝑑 𝑖𝑖𝑓𝑓𝒈𝑯
+𝑖, we fin√d it is hard to be analyzeddirectly. We turn to analyzeits upper bound. By Cauchy-Schwarz, we derive
+∑ ∑ ∑
+that 𝑛 𝑖=1Ω𝑡 𝑖−1Δ𝑑 𝑖𝑖𝑓𝑓𝒈𝑯 𝑖≤ 𝑛 𝑖=1(Ω𝑡 𝑖−1)2 𝑛 𝑖=1(Δ𝑑 𝑖𝑖𝑓𝑓𝒈𝑯 𝑖)2. It is evident that as the values o ∑f all Ω𝑡 𝑖−1 increase, the upper bound
+will be so large to violet the condition 𝜁∈(0, 1). In this case, we have to limit 𝜆to meeting 2𝜆 𝑛 𝑖=1Ω𝑡 𝑖−1Δ𝑑 𝑖𝑖𝑓𝑓𝒈𝑯 𝑖∈(0, 1).
+Finally, we discuss how the variance in Theorem1theoretically reaches the asymptotic minimum variance.
+Theorem 3. Considering the variance 𝜎2in Theorem1, we prove that it can be bounded by:
+( 𝜕 [ 𝑇( 𝐷 )] ) 2
+𝜕𝛾 𝛾 𝛾
+𝜎2≥ ∗ , (8)
+𝐽(𝐷𝑡)
+which is the Cramér-Rao Lower Bound. 𝜎2can achieve the Cramér-Rao Lower Bound, if
+𝐴
+Φ𝐷𝑡(𝑥)= 𝐽(𝐷𝑡)𝐵 (9)
+[ ] [ ( )]
+where 𝐴 = 𝜕𝜕 𝛾 ln𝑓 𝛾(𝑥) 𝛾 and 𝐵= 𝜕𝜕 𝛾 𝑇 𝐷 𝛾 𝛾 , 𝑓 𝛾(𝑥)is the density of some sample distribution 𝐷 𝛾.
+∗ ∗
+Remark 3. Theorem1shows the asymptotic statistical properties of estimator which results from the regularization-based method.
+According to [38], the notion of “best” limit distribution requires the asymptotic minimum variance. Theorem 3 shows how the
+variance theoretically achi(eve )the Cramér-Rao Lower Bound. In this theorem, we assume that 𝐷𝑡 is sample distribution for task 𝑡and
+is parameterized by 𝛾 . 𝐽 𝐷𝑡 is the Fisher information at 𝐷𝑡 . To theoretically reach the lower bound. Eq.(9)should be satisfied.
+∗
+Please refer to the proof of Theorem3for details in AppendixE.
+4
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.1.Illustrationofperturbingparameterdistribution.
+5. Parameters importance via influence function
+In this section, we first define the influence function for continual learning. We then show how to calculate the influence of a pa-
+rameter. We also explore the connection to the previous regularization-based methods and generalize them into a unified framework.
+Finally, according to the definition and calculation, we proposed a new method called Regularization based on Influence Function
+(RIF) to defy catastrophic forgetting.
+5.1. Definition
+Definition 4. Let model parameter 𝜃 follow a certain distribution 𝐹. 𝑀 is a model performance function, which is a functional
+𝑀∶𝑑𝑜𝑚𝑎𝑖𝑛(𝑀) →ℝ. The domain of 𝑀 is a convex set of parameter distributions containing 𝐹 and all the empirical distributions
+𝐹 𝑛of 𝐹. The importance of this parameter 𝜃can thus be defined as the influence function (IF) of 𝑀 at 𝐹:
+𝐼𝐹(𝜃;𝑀,𝐹)
+( )
+𝑀 (1−𝜖)𝐹+𝜖Δ𝜃 −𝑀(𝐹)
+=lim
+𝜖↓0 𝜖 (10)
+𝑑𝑑 𝜖𝑀( (1−𝜖)𝐹+𝜖Δ𝜃)| |
+= |
+|𝜖=0
+where Δ𝜃 is the distribution of the point mass at 𝜃, and 𝜖is a small perturbation.
+The influence function in our work is different from the typical influence function in statistics. We refer to literatures [15,16]
+to compare the typical influence function in statistics and the influence function in our work. The typical influence function in
+[16] is d (efined as )𝐼𝐹(𝑥; 𝑇, 𝐹) =lim𝑡↓0𝑇((1−𝑡)𝐹+ 𝑡𝑡Δ𝑥)−𝑇(𝐹) , while the influence function in our work is defined as 𝐼𝐹(𝜃; 𝑀, 𝐹) =
+lim𝜖↓0𝑀 (1−𝜖)𝐹+ 𝜖𝜖Δ𝜃 −𝑀(𝐹)
+. They both describe the effect of an infinitesimal contamination at the point 𝑥(𝜃) on the estimate. Both 𝑇
+in 𝐼𝐹(𝑥; 𝑇, 𝐹)and 𝑀in 𝐼𝐹(𝜃; 𝑀, 𝐹)are essentially functionals, but their domains are different. The domain of 𝑇 is the set of sample
+distributions, while the domain of 𝑀 is the set of model parameter distributions. Meanwhile, 𝐹 in 𝐼𝐹(𝑥; 𝑇, 𝐹)represents the sample
+distribution while that in 𝐼𝐹(𝜃; 𝑀, 𝐹)represents the model parameter distribution. According to Definition4, we assume that the
+parameters of the model should follow a certain distribution 𝐹 for one task. IF can reflect the influence of the model performance
+when the parameter distribution changes slightly, starting from 𝐹. As shown in Fig.1, the true distribution 𝐹 is typically agnostic, so
+we turn to the empirical distribution 𝐹 𝑛. When the data is known, the model performance 𝑀(⋅)for one task depends on the parameter
+distribution. If a slight perturbation according to one parameter can significantly affect the model performance, we can conclude that
+this parameter plays an important role for the task. Therefore, we can measure the importance of each parameter to an individual
+task by perturbing the parameter distribution.
+5.2. Calculation of influence function
+This section outlines how the influence function is calculated. This paper takes 𝑀 as the loss function. Recalling Section5.1, we
+aim to determine the important parameters in terms of parameter distribution. According to Definition4, we need to consider the
+perturbation of parameter distribution with respect to a specific parameter 𝜃, which is (1 −𝜖)𝐹+𝜖Δ𝜃. It is obvious that we cannot
+5
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+perturb true parameter distribution 𝐹 directly. We fill this gap by converting parameter distribution perturbation into parameter
+vector perturbation. Details can be found in AppendixG. The parameter vector perturbation is:
+𝜽̂𝒕 =𝜽̂𝒕 +𝜖(𝜃̂𝑡𝟏−𝜽̂𝒕
+) (11)
+𝝐,𝒊 𝑖
+where 𝜖represents the small perturbation, while 𝟏is an all-ones vector of the same size as 𝜽̂𝒕 . 𝐼𝐹(𝜃̂ 𝑖𝑡; 𝑀, 𝐹 𝑛)is written as 𝐼𝐹(𝜃̂ 𝑖𝑡)for
+convenience. According to Definition4, we measure how a small 𝜖perturbation affects the loss function of the current task 𝜏 𝑡:
+𝐼𝐹(1)(𝜃̂ 𝑖𝑡 )𝑑 =𝑒𝑓 𝑑𝑑 𝜖𝐿 𝑡(𝜽̂𝒕 𝝐,𝒊;𝑆𝑡 )| | |
+|𝜖=0
+=⎛ ⎜ ⎝𝑑(𝐿 𝑑𝑡( (𝜽̂ 𝜽̂𝒕 𝝐 𝝐,𝒊 ,𝒊; )𝑆𝑡)) ⋅𝑑( 𝑑𝜽̂ 𝜖𝒕 𝝐,𝒊)⎞ ⎟ ⎠| | | | (12)
+⎜ 𝒕 ⎟ |
+|
+|𝜖=0
+=∇𝜃𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )⋅(𝜃̂ 𝑖𝑡𝟏−𝜽̂𝒕 )
+where 𝑆𝑡 is the sample set of task 𝜏 𝑡. From the derivation, we can determine that the calculation of 𝐼𝐹(1)(𝜃̂ 𝑖𝑡)is both simple and fast.
+We also provide an efficient method to calculate the second-order influence of parameters:
+( )|
+𝐼𝐹(2)(𝜃̂ 𝑖𝑡 )𝑑 =𝑒𝑓 𝑑𝑑 𝜖2 2𝐿 𝑡(𝜽̂𝒕 𝝐,𝒊;𝑆𝑡 ) | | |
+|𝜖=0
+= 𝑑𝑑 𝜖 ⎛ ⎜ ⎜ ⎝𝑑(𝐿 𝑑𝑡( (𝜽̂ 𝜽̂𝒕 𝝐 𝒕 𝝐,𝒊 ,𝒊; )𝑆𝑡)) ⋅𝑑( 𝑑𝜽̂ 𝜖𝒕 𝝐,𝒊)⎞ ⎟ ⎟ ⎠| | | | |
+|
+|𝜖=0
+= 𝑑𝑑 𝜖 ⎛ ⎜ ⎜ ⎝𝑑(𝐿 𝑑𝑡( (𝜽̂ 𝜽̂𝒕 𝝐 𝒕 𝝐,𝒊 ,𝒊; )𝑆𝑡)) ⋅(𝜃̂ 𝑖𝑡𝟏−𝜽̂𝒕 )⎞ ⎟ ⎟ ⎠| | | | | (13)
+|
+|𝜖=0
+=⎛ ⎜ ⎝𝑑2(𝐿 𝑑𝑡 (( 𝜽̂𝜽̂ 𝝐𝒕 𝝐 ,𝒊,𝒊 ); 2𝑆𝑡)) ⋅𝑑( 𝑑𝜽̂ 𝜖𝒕 𝝐,𝒊) ⋅(𝜃̂ 𝑖𝑡𝟏−𝜽̂𝒕 )⎞ ⎟ ⎠| | | |
+⎜ 𝒕 ⎟ |
+|
+|𝜖=0
+=∇2 𝜃𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )⋅(𝜃̂ 𝑖𝑡𝟏−𝜽̂𝒕 )2
+=(𝜃̂ 𝑖𝑡𝟏−𝜽̂𝒕 )⋅∇2 𝜃𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )⋅(𝜃̂ 𝑖𝑡𝟏−𝜽̂𝒕 )𝑇
+This calculation of second-order parameter influence involves calculating the second partial derivatives. When the model is complex
+and has a large number of parameters, such calculation may incur high computational cost. We therefore present an approximate
+calculation method for the second-order influence of the parameters in the classification tasks.
+For simplicity, we let 𝐴(𝜖) =𝐿 𝑡(𝜽̂𝒕 𝝐,𝒊; 𝑆𝑡)where 𝜖∈[0, 1]. Since 𝜽̂𝒕 𝝐,𝒊→𝜽̂𝒕 as 𝜖→0, we perform a Taylor expansion of 𝐴(𝜖)at 𝜖=0:
+∇2𝐴(0)
+𝐴(𝜖)≈𝐴(0)+∇𝐴(0)𝜖+ 𝜖
+2!
+𝐼𝐹(2)(𝜃̂𝑡) (14)
+=𝐴(0)+𝐼𝐹(1)(𝜃̂𝑡 )𝜖+ 𝑖 𝜖
+𝑖 2!
+Let 𝜖=1; we thus obtain the following expression according to Eq.(11):
+𝐼𝐹(2)(𝜃̂𝑡 )≈2⋅(𝐴(1)−𝐴(0)−𝐼𝐹(1)(𝜃̂𝑡
+))
+𝑖 𝑖
+=2⋅(𝐿 𝑡(𝜃̂ 𝑖𝑡𝟏;𝑆𝑡 )−𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )−𝐼𝐹(1)(𝜃̂ 𝑖𝑡 )) (15)
+𝐿 𝑡(𝜽̂𝒕 ; 𝑆𝑡)is the loss function, and 𝐿 𝑡(𝜃̂ 𝑖𝑡𝟏; 𝑆𝑡)can be easily calculated. Finally, we can approximate 𝐼𝐹(2)(𝜃̂ 𝑖𝑡)in a very simple way.
+5.3. Connection to EWC, SI and MAS
+This paper studies continual learning from the IF perspective, which is based on the perturbation over the parameter distribution.
+𝜽̂𝒕 𝝐,𝒊=𝜽̂𝒕
+If we perturbate a particular parameter, we can rewrite Eq.(11)as +𝜖𝜹 𝒊; here, 𝜹 𝒊is a vector for which the 𝑖-th entry is 1and
+the remaining entries is 0. Combined with Eq.(12)and Eq.(13), we obtain the first-order and second-order influence of parameters
+as follows:
+( )
+𝐼𝐹(1)(𝜃̂ 𝑖𝑡 )= 𝑑𝑑 𝜖𝐿 𝑡(𝜽̂𝒕 𝝐,𝒊;𝑆𝑡 ) | 𝜖=0
+(16)
+=∇𝜃𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )⋅𝜹
+𝒊
+6
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Algorithm 1 Regularization based on Influence Function.
+In 1p :u It n: t( ia𝜏 (1 li, 1𝜏 a,2 tΩ, . o2.. n,, :𝜏 .𝑇 ) 𝟎: 𝑛A =)l :l tt hr ea i pn ain rag ta es tk es r; i𝑇 m: t oo rt ta al nn cu em 𝑘b :e r ao lf uta lask tis n; g𝑆 t𝑡 h: eth fie s sa t-m orp dle rs e ot o sf cta os nk 𝜏 -o𝑡; 𝐿 de𝑡 r: t ih ne ulo es ns f eu n oc t pio an f mor tt ea rs sk 𝜏 𝑡; 𝜽=(𝜃 1, 𝜃 2, ..., 𝜃 𝑛): the model parameters;
+𝛀 i= Ω . . 𝛀, Ω m p ; c c r e r e d r fl c f ra e .
+z i 𝟎
+2: for𝑡 =1, … , 𝑇 do
+3: if𝑡 ==1then
+4: 𝜽̂𝒕 =argmin𝜽𝐿 𝑡(𝜽; 𝑆𝑡)
+5 6: : els 𝜽e ̂𝒕 =argmin𝜽{ 𝐿 𝑡(𝜽;𝑆𝑡)+𝜆∑ 𝑛 𝑗=1Ω𝑡 𝑗−1(𝜃 𝑗−𝜃̂ 𝑗𝑡−1)2}
+7: endif
+8: 𝛀𝒏𝒆𝒘=𝐶𝑎𝑙𝑐𝑢𝑙𝑎𝑡𝑒𝐼𝐹(𝜽̂𝒕, 𝑆𝑡, 𝐿 𝑡, 𝑘)
+9: 𝛀𝒕=𝛀𝒕−𝟏+𝛀𝒏𝒆𝒘
+10: endfor
+Output: (𝜽̂𝟏, 𝜽̂𝟐, … , 𝜽̂𝑻 )
+Algorithm 2 CalculateIF.
+Input: 𝜽̂𝒕 = (𝜃̂ 1𝑡 , 𝜃̂ 2𝑡, ..., 𝜃̂ 𝑛𝑡): A local minimum for task 𝜏 𝑡; 𝑆𝑡: the sample set of task 𝜏 𝑡; 𝐿 𝑡: the loss function for task 𝜏 𝑡; 𝑘: calculating the first-order or second-order
+influenceofparameters.
+1: Initialization: 𝛀 𝒏𝒆𝒘=𝟎
+2: for𝑖 =1, … , 𝑛do
+3: Ω𝑛 𝑖𝑒𝑤=∣∇𝜃𝐿 𝑡(𝜽̂𝒕 ; 𝑆𝑡) ⋅(𝜃̂ 𝑖𝑡𝟏 −𝜽̂𝒕 ) ∣which is based on Eq.(12)
+4: ifk==2then
+5: Ω𝑛 𝑖𝑒𝑤=2 ∣(𝐿 𝑡(𝜃̂ 𝑖𝑡𝟏; 𝑆𝑡) −𝐿 𝑡(𝜽̂𝒕 ; 𝑆𝑡) −Ω𝑛 𝑖𝑒𝑤) ∣which is Based on Eq.(15)
+6: endif
+7: endfor
+Output: 𝛀𝒏𝒆𝒘
+𝐼𝐹(2)(𝜃̂ 𝑖𝑡 )=( 𝑑𝑑 𝜖2 2𝐿 𝑡(𝜽̂𝒕 𝝐,𝒊;𝑆𝑡 ))| 𝜖=0
+= 𝑑𝑑 𝜖⎛ ⎜ ⎜ ⎝𝑑(𝐿 𝑑𝑡( (𝜽̂ 𝜽̂𝒕 𝝐 𝒕 𝝐,𝒊 ,𝒊; )𝑆𝑡)) ⋅𝑑( 𝑑𝜽̂ 𝜖𝒕 𝝐,𝒊)⎞ ⎟ ⎟ ⎠| 𝜖=0 (17)
+=𝜹 𝒊⋅∇2 𝜃𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )⋅𝜹 𝒊𝑇
+𝐼𝐹(2)(𝜃̂ 𝑖𝑡);
+In this case, EWC is equivalent to this is because the importance of the parameters calculated by EWC is essentially the
+𝐼𝐹(1)(𝜃̂ 𝑖𝑡)is
+second-order gradient of each parameter. an important component of SI in calculating parameter importance. MAS also
+𝐼𝐹(1)(𝜃̂ 𝑖𝑡).
+uses 1st-order parameter influence The difference is that MAS focuses on the model output rather than the loss function.
+The model performance function 𝑀 in Definition4can be seen as the output of the model, so we generalize EWC, SI and MAS in a
+unified framework.
+5.4. Regularization based on influence function
+According to the definition and calculation in Section 5, we propose a new method called Regularization based on Influence
+Function (RIF) to defy catastrophic forgetting. Algorithm1shows the entire process of training model with Regularization which is
+based on influence function. Algorithm2shows how to calculate the parameter importance Ωusing Eq.(12)or (15). We return the
+absolute value of influence. We define RIF-1 to indicate that RIF calculates the first-order influence of parameters. We define RIF-2
+to indicate that RIF calculates the second-order influence of parameters.
+We emphasize that the influence function in our work is different from the typical influence function in statistics. The typical
+influence function in statistics concentrates on samples and is usually leveraged to identify the training points most responsible for
+a given prediction [19]. The regularization-based methods in continual learning focus on parameters and the fundamental question
+is that of which parameters in the prediction (model) are important for previous tasks. Definition 4 is proposed to fill this gap.
+Compared with the typical influence function in statistics [15,16], the influence function in Definition4concentrates on parameters
+and describes the effect of an infinitesimal contamination at the parameter 𝜃 on the estimate. The domain of 𝑀 is the set of model
+parameter distributions. Based on Definition4, we conclude a parameter vector perturbation, i.e. Eq.(11). According to this parameter
+vector perturbation, we derive how to measure the first-order and the second-order influence of a parameter, which are the bases
+of RIF. Therefore, RIF is the first to extend the concept of influence function to continual learning, which measures the influence of
+parameters from a high-level perspective of parameter distribution perturbation.
+RIF also provides a novel way of generalizing the previous regularization-based methods in a unified framework. The previous
+regularization-based methods come from a straightforward parameter vector perturbation without rigorous derivation, which is
+empirical and intuitive. Our proposed method RIF starts from a clear definition (i.e. Definition4), which contributes to the rigorous
+parameter vector perturbation (i.e. Eq.(11)). Therefore, RIF is more reasonable than the previous regularization-based methods to
+characterize the parameter importance information, which improves empirical performance.
+7
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+6. Experiments
+We conduct extensive experiments to verify the superior performance of our proposed method. In this paper, we mainly consider
+three scenarios in continual learning which are task-incremental learning (Task-IL) [39,40], class-incremental learning (Class-IL)
+[39,40]and class-incremental with repetition learning (Class-IRL) [10,27]. Task-incremental learning is best described as the case
+where an algorithm must incrementally learn a set of distinct tasks. The defining characteristic of task-incremental learning is that
+it is always clear to the algorithm—also at test time—which task must be performed. Class-incremental learning is best described
+as the case where an algorithm must incrementally learn to discriminate between a growing number of objects or classes. An often
+used set-up for this scenario is that a sequence of classification-based tasks is encountered, whereby each task contains different
+classes and the algorithm must learn to distinguish between all classes. Class-incremental with repetition learning is an extension of
+Class-incremental learning. In class-incremental with repetition learning, new training patterns belonging both to known and new
+classes become available in subsequent training batches.
+6.1. Experimental setup
+Baselines:In order to verify the validity of our proposed method, we select eleven baselines for comparison:SI[43],MAS[1],
+EWC[18],IMM[22],FROMP[30],LwF[24],iCaRL[33],DER[5],GEM[28],A-GEM[6],PNN[35],CUBER[25],S-FSVI[34]
+andFinetuning.SI,MAS,EWC, andIMMcan be considered as the prior-focused methods, which estimate a distribution of model
+parameters as the prior when learning from new data. Typically, the importance of all neural network parameters is estimated, with
+parameters assumed to be independent to ensure feasibility.FROMPopens a new direction for continual learning methods in which
+regularization methods are naturally combined with memory-based methods.LwFis a data-focused method. Its basic building block
+is knowledge distillation from a previous model to the model being trained on the new data.iCaRL,DER,GEM, andA-GEMare replay
+methods which retain on a subset of stored samples while training on new tasks or constrain new task updates to not interfere with
+previous tasks.PNNis a parameter isolation method.CUBERcharacterizes the task correlation to identify the positively correlated
+old tasks in a layer-wise manner, and then selectively modifies the learnt model of the old tasks when learning the new task.S-FSVI
+frames continual learning as sequential function-space variational inference and adapts the variational objective to the continual-
+learning setting.Finetuningtrains the model without considering the catastrophic forgetting in previous tasks. More details of these
+baselines can be seen in AppendixA.
+Datasets: In Task-IL, we use four datasets: Split MNIST, Split Cifar100, Tiny Imagenet and the real-world dataset iNaturalist.
+Split MNIST consists of five binary classification tasks built from MNIST: 0/1, 2/3, 4/5, 6/7, and 8/9. Split Cifar100, a more difficult
+benchmark than MNIST, comprises of 10 tasks that consist of 10 consecutive classes from CIFAR-100. Tiny Imagenet is a subset of 200
+classes from ImageNet [12], rescaled to an image size of 64 ×64. Each class contains 500 samples subdivided into training (80%) and
+validation sets (20%), along with 50 samples for evaluation. In order to construct a balanced dataset, we assign an equal amount of
+20 randomly chosen classes to each task in a sequence of 10 consecutive tasks. This task-incremental setting allows for the use of an
+oracle at test time for our evaluation per task, ensuring that all tasks are roughly similar in terms of difficulty, size, and distribution.
+iNaturalist [11]is a real-world dataset with highly imbalanced classes. In this paper, we select eight super-categories from the total
+of 14 and only retain categories with at least 100 samples. We only use the training data, which is subdivided into training (70%),
+validation (20%) and evaluation (10%) sets. In Class-IL, we conduct experiments on two widely used datasets: Cifar100 and ImageNet
+[12]. In this scenario, we follow the work of [26]and give a similar division of datasets which has 1 initial task and 4 incremental
+tasks. For Cifar100, the initial task consists of50 random classes, and all incremental tasks have same numbers of classes. The number
+of classes in one incremental task is set to be 5 or 10. ImageNet contains around 1.3 million samples of 224 ×224color images from
+1000 classes. Therefore, for ImageNet, the initial task consists of500 random classes, and the number of classes in one incremental
+task is set to be 50 or 100. In Class-IRL, we use CORe50 [27]to conduct experiments. CORe50 has been collected in 11 distinct sessions
+(8 indoor and 3 outdoor) characterized by different backgrounds and lighting. It is a collection of 50 domestic objects belonging to
+10 categories. Classification in this paper is performed at object level (50 classes). We follow up the work of [27]which generates 79
+tasks from CORe50. The first task includes 10 classes, and each subsequent task contains 5 classes. The details of these datasets can
+be seen in AppendixA.
+Models:In Task-IL, we use four different types of models to accommodate the four different datasets. It is also possible to examine
+the differences in the performance of methods across different models. For Split MNIST, we use a fully connected single-head network
+with two hidden layers, each comprising 256 hidden units. For Split Cifar100, we use the same model architecture as in [43]: a multi-
+head CNN with four convolutional layers, then two dense layers with dropout. A model based on a VGG configuration [9] and
+ResNet-18 [17] are used for Tiny Imagenet. The VGG model has a classifier consisting of two fully connected layers, each with
+512 units. To explore the effect of model size on methods, we also adopt two VGG nets, one with wider layers and the other with
+more layers. Moreover, the size of iNaturalist is huge, which makes learning arduous; therefore we conduct the experiments solely
+for AlexNet [20], pretrained on ImageNet. The multi-head setting is adopted here to impose a separate fully connected layer with
+softmax for each task, with the number of outputs defined by the classes in that task. In Class-IL and Class-IRL, we follow up the work
+of [26], where models based on ResNet configurations are used.
+Evaluation:We mainly use the accuracy or forgetting rates to measure the performance of the method. We first define 𝑎𝑐𝑐 𝑖,𝑗 as
+the accuracy where learned model 𝑀 𝑖is evaluated on the test data 𝑆 𝑡𝑗 𝑒𝑠𝑡 of task 𝑗. In Task-IL, the final accuracy for task 𝑗is defined
+as 𝑎𝑐𝑐 𝑁𝑡𝑎𝑠𝑘,𝑗, where model 𝑀 𝑁𝑡𝑎𝑠𝑘 is the final model. The forgetting rate for task 𝑗is defined as 𝑎𝑐𝑐 𝑗,𝑗−𝑎𝑐𝑐 𝑁𝑡𝑎𝑠𝑘,𝑗 where 𝑎𝑐𝑐 𝑗,𝑗 can be
+seen as the initial accuracy for task 𝑗. In Class-IL, the evaluation metric is the accuracy 𝑎𝑐𝑐 𝑖,0∶𝑖, where learned model 𝑀 𝑖is evaluated
+8
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Table1
+FinalaccuracyforeachtaskaftertrainingalltasksonSplitMNIST.(Forinterpre-
+tationofthereferencestocolourpleaserefertothewebversionofthisarticle.)
+Task1 Task2 Task3 Task4 Task5 Avg
+SI 99.57 90.60 90.82 98.89 98.79 95.74
+EWC 99.43 60.14 55.39 96.78 99.14 82.18
+RIF-1 100.00 96.91 98.99 98.59 96.32 98.16
+RIF-2 99.95 95.84 98.56 98.74 96.02 97.82
+MAS 99.91 88.83 89.54 98.99 98.64 95.18
+FROMP 97.54 92.41 85.22 98.49 96.97 94.13
+mode-IMM 80.05 91.28 75.45 97.08 82.20 85.21
+mean-IMM 54.94 62.29 18.84 96.02 98.49 66.12
+LwF 97.72 97.43 98.12 98.49 98.34 98.02
+Finetuning 33.19 61.36 14.83 89.33 99.34 59.61
+A-GEM 96.44 96.33 97.03 97.42 98.91 97.22
+DER 96.16 95.72 96.22 96.98 98.78 96.77
+GEM 95.49 95.28 95.88 96.01 98.18 96.17
+iCaRL 96.86 96.93 97.45 97.76 99.15 97.63
+PNN 94.99 94.81 95.58 95.67 98.59 95.93
+Table2
+ForgettingrateforeachtaskaftertrainingalltasksonSplitMNIST.
+Task1 Task2 Task3 Task4 Avg
+SI 0.38 9.01 8.59 0.40 4.60
+EWC 0.52 39.08 44.34 2.72 21.67
+RIF-1 -0.05 0.73 -0.37 0.35 0.17
+RIF-2 0.00 0.49 0.00 0.10 0.15
+MAS 0.05 10.43 10.19 -0.05 5.15
+FROMP 2.41 6.46 14.35 0.50 5.93
+mode-IMM 19.91 7.35 17.45 -0.30 11.10
+mean-IMM 45.01 36.53 80.79 3.27 41.40
+LwF 2.23 1.54 1.50 1.06 1.58
+Finetuning 66.76 37.86 85.01 10.27 49.97
+A-GEM 3.51 1.63 1.55 1.03 1.93
+DER 3.79 1.71 1.81 0.96 2.07
+GEM 4.46 1.43 1.64 1.32 2.21
+iCaRL 3.09 1.08 1.25 1.28 1.68
+PNN 4.97 1.34 1.32 1.00 2.16
+on the test data 𝑆 𝑡0 𝑒∶ 𝑠𝑖 𝑡. 𝑆 𝑡0 𝑒∶ 𝑠𝑖 𝑡 denotes all seen data (classes) so far. In Class-IRL, we evaluate the learned model 𝑀 𝑖 by the accuracy
+𝑎𝑐𝑐 𝑖,𝐹𝑇𝑆 of 𝑀 𝑖on a Full Test Set [27]which is fixed and includes patterns of all the classes.
+6.2. Results in Task-IL scenario
+Split MNIST:After training all tasks, the final accuracy of each task is presented in Table1. We select the best three results in
+each column, which are marked in red, green and blue respectively. It is obvious that RIF achieves better performance than all other
+baselines. RIF with first-order influence achieves top three-ranked accuracy in tasks 1, 2, 3 with the best average accuracy of 98.16%.
+It can be seen that LwF also achieves good performance on Split MNIST: it has the second-best average accuracy, at 98.02%, and also
+demonstrates good performance on tasks 2 and 3. Finetuning performs the worst on all tasks and can be regarded as theminimum
+desired performance. In general, the accuracy of RIF is 0.53%–38.55% higher than all other approaches apart from LwF. Next, we
+focus on the forgetting rate, which is shown in Table2. With its 0.15% and 0.17% average forgetting rate, RIF achieves the highest
+overall performance after training all tasks. The next highest is LwF with 1.58% forgetting. Overall, RIF consistently outperforms
+other approaches on Split MNIST. LwF shows competitive results. Fig. 2 plots the changes of all approaches when new tasks are
+added. It can be clearly seen that the accuracy of RIF changes very little, which indicates that RIF model learning can remember the
+previous tasks well.
+Split Cifar100:The task in Split MNIST is a binary classification problem, which is too simple for our purposes. Split Cifar100
+is a more difficult benchmark consisting of 10 tasks. All accuracies are summarized in Fig.3. It is worth noting that the mode-IMM
+achieves the best performance on task 1. The curve of mode-IMM on task 1 is relatively flat and obtains the highest accuracy. The
+mode-IMM also shows recovery through backward transfer in subsequent tasks, which results in a negative forgetting rate. These
+results are listed in Table4. This phenomenon (that the accuracy of mode-IMM begins at a low value and increases as new tasks
+are added) can also be seen in the following experiments on Tiny Imagenet. From Table3and Table4, we can determine that RIF
+achieves a competitive result. The average accuracies of first-and second-order RIF are 56.44% and 57.27%, representing the best
+accuracies among the baselines. At same time, the forgetting rates of RIF are the second best across all approaches.
+Tiny Imagenet:We first focus on the results by VGG model. Fig.4shows that results of all approaches (including A-GEM, DER,
+GEM, iCaRL and PNN), while the final accuracy and forgetting rates can be seen in Tables5and 6. PNN only trains models on 8 tasks
+9
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.2.ResultsonSplitMNIST.Thefigureconsistsoffivesubpanels,witheachsubpanelshowingtheevolutionoftestaccuracyforaspecifictaskasmoretasksare
+addedfortraining.Figs.3,4and5havethesamestructure.(Forinterpretationofthecolorsinthefigure(s),thereaderisreferredtothewebversionofthisarticle.)
+Table3
+FinalaccuracyforeachtaskaftertrainingalltasksonSplitCifar100.
+Task1 Task2 Task3 Task4 Task5 Task6 Task7 Task8 Task9 Task10 Avg
+SI 38.60 41.30 49.80 43.60 52.40 59.30 58.00 58.60 62.90 72.90 53.74
+EWC 38.40 38.50 47.70 47.20 50.20 54.70 58.70 59.70 57.50 73.50 52.61
+RIF-1 45.80 46.30 54.30 49.70 54.40 60.60 59.60 59.40 61.80 72.50 56.44
+RIF-2 48.30 45.30 59.10 52.60 55.40 63.20 60.50 55.90 62.30 70.10 57.27
+MAS 46.80 41.90 45.40 50.60 54.40 60.80 62.10 56.60 57.50 71.80 54.79
+FROMP 44.30 29.40 31.50 34.90 45.50 51.30 53.70 51.10 50.60 67.30 45.96
+mode-IMM 56.90 51.80 63.80 57.80 61.70 59.40 58.10 58.30 46.50 49.50 56.38
+mean-IMM 37.70 32.20 38.20 42.40 48.90 55.60 53.40 57.60 61.20 74.90 50.21
+LwF 47.00 43.10 50.30 51.00 54.10 57.70 60.60 63.30 62.00 72.80 56.19
+Finetuning 9.60 5.30 9.40 8.60 5.60 11.60 21.20 13.30 14.90 76.20 17.57
+AGEM 45.15 42.03 45.71 52.09 52.89 59.24 62.59 56.17 57.31 72.01 54.52
+DER 44.27 39.90 43.53 47.49 50.69 59.51 58.96 53.82 56.84 71.65 52.67
+GEM 42.89 37.22 40.73 45.96 48.65 55.98 57.90 52.92 53.55 71.37 50.72
+iCaRL 44.17 39.73 42.25 48.26 53.13 57.02 59.54 54.53 54.30 71.08 52.40
+PNN 41.01 37.65 40.68 45.79 49.27 56.05 58.38 50.35 52.53 71.56 50.33
+Table4
+ForgettingrateforeachtaskaftertrainingalltasksonSplitCifar100.
+Task1 Task2 Task3 Task4 Task5 Task6 Task7 Task8 Task9 Avg
+SI 21.80 16.50 18.80 19.60 15.20 9.40 11.70 9.00 1.20 13.69
+EWC 22.00 20.00 22.10 16.30 17.00 13.20 10.30 8.20 5.90 15.00
+RIF-1 14.60 10.60 14.30 14.20 11.80 6.80 10.00 8.20 2.60 10.34
+RIF-2 12.10 11.90 9.80 10.80 10.00 5.00 9.00 8.80 0.90 8.70
+MAS 13.60 14.60 21.90 12.50 11.10 6.80 6.70 9.00 5.30 11.28
+FROMP 28.70 31.00 38.40 27.70 21.60 17.10 14.00 10.00 9.50 22.00
+mode-IMM 5.80 3.40 -4.10 -3.90 -6.60 -8.90 -5.30 -5.50 -2.80 -3.10
+mean-IMM 25.00 26.10 31.80 21.60 20.50 12.80 18.00 10.10 5.60 19.06
+LwF 13.40 17.20 18.90 15.00 14.10 13.00 11.40 5.50 4.70 12.58
+Finetuning 51.80 54.30 63.90 57.40 64.70 60.80 50.50 53.70 54.70 56.87
+AGEM 15.85 15.36 20.73 11.78 12.34 8.35 7.08 9.08 4.81 11.71
+DER 16.93 14.67 23.17 13.84 14.80 7.37 8.76 9.91 4.91 12.71
+GEM 17.51 16.65 23.06 13.15 14.05 7.80 7.05 8.85 7.23 12.82
+iCaRL 18.43 15.64 22.63 13.55 9.65 9.04 8.01 9.87 6.78 12.62
+PNN 19.39 15.47 22.67 14.86 13.74 9.21 8.20 13.09 7.76 13.82
+10
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.3.ResultsonSplitCifar100.
+Fig.4.ResultsbyVGGmodelonTinyImagenet.
+because of the limit of GPU memory. With 46.54% average accuracy, RIF-2 shows the highest overall performance after training all
+tasks on Tiny Imagenet. MAS achieves a competitive result with 46.30% average accuracy and 1.88% forgetting rate. A-GEM shows
+the best forgetting rates at -1.03%, but RIF also has the competitive forgetting rates at 1.37% and 1.97%. It is worth noting that mode-
+IMM and iCaRL also exhibits the phenomenon described in above experiment on Split Cifar100. Unfortunately, IMM obtains worse
+accuracies than other strategies for continual learning on Tiny Imagenet. iCaRL also has a poor performance on final accuracy for each
+task. The final accuracy and forgetting rates based on ResNet18 can be seen in Table7. CUBER and S-FSVI achieve competitive results.
+The average final accuracies of them are all over 65% while those of EWC and MAS are 43.13% and 64.43%, respectively. CUBER
+achieves the best average final accuracy (67.73%). However, our proposed RIF with first-order and second-order influence achieve
+very competitive results with final accuracies of 67.52% and 67.43%, respectively. There are six tasks where RIF with first-order and
+second-order influence achieve the best final accuracy. The best baseline CUBER only outperforms our RIF on Tasks 9 and 10 in terms
+11
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Table5
+FinalaccuracyforeachtaskbyVGGmodelaftertrainingalltasksonTinyImagenet.
+Task1 Task2 Task3 Task4 Task5 Task6 Task7 Task8 Task9 Task10 Avgacc
+SI 38.60 33.90 33.50 38.20 27.90 39.50 34.20 43.00 40.30 50.20 37.93
+EWC 24.80 25.20 30.50 30.00 35.40 36.20 34.70 35.40 37.80 49.00 33.90
+RIF-1 49.70 43.60 42.30 47.30 43.80 48.30 42.80 46.80 47.00 47.00 45.86
+RIF-2 49.80 43.70 46.00 46.30 45.10 49.10 43.10 46.90 47.00 48.40 46.54
+MAS 50.60 46.60 45.60 45.50 43.10 47.80 41.90 45.50 47.80 48.60 46.30
+mode-IMM 38.80 25.50 33.70 38.80 26.10 34.00 32.80 30.20 27.30 29.50 31.67
+mean-IMM 19.70 10.70 15.30 13.90 11.30 23.30 20.50 22.10 18.80 49.90 20.55
+LwF 40.30 40.60 39.50 38.40 43.80 49.00 38.30 43.20 42.50 46.00 42.16
+Finetuning 12.40 9.00 13.30 8.60 7.30 13.60 12.70 16.00 16.30 51.40 16.06
+A-GEM 47.60 44.70 45.20 48.30 43.20 47.40 41.80 45.80 46.60 48.20 45.88
+DER 46.30 42.40 40.10 44.50 41.90 42.80 42.50 43.50 45.20 49.60 43.88
+GEM 46.60 43.80 46.20 46.50 43.00 44.60 37.50 42.70 43.60 43.20 43.77
+iCaRL 44.60 39.50 42.00 40.80 43.10 42.00 36.10 42.20 40.40 39.90 41.06
+PNN 46.00 40.40 40.10 43.50 42.30 40.50 44.70 53.20 43.84
+Table6
+ForgettingrateforeachtaskbyVGGmodelaftertrainingalltasksonTinyImagenet.
+Task1 Task2 Task3 Task4 Task5 Task6 Task7 Task8 Task9 Avg
+SI 12.90 16.50 18.40 13.80 21.00 13.10 13.00 7.00 9.30 13.89
+EWC 26.70 25.70 21.80 24.10 12.00 17.20 12.30 14.00 11.00 18.31
+RIF-1 1.80 2.00 4.30 1.20 2.20 1.20 0.50 2.90 1.60 1.97
+RIF-2 1.70 2.80 0.00 2.30 0.20 2.80 0.90 1.60 0.00 1.37
+MAS 0.90 2.40 1.30 3.10 2.00 2.40 0.90 3.20 0.70 1.88
+mode-IMM 13.50 21.00 8.10 -2.30 -2.60 -3.60 -2.10 -5.50 -2.20 2.70
+mean-IMM 32.60 39.40 37.50 39.30 36.50 31.60 27.60 28.80 28.10 33.49
+LwF 11.20 7.40 5.10 5.40 0.00 -0.80 -0.50 -0.30 0.30 3.09
+Finetuning 41.60 44.50 41.00 44.80 40.90 41.30 35.70 32.10 34.80 39.63
+A-GEM 3.40 5.70 2.70 2.90 6.70 4.50 2.20 2.90 1.40 3.60
+DER 4.90 5.90 5.90 6.60 7.00 7.60 4.60 4.90 2.30 5.52
+GEM 3.80 5.10 3.60 2.00 5.50 1.80 1.40 0.50 0.60 2.70
+iCaRL -2.00 -2.70 -1.80 -1.90 -0.70 -0.10 0.40 -0.40 -0.10 -1.03
+PNN 4.40 13.00 11.70 11.30 7.20 15.20 4.50 9.61
+Table7
+FinalaccuracyandforgettingrateforeachtaskbyResNet-18aftertrainingalltasksonTinyImagenet.
+Task1 Task2 Task3 Task4 Task5 Task6 Task7 Task8 Task9 Task10 Avgacc
+Accuracy EWC 17.94 21.40 30.09 35.98 40.26 45.09 52.72 58.31 63.62 65.89 43.13
+RIF-1 57.35 58.53 62.82 66.75 66.12 66.71 73.74 73.24 74.58 75.37 67.52
+RIF-2 57.94 61.40 64.09 65.98 64.26 65.09 72.72 73.31 73.62 75.89 67.43
+MAS 55.19 55.95 59.83 61.08 60.71 64.85 68.59 70.62 72.04 75.39 64.43
+DER 52.11 59.11 62.97 66.25 63.76 67.37 70.36 71.07 72.54 77.89 66.34
+CUBER 56.71 60.36 62.39 64.69 65.64 67.28 73.38 72.63 75.87 78.32 67.73
+S-FSVI 55.96 57.17 63.57 61.26 59.99 60.74 70.29 74.29 74.17 76.27 65.37
+Forgetting EWC 62.31 58.15 50.50 44.27 38.49 32.48 24.08 20.36 10.17 30.31
+RIF-1 22.71 22.00 18.58 14.80 13.80 10.32 4.23 7.72 2.45 12.96
+RIF-2 22.11 18.33 16.41 13.78 13.36 11.82 3.53 2.22 0.38 11.33
+MAS 24.85 23.66 19.89 19.58 16.31 15.92 10.92 7.97 1.59 15.63
+DER 28.69 20.95 17.99 13.64 14.77 9.37 9.14 7.43 3.11 13.90
+CUBER 24.15 20.47 16.68 14.86 12.67 12.33 3.58 4.24 1.22 12.24
+S-FSVI 24.87 23.18 16.49 17.09 19.60 20.06 6.78 4.71 2.49 15.03
+of final accuracy. Our proposed RIF with second-order influence achieves the best forgetting rate (11.33%) while CUBER also has the
+competitive forgetting rates at 12.24%. There are five tasks where RIF with first-order and second-order influence achieve the best
+forgetting rate. The best baseline DER only outperforms our RIF on Tasks 4 and 6 in terms of forgetting rate.
+iNaturalist:Both Cifar100 and Tiny Imagenet are well balanced, with an equal amount of data and classes per task. Split MNIST
+can also be identified as a balanced task sequence, since the amount of data per task is very closed. Our goal is to scrutinize highly
+unbalanced task sequences, both in terms of classes and available data per task. We train AlexNet, pretrained on Imagenet, and track
+task performance for iNaturalist in Fig.5.
+The accuracy and forgetting rates are listed in Tables 8and 9. With 62.57% and 62.25% average accuracies, RIF achieves the
+highest overall performance after training all tasks on iNaturalist, while GEM also achieves a competitive performance with 61.3%
+average accuracy. Other baselines like DER, SI, iCaRL, mean-IMM, PNN, EWC, MAS and A-GEM achieve similar average accuracies
+ranging from 59.59% to 61.25%. The forgetting rates in Table9also reflect the same trend.
+12
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.5.ResultsoniNaturalist.
+Table8
+FinalaccuracyforeachtaskaftertrainingalltasksoniNaturalist.
+Task1 Task2 Task3 Task4 Task5 Task6 Task7 Task8 Avgacc
+SI 44.56 71.80 64.40 79.43 40.80 84.28 36.56 56.83 59.83
+EWC 40.82 68.77 69.79 89.13 39.69 83.44 34.29 60.06 60.75
+RIF-1 43.65 72.29 71.55 87.50 40.79 84.46 36.08 64.22 62.57
+RIF-2 45.36 72.29 71.26 85.87 40.30 85.07 35.77 62.11 62.25
+MAS 43.98 72.80 65.98 85.33 40.75 82.82 37.14 57.72 60.81
+mean-IMM 40.49 68.77 69.21 89.13 35.88 82.21 30.36 64.65 60.09
+LwF 28.24 63.48 63.05 84.78 37.18 82.62 36.35 58.63 56.79
+Finetuning 31.67 48.87 60.12 85.33 28.47 77.91 30.26 66.69 53.66
+A-GEM 45.09 71.41 67.97 87.58 40.94 83.08 34.50 59.44 61.25
+DER 37.58 70.73 66.34 84.04 39.05 83.30 34.02 62.46 59.69
+GEM 44.36 71.94 70.26 84.09 39.97 84.71 35.08 60.02 61.30
+iCaRL 38.91 73.52 66.75 83.05 39.07 83.15 35.15 60.35 59.99
+PNN 43.59 69.71 67.75 84.33 38.41 83.05 35.45 63.44 60.72
+Table9
+ForgettingrateforeachtaskaftertrainingalltasksoniNaturalist.
+Task1 Task2 Task3 Task4 Task5 Task6 Task7 Avg
+SI 2.51 1.00 6.57 1.00 4.16 0.80 1.79 2.55
+EWC 6.25 9.82 2.93 -1.63 7.41 2.04 5.06 4.56
+RIF-1 3.42 3.78 1.47 0.54 5.02 2.04 3.96 2.89
+RIF-2 1.71 3.02 3.23 -0.54 2.67 1.64 2.31 2.00
+MAS 3.09 2.27 3.81 2.17 3.24 -0.20 2.17 2.36
+mean-IMM 7.64 8.82 3.81 1.63 11.75 3.27 11.05 6.85
+LwF 18.83 9.82 8.50 3.80 7.21 3.89 1.14 7.60
+Finetuning 16.06 28.46 11.44 4.35 18.91 9.00 10.53 14.11
+A-GEM 3.95 6.43 2.29 -0.26 3.49 0.94 5.95 3.26
+DER 6.35 3.64 4.16 4.58 5.87 0.39 5.42 4.34
+GEM 4.42 5.05 4.80 4.50 5.76 0.57 5.65 4.39
+iCaRL 0.20 0.30 -5.04 -0.59 -0.63 -2.72 0.60 -1.13
+PNN 3.79 3.38 7.44 4.00 8.00 1.00 7.00 4.95
+13
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.6.Figs.6(a)and6(b)representtheresultsofbaselinesonCifar100inClass-IL.Inthe0–thphase,thereare50classes.Thenumberofclasses(NC)ofeach
+subsequentphaseissetto5or10.
+Fig.7.Figs.7(a)and7(b)representtheresultsofbaselinesonImageNetinClass-IL.Inthe0–thphase,thereare500classes.Thenumberofclasses(NC)ofeach
+subsequentphaseissetto50or100.
+From the above experimental results on four datasets, we can summarize that our proposed RIF consistently achieves higher
+accuracy and a lower forgetting rate than other baselines on four datasets; moreover, RIF is effective enough to defy the catastrophic
+forgetting of models. To better understand the performance of RIF, we visualize the results of RIF and Finetuning on Split MNIST.
+Details can be seen in AppendixB.
+6.3. Results in Class-IL and Class-IRL scenarios
+In this section, we challenge the more difficult scenarios in continual learning: Class-IL and Class-IRL.
+Class-IL:To be consistent to related works [26], we call task as “phase” in this scenario. Figs.6(a) and 6(b)represent the results of
+baselines on Cifar100. Figs.7(a) and 7(b)represent the results of baselines on ImageNet in Class-IL. The performance of learned model
+𝑀 𝑖 on 𝑆 𝑡0 𝑒∶ 𝑠𝑖 𝑡—all seen classes so far—drops with phases. As can be seen in Figs.6(a) and 6(b), RIF with first-order or second-order
+influence performs better than other baselines in Cifar100 no matter what the number of classes of subsequent phases is. The results
+in ImageNet are same, which can be found in Figs.7(a) and 7(b). Therefore, RIF performs better than other baselines in Class-IL.
+Class-IRL: To be consistent to related works [27], we call task as “batch” in this scenario. As can be observed in Fig. 8, the
+performance of model trained by each baseline is not stable, but the accuracy (𝑎𝑐𝑐 𝑖,𝐹𝑇𝑆) tends to increase with new batches. This
+means that model can accumulate the knowledge of classes in Class-IRL. Overall, RIF performs better than other baselines. By checking
+the ending points of the curves in Fig.8, we find that the model trained by RIF accumulates more knowledge about classes than that
+trained by other baselines, where the final accuracies (𝑎𝑐𝑐 78,𝐹𝑇𝑆) of model trained by RIF-1 and RIF-2 are 28.04% and 29.84%
+respectively. The final accuracies of models trained by other baselines like SI, EWC, MAS, mean-IMM and Finetuning are 25.06%,
+26.77%, 26.25%, 26.05% and 18.33% respectively. Therefore, RIF performs better than other baselines in Class-IRL.
+6.4. Further analysis
+This subsection analyzes the influence of other factors, including model size, task order and mixed information in Task-IL. We
+also count the time cost and memory usage of RIF and other methods.
+6.4.1. Effect of model size
+We design two additional models based on VGGnet, called DEEP and WIDE to explore the effect of model size. The model used
+in Section6.2is named BASE to distinguish it from the models used here. The BASE model has six convolutional layers. The WIDE
+14
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.8.RepresentationoftheresultsofbaselinesonCORe50inClass-IRL.Thereare10classesinthe0–thbatch,andthereare5classesineachsubsequentphase.
+Fig.9.AccuracyandforgettingratesforeachtaskaftertrainingalltasksviadeeperVGGnetonTinyImagenet.Thebarsinbluerepresenttheaccuraciesforeach
+task.Thebarsinredrepresentthepositiveforgettingratesforeachtask.Thebarsingreenrepresentthenegativeforgettingratesforeachtask,whichindicatesthe
+knowledgetransfer.
+model has more units per layer (i.e., is wider), while the DEEP model has more layers. More details can be found in Appendix A.
+Here, we concentrate on the experiments for the DEEP and WIDE models.
+All results for the DEEP model are presented in Fig.9. We find that extending the BASE model with additional convolutional layers
+results in poorer performance. Additional layers may introduce extra unnecessary layers of abstraction, which results in overfitting
+for the DEEP model. RIF can also achieve great performance on the DEEP model. We consider a negative forgetting rate as knowledge
+transfer, which is reverse to forgetting rate and calculated as 𝑎𝑐𝑐 𝑁,𝑗−𝑎𝑐𝑐 𝑗,𝑗. Overall, iCaRL seems to achieve the best performance
+with high accuracy and a little bit knowledge transfer, especially from task 1 to task 5. The possible reason is that the accuracy of
+15
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.10.AccuracyandforgettingratesforeachtaskaftertrainingalltasksviawiderVGGnetonTinyImagenet.Thebarsinbluerepresenttheaccuraciesforeach
+task.Thebarsinredrepresentthepositiveforgettingratesforeachtask.Thebarsingreenrepresentthenegativeforgettingratesforeachtask,whichindicatesthe
+knowledgetransfer.
+iCaRL begins at a low value and increases as new tasks are added. RIF also demonstrates a remarkable advantage compared with
+other approaches from task 1 to task 5. From task 6 to task 10, RIF still achieves a competitive result close to that of iCaRL. RIF tends
+to remember knowledge of a larger number of past tasks. As more tasks are added during training, RIF can maintain its performance
+on previous tasks well. These results indicate that RIF is stable enough to remember the previous tasks.
+All results for the WIDE model can be seen in Fig.10. The WIDE model obtains significantly better results than the DEEP model.
+The results for the WIDE model resemble those of the BASE model. RIF outperforms other baselines, as it has the best accuracy and
+very small or even negative forgetting rates. iCaRL still achieves a little bit knowledge transfer, but the final accuracy for each task
+of iCaRL is smaller than that of RIF. We can further observe that LwF also performs well from task 6 to task 10. It plays the same role
+as SI, which performs well for the DEEP model. Under these circumstances, RIF still maintains good performance on previous tasks
+as more tasks are added in training, which is consistent with its performance on the DEEP model. We can also observe similar trends
+for the BASE model. This shows that RIF can effectively remember the previous tasks on Tiny Imagenet.
+Speaking generally, RIF can outperform other methods and achieve stable performance on previous tasks, regardless of whether
+the model is wide or deep.
+6.4.2. Effect of task order
+This experiment examines how changing the task order affects the performance of the various approaches. All experiments are
+conducted on Tiny Imagenet with BASE model. The previously discussed results on Tiny Imagenet concern a random ordering. We
+change the task order based on task difficulty. By measuring the accuracy of each task over the three models (BASE, DEEP and WIDE),
+we can obtain the difficulty of each task. The random order discussed previously can be thought of as [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].
+The task difficulty results in an ordering from hard to easy: [5, 7, 10, 2, 9, 8, 6, 4, 3, 1]. The inverse order represents an ordering
+from easy to hard.
+16
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Table10
+Averageaccuracy(forgettingrate)ofallmethodswithdifferenttaskorders.
+SI EWC RIF-1 RIF-2 MAS IMM_mode LwF
+random 37.93(13.89) 33.90(18.31) 45.86(1.97) 46.54(1.37) 46.30(1.88) 31.67(2.70) 42.16(3.09)
+easy-to-hard 33.34(14.30) 31.20(18.70) 45.25(3.25) 44.48(3.90) 44.50(5.27) 32.50(2.60) 42.28(5.99)
+hard-to-easy 40.83(3.91) 40.69(8.81) 42.56(4.18) 43.17(3.41) 35.31(10.12) 28.30(5.17) 40.33(3.13)
+finetuning A-GEM DER GEM iCaRL PNN
+random 16.06(39.63) 45.88(3.60) 43.88(5.52) 43.77(2.70) 41.06(-1.03) 43.83(9.61)
+easy-to-hard 17.04(39.05) 43.02(7.01) 41.87(6.62) 41.51(5.79) 41.96(1.91) 43.12(9.11)
+hard-to-easy 16.53(35.09) 31.00(16.13) 30.93(15.97) 32.58(10.81) 30.66(6.76) 30.57(22.67)
+Fig.11.ResultsofmixingRIFimportanceweightsonSplitCifar100.
+The theory of curriculum learning [3]assumes that knowledge is better capture by starting with general and easier tasks before
+progressing to harder and more specific tasks, while the experimental results of this paper exhibit order-agnostic behavior. Final
+average accuracies and forgetting rates are listed in Table10. RIF still achieves almost the best performance on both two orders. RIF,
+MAS, mode-IMM, LwF, A-GEM, DER, GEM, iCaRL and PNN follow our assumption that performances under easy-to-hard ordering
+are better than those for hard-to-easy ordering. However, an interesting result emerging from our research is that SI and EWC show
+unexpectedly better results for hard-to-easy ordering than for easy-to-hard ordering.
+6.4.3. Mixed first-order and second-order influence
+This subsection studies the following question: whether the simultaneous usage of the parameter importance with different orders
+can improve performance. To determine the answer to this question, we mix first-order influence and second-order influence via
+𝜇𝐼𝐹(1)+(1 −𝜇)𝐼𝐹(2)and conduct experiments on Split Cifar100. Under different values of 𝜇, Fig.11(a) plots the average accuracy
+while Fig. 11(b) shows the average forgetting rate. 𝜇=0 and 𝜇=1 represent second-order and first-order RIF respectively. It is
+obvious that a mixture of first-and second-order influence can improve accuracy and aid the model in remembering the knowledge
+of previous tasks.
+6.4.4. Time cost and memory usage
+Here we consider the time cost and memory usage of each baselines on the four datasets in Task-IL.
+We count the time cost of all experiments on all four datasets in Task-IL and draw a box-plot representing the results (see Fig.12).
+RIF with first-order influence enjoys the lowest time cost among all baselines except for Finetuning. Approximating second-order
+influence requires the first-order influence to be calculated first. Therefore, RIF with second-order influence requires a higher time
+cost. The time cost of A-GEM, DER, GEM, iCaRL and PNN is shown in Fig.12. Generally speaking, these five baselines spend more
+time than other baselines due to the extra usage of memory and computational cost. The remained baselines like SI, EWC, MAS,
+mode-IMM, mean-IMM and LwF achieve similar time cost.
+The memory of our GPU is 12GB where available memory is 11019MB. The memory usage of baselines can be found in Table11.
+All results of regularization-based baselines seem to be close to each other. Similar to the situation in time cost, A-GEM, DER, GEM,
+iCaRL and PNN spend more memory cost. Due to the needs of computing kernel matrix and selecting the memorable past examples,
+FROMP requires too much memory. The memory of our GPU is unable to meet the needs of FROMP on Tiny Imagenet and Inaturalist.
+PNN will connect more old layers with training models on more tasks. Therefore, PNN only trains models on 8 tasks in Tiny Imagenet,
+and we set the memory cost of PNN in Tiny Imagenet as the max available memory (11019MB).
+17
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.12.Thetimecostofbaselines.
+Table11
+Memoryusageofbaselines(MB).
+SplitMNIST SplitCifar100 Tinyimagenet Inaturalist
+SI 1025 1519 3853 4869
+EWC 1023 1511 2247 5077
+RIF-1 1023 1511 2331 4983
+RIF-2 1023 1511 2331 5015
+MAS 1023 1511 2247 4863
+mode-IMM 1023 1499 2223 5161
+mean-IMM 1023 1499 2223 5053
+LwF 1025 1509 2283 5233
+Finetuning 1019 1491 2213 4649
+FROMP 4017 9095
+A-GEM 2023 2812 4325 7152
+DER 3102 3726 6230 9213
+GEM 3230 3864 6456 9361
+iCaRL 3418 3940 6676 9474
+PNN 4003 7634 11019 10045
+7. Conclusion
+In this paper, we propose a novel regularization-based method called RIF for continual learning, which uses the influence function
+to measure the importance of weights. We provide an efficient method of calculating weight importance with first-order and second-
+order influence. We also reveal the connection between RIF and classical regularization-based methods, specifically EWC, SI and MAS.
+Moreover, three main theoretical results are presented in our paper. Our extensive experimental results illustrate that RIF achieves
+state-of-the-art performance across four benchmarks, and also outperforms other baselines given different model sizes, task orders,
+and mixed information.
+CRediT authorship contribution statement
+Rui Gao:Conceptualization, Data curation, Formal analysis, Funding acquisition, Investigation, Methodology, Project adminis-
+tration, Resources, Software, Supervision, Validation, Visualization, Writing – original draft, Writing – review & editing. Weiwei
+Liu: Conceptualization, Data curation, Formal analysis, Funding acquisition, Investigation, Methodology, Project administration,
+Resources, Software, Supervision, Validation, Visualization, Writing – original draft, Writing – review & editing.
+Declaration of competing interest
+The authors declare the following financial interests/personal relationships which may be considered as potential competing
+interests: Weiwei Liu reports a relationship with The School of Computer Science, Wuhan University that includes: employment. Rui
+Gao reports a relationship with The School of Computer Science, Wuhan University that includes: employment. Rahaf Aljundi (rahaf .
+aljundi @kuleuven .be; rahaf .aljundi @esat .kuleuven .be) has conflict of interest by co-author -Rui Gao. Francesca Babiloni (francesca .
+babiloni @esat .kuleuven .be) has conflict of interest by co-author -Rui Gao. Mohamed Elhoseiny (elhoseiny @fb .com) has conflict of
+interest by co-author -Rui Gao. Marcus Rohrbach (mrf @fb .com) has conflict of interest by co-author - Rui Gao. Tinne Tuytelaars
+(tinne .tuytelaars @kuleuven .be; tinne .tuytelaars @esat .kuleuven .be) has conflict of interest by co-author -Rui Gao. Manohar Paluri
+18
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+(mano @fb .com) has conflict of interest by co-author -Rui Gao. Georg Sperl (georg .sperl @ist .ac .at) has conflict of interest by co-author
+-Rui Gao. Christoph H. Lampert (chl @ist .ac .at) has conflict of interest by co-author -Rui Gao. Alexander Kolesnikov (akolesnikov @
+google .com) has conflict of interest by co-author -Rui Gao. Sylvestre-Alvise Rebuffi (srebuffi @robots .ox .ac .uk) has conflict of interest
+by co-author -Rui Gao. Yaoyao Liu (liuyaoyao @tju .edu .cn) has conflict of interest by co-author -Rui Gao. Yuting Su (ytsu @tju .edu .cn)
+has conflict of interest by co-author -Rui Gao. An-An Liu (liuanan @tju .edu .cn) has conflict of interest by co-author -Weiwei Liu.
+Qianru Sun (qianrusun @smu .edu .sg) has conflict of interest by co-author -Weiwei Liu. Bernt Schiele (schiele @mpi -inf .mpg .de) has
+conflict of interest by co-author -Weiwei Liu.
+Acknowledgements
+This work is supported by the Key R&D Program of Hubei Province under Grant 2024BAB038, National Key R&D Program of
+China under Grant 2023YFC3604702, and the Fundamental Research Fund Program of LIESMARS.
+AppendixA. Additional information about baselines, datasets and models
+Here, we provide more information about baselines, datasets and models used in our paper. There are 12 baselines in our paper.
+We first give some descriptions of these baselines.
+SI:The synaptic state tracks the past and current parameter value, and maintains an online estimate of the synapse’s importance
+toward solving problems encountered in the past.
+MAS:Redefines the parameter importance measure to an unsupervised setting and obtains gradients of the squared 𝐿 -norm of
+2
+the learned network output function.
+EWC:EWC introduces network parameter uncertainty in the Bayesian framework; the true posterior is estimated using a Laplace
+approximation with precision, determined by the Fisher Information Matrix (FIM), which shows equivalence to the positive semi-
+definite second order derivative of the loss near a minimum.
+IMM:IMM estimates Gaussian posteriors for task parameters, in the same vein as EWC, but inherently differs in its use of model
+merging. In the merging step, the mixture of Gaussian posteriors is approximated by a single Gaussian distribution and corresponding
+covariances. Two methods for the merge step are proposed: mean-IMM and mode-IMM.
+FROMP:FROMP is a functional-regularization approach that utilizes a few memorable past examples crucial to avoiding forgetting.
+It enables training while identifying both the memorable past and a functional prior by using a Gaussian Process formulation of deep
+networks.
+LwF: Lwf uses only examples for the new task but optimizes both for high accuracy for the new task and for preservation of
+responses on existing tasks from the original network.
+iCaRL:iCaRL is the first replay method, focused on learning in a class-incremental way. Assuming fixed allocated memory, it
+selects and stores samples (exemplars) closest to the feature mean of each class.
+DER:DER mixes rehearsal with knowledge distillation and regularization and matches the network’s logits sampled throughout
+the optimization trajectory to promot consistency with its past.
+GEM:GEM exploits exemplars to solve a constrained optimization problem, projecting the current task gradient in a feasible area,
+outlined by the previous task gradients.
+A-GEM:A-GEM is an improved version of GEM. It relaxes the problem to project on one direction estimated by randomly selected
+samples from a previous task data buffer.
+PNN:PNN dynamically changes the network structure: instantiating a new neural network (a column) for each task being solved
+to prevent catastrophic forgetting, and making lateral connections to features of previously learned columns to enable transfer.
+CUBERcharacterizes the task correlation to identify the positively correlated old tasks in a layer-wise manner, and then selectively
+modifies the learnt model of the old tasks when learning the new task.
+S-FSVIframes continual learning as sequential function-space variational inference and adapts the variational objective to the
+continual-learning setting.
+TableA.12
+Detailsofdatasets.
+Tasks Classes/task Traindata/task Taskselection
+SplitMNIST 5 2 9365–10610 consecutiveclass
+SplitCifar100 10 10 5000 consecutiveclass
+TinyImagenet 10 20 8000 randomclass
+iNaturalist 8 5–150 645–26059 supercategory
+{50,5}or {25000,2500}or
+Cifar100inClass-IL 5 {50,10} {25000,5000} randomclass
+{500,50}or {650000,65000}or
+ImageNet 5 {500,100} {650000,130000} randomclass
+CORe50 79 {10,5} {3000,1500} randomclass
+19
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+TableA.13
+VGGModelsusedforTinyImagenet.
+FeatureExtractor Classifier
+BASE 64 M 64 M 128*2 M 256*2 M 512*2 multi-head
+WIDE 64 M 128 M 256*2 M 512*2 M 512*2 multi-head
+DEEP 64 M 64*6 M 128*6 M 256*6 M 512*2 multi-head
+Fig.B.13.Visualizationofthe100mostimportantparameters’changesonSplitMNIST.FTrepresentsthebaselineFinetuning.Thex-axisandy-axisofeachsub-figure
+respectivelyrepresenttheindex.Thescalesofx-axisandy-axisineachsub-figurebothrangefrom0to9.
+Finetuning:Finetuning greedily trains each task without considering previous task performance—hence introducing catastrophic
+forgetting—and represents the minimum desired performance.
+There are 7 benchmarks in our work, we divide them into several tasks which can be found in TableA.12. In further analysis, we
+construct two special models which are WIDE and DEEP models in order to figure out the effect of model size. The whole structures
+of used models are presented in TableA.13.
+AppendixB. Visualization
+To better understand the performance of RIF, we visualize the results of RIF and Finetuning on Split MNIST. For task 1, we select
+the 100 parameters with the largest influence and 100 parameters with the smallest influence in each layer, where the influence is
+calculated by RIF. The top and bottom of Fig.B.13illustrate the changes in selected parameters after training by RIF and Finetuning,
+respectively. The parameters selected here are the 100 parameters with the largest influence. It is evident that these parameters
+undergo minimal changes under the RIF method while exhibiting significant changes under Finetuning. Combined with the fact that
+the model achieves the best accuracy on task 1 of Split MNIST using RIF, we can conclude that the important parameters considered
+by RIF can significantly affect the model performance. A similar observation can be made from Fig. B.14: specifically, that the
+parameters in blue change very little under the RIF method while changing significantly under Finetuning. Fig.B.14also shows that
+the parameters considered by RIF to be irrelevant change freely. According to Tables 1 and 2, the model also achieves excellent
+performance on other tasks. These experimental results indicate that RIF accurately releases irrelevant parameters to help the model
+achieve great performance on the following tasks.
+AppendixC. Proof of Theorem1
+In the following Theorem, we provide the asymptotic properties of a regularization-based method’s estimator.
+Theorem 1. The estimator of a regularization-based method for task 𝑡can be represented as:
+{ }
+∑𝑛
+𝑇 𝜆(𝐷 𝑚𝑡 𝑡)=arg 𝜽min 𝐿 𝑡(𝜽;𝑆𝑡 )+𝜆 𝑗=1Ω𝑡 𝑗−1(𝜃 𝑗−𝜃̂ 𝑗𝑡−1)2 . (C.1)
+{ }
+We define 𝑇(𝐷𝑡) =argmin𝜽 ∫ 𝑙 𝑡(𝜽; 𝑥)𝑑𝐷𝑡(𝑥) . The estimator 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)is then asymptotically normal. That is:
+20
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Fig.B.14.Visualizationofchangesinmodelparameters.Thepointsinbluearethe100mostimportantparameters,whilethoseinredarethe100leastimportant
+parameters.Theparametersthatareclosertothedashedlinehavefewerchanges.Ineachsub-figure,thex-axisrepresentstheparametervaluesbeforetrainingmodel
+onanewtask,andy-axisrepresentstheparametervaluesaftertrainingmodelonanewtask.Thescalesofx-axisandy-axisineachsub-figurebothrangefrom-0.1
+to0.1.
+√ ( ) √
+𝑚 𝑡 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)−𝑇(𝐷𝑡 ) →𝑁( 𝑚 𝑡𝐶 𝑚𝑡𝜆,𝜎2) (C.2)
+where 𝐶 𝑚𝑡=𝑑𝑇𝜆 𝑑(𝐷 𝜆𝑚𝑡 𝑡)| | | |𝜆=0and 𝜎2=𝔼Φ𝐷𝑡2(𝑋) =∫ Φ𝐷𝑡2(𝑥)𝑑𝐷𝑡(𝑥). Φ𝐷𝑡(𝑥)is the influence function of 𝑇(⋅)at 𝐷𝑡 .
+Proof. We use the fact that the function 𝐴(𝜁) =𝑇(𝐷𝑡+𝜁(𝐷 𝑚𝑡 𝑡−𝐷𝑡))can be represented by a Taylor expansion at 𝜁=0,
+𝐴(𝑘)(0)𝑡𝑘
+𝐴(𝜁)=𝐴(0)+𝐴′(0)𝜁+...+ +𝐑𝐞𝐦 (C.3)
+𝑘! 𝐤
+where 𝐑𝐞𝐦 𝐤 is a remainder term and 𝜁∈[0, 1]. According to [14], when 𝜁=1, this corresponds to an expansion for 𝐷𝑡 in the first
+order, this is given by the following:
+𝑇(𝐷𝑡 )=𝑇(𝐷𝑡 )+𝑇′ (𝐷𝑡 −𝐷𝑡 )+𝐑𝐞𝐦(𝐷𝑡 −𝐷𝑡 )
+𝑚𝑡 𝐷𝑡 𝑚𝑡 𝑚𝑡
+(C.4)
+=𝑇(𝐷𝑡 )+ Φ𝐷𝑡(𝑥)𝑑(𝐷 𝑚𝑡 𝑡−𝐷𝑡 )(𝑥)+𝐑𝐞𝐦(𝐷 𝑚𝑡 𝑡−𝐷𝑡 )
+∫
+where 𝑇 𝐷′ 𝑡(𝐷 𝑚𝑡 𝑡−𝐷𝑡)is the von Mises derivative of 𝑇(⋅)at 𝐷𝑡 and Φ𝐷𝑡(𝑥)is the influence function of 𝑇(⋅)at 𝐷𝑡 . These are defined
+as follows:
+𝑑
+𝑇 𝐷′ 𝑡(𝐷 𝑚𝑡 𝑡−𝐷𝑡 )= 𝑑𝜁𝑇(𝐷𝑡 +𝜁(𝐷 𝑚𝑡 𝑡−𝐷𝑡 ))| 𝜁=0
+(C.5)
+= Φ𝐷𝑡(𝑥)𝑑(𝐷 𝑚𝑡 𝑡−𝐷𝑡 )(𝑥)
+∫
+21
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+𝑑
+Φ𝐷𝑡(𝑥)= 𝑑𝜁𝑇(𝐷𝑡 +𝜁(𝛿 𝑥𝑡 −𝐷𝑡 ))| 𝜁=0 (C.6)
+where 𝛿 𝑥𝑡 is the d.f. of the point mass one at x. Since ∫ Φ𝐷𝑡(𝑥)𝑑(𝐷𝑡)(𝑥) =0, we obtain that:
+𝑇(𝐷 𝑚𝑡 𝑡)=𝑇(𝐷𝑡 )+ ∫ Φ𝐷𝑡(𝑥)𝑑𝐷 𝑚𝑡 𝑡(𝑥)+𝐑𝐞𝐦(𝐷 𝑚𝑡 𝑡−𝐷𝑡 ) (C.7)
+which can be thought of as a von Mises expansion of 𝑇(⋅)at 𝐷 𝑡. The linear term of the expansion is as follows:
+∑𝑚𝑡
+∫ Φ𝐷𝑡(𝑥)𝑑𝐷 𝑚𝑡 𝑡(𝑥)= 𝑚1 𝑖=1Φ𝐷𝑡(𝑋 𝑖) (C.8)
+𝑡
+and therefore:
+∑𝑚𝑡
+𝑇(𝐷 𝑚𝑡 𝑡)−𝑇(𝐷𝑡 )= 𝑚1 𝑖=1Φ𝐷𝑡(𝑋 𝑖)+𝐑𝐞𝐦(𝐷 𝑚𝑡 𝑡−𝐷𝑡 ) (C.9)
+𝑡
+Since 𝑇 𝜆(𝐷 𝑚𝑡 𝑡) →𝑇(𝐷 𝑚𝑡 𝑡)as 𝜆 →0, we perform a Taylor expansion of 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)at 𝜆 =0
+𝑇 𝜆(𝐷 𝑚𝑡 𝑡)=𝑇(𝐷 𝑚𝑡 𝑡)+𝑑𝑇 𝜆 𝑑(𝐷 𝜆𝑚𝑡 𝑡)| | | |𝜆=0𝜆 (C.10)
+where we drop the remainder term. Combining (C.9)with (C.10), we obtain
+√ ( )
+𝑚 𝑡 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)−𝑇(𝐷𝑡 )
+∑𝑚𝑡 ( ) √ (C.11)
+=√1 Φ𝐷𝑡(𝑋 𝑖)+𝐶 𝑚𝑡𝜆 + 𝑚 𝑡𝐑𝐞𝐦(𝐷 𝑚𝑡 𝑡−𝐷𝑡 )
+𝑚
+𝑡 𝑖=1
+where 𝐶 𝑚𝑡 = 𝑑𝑇𝜆 𝑑(𝐷 𝜆𝑚𝑡 𝑡)| | | |𝜆=0. The first term on the right-hand side is asymptotically normal according to the central limit theorem.
+According to [15], in most cases the remainder becomes negligible for 𝑛 →∞, so that 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)itself is asymptotically normal. That
+is:
+√ ( ) √
+𝑚 𝑡 𝑇 𝜆(𝐷 𝑚𝑡 𝑡)−𝑇(𝐷𝑡 ) →𝑁( 𝑚 𝑡𝐶 𝑚𝑡𝜆,𝜎2) (C.12)
+where 𝐶 𝑚𝑡=𝑑𝑇𝜆 𝑑(𝐷 𝜆𝑚𝑡 𝑡)| | | |𝜆=0and the asymptotic variance equals:
+𝜎2=𝔼Φ𝐷𝑡2(𝑋)= ∫ Φ𝐷𝑡2(𝑥)𝑑𝐷𝑡 (𝑥) □ (C.13)
+AppendixD. Proof of Theorem2
+Here we want to prove that the learning algorithm of a regularization-based method can declare success under the definition of
+agnostic PAC learning. We first give a lemma and two corollaries. We also present the related definitions in the main paper.
+Definition 1 (Agnostic PAC learnability). A hypothesis class is agnostic PAC learnable if there exist a function 𝑚 ∶(0, 1)2→ℕand
+a learning algorithm with the following property: For every 𝜁, 𝛿∈(0, 1)and for every distribution 𝐷over 𝑋×𝑌, when running the
+learning algorithm on 𝑚 ≥𝑚 (𝜁, 𝛿)i.i.d. examples generated by 𝐷, the algorithm returns a hypothesis ℎsuch that, with probability
+of at least 1 −𝛿(over the choice of the m training examples),
+( )
+𝐿 (ℎ)≤ min𝐿  ℎ′ +𝜁 (D.1)
+ℎ′∈
+where 𝐿 (ℎ) d =ef 𝔼 [𝑙(ℎ; 𝑧)]. 𝑙(ℎ; 𝑧)is the loss function.
+𝑧∼
+Definition 2 (𝜁-representative sample). A training set 𝑆is called 𝜁-representative (w.r.t. domain 𝑍, hypothesis class 𝐻, loss function
+𝑙, and distribution 𝐷) if
+∀ℎ∈𝐻,| |𝐿 𝑆(ℎ)−𝐿 (ℎ)| |≤𝜁 (D.2)
+∑ ( )
+where 𝐿 (ℎ) d =ef 𝑧∼𝔼 [𝑙(ℎ; 𝑧)]and 𝐿 𝑆(ℎ) d =ef 𝑚1 𝑚 𝑖=1𝑙 ℎ;𝑧 𝑖 . 𝑙(ℎ; 𝑧)is the loss function and 𝑧 𝑖is randomly drawn from 𝐷.
+22
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Definition 3 (Uniform convergence). We say that a hypothesis class 𝐻has the uniform convergence property (w.r.t. a domain Z and a
+loss function 𝑙) if there exists a function 𝑚UC∶(0, 1)2→ℕsuch that for every 𝛿∈(0,1) and for every probability distribution 𝐷over
+
+𝑍, if 𝑆is a sample of 𝑚 ≥𝑚UC(𝜁, 𝛿)examples drawn i.i.d. according to 𝐷, then, with probability of at least 1 −𝛿, 𝑆is 𝜁-representative.
+
+Lemma 1. Assume that a training set S is 𝜁 -representative (w.r.t. domain Z, hypothesis class , loss function 𝑙, and distribution 𝐷). Then,
+any output of 𝐄𝐑𝐌 (𝑆), namely, any ℎ 𝑆2 ∈argminℎ∈𝐿 𝑆(ℎ), satisfies
+𝐿 𝐷(ℎ 𝑆)≤min𝐿 𝐷(ℎ)+𝜁 (D.3)
+ℎ∈
+Proof. For every ℎ ∈,
+( ) ( ) 𝜁 𝜁
+𝐿  ℎ 𝑆 ≤𝐿 𝑆 ℎ 𝑆 + ≤𝐿 𝑆(ℎ)+
+2 2
+(D.4)
+𝜁 𝜁
+≤𝐿 (ℎ)+ + =𝐿 (ℎ)+𝜁,
+2 2
+where the first and third inequalities are due to the assumption that 𝑆is 𝜁 -representative (Definition2), while the second inequality
+holds since ℎ 𝑆 is an 𝐄𝐑𝐌predictor. □ 2
+The below corollary follows directly from Lemma1and the definition of uniform convergence.
+Corollary 1. If a class  has the uniform convergence property with a function 𝑚UC, then the class is agnostically PAC learnable with the
+
+sample complexity 𝑚 (𝜁, 𝛿) ≤𝑚U C(𝜁∕2, 𝛿). Furthermore, in that case, the 𝐄𝐑𝐌  paradigm is a successful agnostic PAC algorithm for .
+Corollary 2. Let be a finite hypothesis class, let 𝑍be a domain, and let 𝑙∶×𝑍→[0, 1]be a loss function. Then, enjoys the uniform
+convergence property with sample complexity
+⌈ ⌉
+𝑚𝑈 𝐶 (𝜁,𝛿)≤ log(2 2| 𝜁 2|∕𝛿) . (D.5)
+Proof. Details can be found in [37]. □
+We now establish Theorem2.
+Theorem 2. We denote the pointwise multiplication operation using ◦. 𝑡 is a finite hypothesis class for task 𝜏 𝑡. 𝑍𝑡 is a domain. 𝐷𝑡 is the dis-
+t pr li eb xu it ti yo n o v Ce (r 𝑍 𝛿𝑡 . 𝑙 )𝑡 ∶ Le ℎ𝑡× 𝜆𝑍 =𝑡 𝜽̂→ 𝝀∈[0 , 1 𝑡] bis t th he l ho yss f ou thn ec sti io n f ao tr ata cs tsk a𝜏 s𝑡. A hes s mum ine th iza et r o𝑡 h 𝜽̂a 𝝀s =th ae u gn mif io nr 𝜽m { c 𝐿o 𝑡n (v 𝜽e ;r 𝑆ge 𝑡)n +ce 𝜆pr ∑op 𝑗e =r 1ty ( 𝑗w −1it (h 𝑗sa −m 𝜃̂p 𝑗𝑡l −e c )o 2m}-
+𝑚 U 𝜁 ′, ) . t 𝑡 𝒕 e e p s th t im f 𝒕 r 𝑛 Ω 𝑡 𝜃 1 .
+𝐴𝑡 𝜆is the algorithm that generates ℎ𝑡 𝜆. 𝑆𝑡 is the sample set of task 𝜏 𝑡with 𝑚 𝑡≥𝑚U C(𝜁′, 𝛿)samples drawn independent and identical distributed
+𝐷𝑡
+(i.i.d.) according to . If the condition
+𝜁 ∈(0,1) (D.6)
+is satisfied, where
+{ }
+𝜁=4𝜁′+2∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀;𝑆𝑡 )⋅𝐻 𝜽− ̂𝒕1 𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 ) 𝑇 𝜆, (D.7)
+⌈ ⌉
+then 𝐴𝑡 𝜆 is a successful agnostic PAC learning algorithm with sample complexity 𝑚 (𝜁, 𝛿) ≤𝑚U C(𝜁′, 𝛿) ≤ log(2 2| 𝜁 ′2𝑡|∕𝛿) . 𝐻 𝜃̂𝑡 is the Hessian
+matrix.
+Proof. Assume ℎ𝑡=𝜽̂𝒕 ∈𝑡 is the output of the 𝐄𝐑𝐌 𝑡 paradigm, i.e.
+𝜽̂𝒕 =argmin𝐿 𝑡(𝜽;𝑆𝑡 ) (D.8)
+𝜽
+Since 𝑡 has the uniform convergence property (with sample complexity 𝑚UC(𝜁′, 𝛿)), we can determine that 𝑡 is agnostic PAC
+
+learnable and hold that
+𝐿 𝐷𝑡(ℎ𝑡 )≤min𝐿 𝐷𝑡(ℎ)+2𝜁′ (D.9)
+ℎ∈
+| |𝐿 𝑆𝑡(ℎ𝑡 )−𝐿 𝐷𝑡(ℎ𝑡 )| |≤𝜁′ (D.10)
+Combining (D.9)and (D.10), we have
+23
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+𝐿 𝑆𝑡(ℎ𝑡 )≤min𝐿 𝐷𝑡(ℎ)+3𝜁′ (D.11)
+ℎ∈
+The left side of (D.11)can be rewritten as follows:
+∑𝑚𝑡
+𝐿 𝑆𝑡(ℎ𝑡 )=𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )= 𝑚1 𝑙 𝑡(𝜽̂𝒕 ;𝑧𝑡 𝑖) (D.12)
+𝑡
+𝑖=1
+𝑧𝑡 𝑖∈𝑆𝑡
+where . We already have:
+{ }
+∑𝑛
+ℎ𝑡 𝜆=𝜽̂𝒕 𝝀=argmin 𝐿 𝑡(𝜽;𝑆𝑡 )+𝜆 Ω𝑡 𝑗−1(𝜃 𝑗−𝜃̂ 𝑗𝑡−1)2 (D.13)
+𝜽 𝑗=1
+According to Definition2and 3, since 𝑡 has the uniform convergence property (with sample complexity 𝑚UC(𝜁′, 𝛿)), we have:
+
+| |
+| |𝐿 𝑆𝑡(ℎ𝑡 𝜆)−𝐿 𝐷𝑡(ℎ𝑡 𝜆)| |≤𝜁′. (D.14)
+Then, we have:
+𝐿 𝐷𝑡(ℎ𝑡 𝜆)−𝜁′≤𝐿 𝑆𝑡(ℎ𝑡 𝜆). (D.15)
+Next, since ℎ𝑡 𝜆→ℎ𝑡 as 𝜆 →0, we have 𝐿 𝑆𝑡(ℎ𝑡 𝜆) →𝐿 𝑆𝑡(ℎ𝑡)as 𝜆 →0. Therefore, we perform a Taylor expansion of 𝐿 𝑆𝑡(ℎ𝑡 𝜆)at 𝜆 =0:
+𝐿 𝑆𝑡(ℎ𝑡 𝜆)≈𝐿 𝑆𝑡(ℎ𝑡 )+𝑑𝐿 𝑆 𝑑𝑡 𝜆(ℎ𝑡 𝜆)| | | |𝜆=0𝜆
+𝑑𝜽̂𝒕 (D.16)
+|
+=𝐿 𝑆𝑡(ℎ𝑡 )+∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀;𝑆𝑡 ) 𝑑𝜆𝝀| | |𝜆=0⋅𝜆
+Δ𝜆=𝜽̂𝒕 𝝀−𝜽̂𝒕 𝜽̂𝒕
+where we have dropped the remainder term. We define the parameter change , then note that does not depend on 𝜆;
+thus, we have:
+𝑑𝜽̂𝒕
+=𝑑Δ𝜆
+𝝀 (D.17)
+𝑑𝜆 𝑑𝜆
+𝜽̂𝒕
+Since 𝝀is the minimizer of (D.13), it must satisfy the following (first order) optimality condition:
+∑𝑛 |
+∇𝜃{𝐿 𝑡(𝜽;𝑆𝑡 )+𝜆 𝑗=1Ω𝑡 𝑗−1(𝜃 𝑗−𝜃̂ 𝑗𝑡−1)2}| | 𝝀=0 (D.18)
+|𝜽=𝜽̂𝒕
+Since ℎ𝑡 →ℎ𝑡 as 𝜆 →0, we can thus write the following Taylor expansion:
+𝜆
+{ }
+∇𝜃∑∞ ∇𝑘 𝜃 𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )+𝜆∑𝑛 Ω𝑡 𝑗−1(𝜃̂ 𝑗𝑡 −𝜃̂ 𝑗𝑡−1)2 ⋅Δ 𝑘!𝑘 𝜆 =0 (D.19)
+𝑘=0 𝑗=1
+( )
+Now, by dropping the 𝑜 ‖ ‖Δ𝜆‖ ‖ terms, we have the following:
+{ }
+∑𝑛
+∇𝜃 𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )+𝜆 Ω𝑡 𝑗−1(𝜃̂ 𝑗𝑡 −𝜃̂ 𝑗𝑡−1)2 +
+𝑗=1
+{ { } } (D.20)
+∑𝑛
+∇𝜃 ∇𝜃 𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )+𝜆 Ω𝑡 𝑗−1(𝜃̂ 𝑗𝑡 −𝜃̂ 𝑗𝑡−1)2 ⋅Δ𝜆 =0
+𝑗=1
+Since 𝜽̂𝒕 is a minimizer of (D.8), we have ∇𝜃𝐿 𝑡(𝜽̂𝒕 ; 𝑆𝑡) =0. Thus, (D.20)reduces to the following condition:
+{ }
+2𝜆𝛀𝒕−𝟏◦(𝜽̂𝒕 −𝜽̂𝒕−𝟏 ) 𝑇 +∇2 𝜃𝐿 𝑡(𝜽̂𝒕 ;𝑆𝑡 )⋅Δ𝜆+2𝜆𝑸⋅Δ𝜆=0 (D.21)
+where 𝑸=𝑑𝑖𝑎𝑔(Ω𝑡 1−1, ⋯ , Ω𝑡 𝑛−1)and ◦is the pointwise multiplication. By solving for ∇𝜃, we obtain:
+{ } { }
+−1 𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 𝑇
+Δ𝜆=2𝜆 𝐻 𝜽̂𝒕+2𝜆𝑸 ⋅ ) (D.22)
+which can be approximated by keeping only the 𝑂(𝜆)terms as follows:
+{ }
+𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 𝑇
+Δ𝜆=2𝜆𝐻 𝜽− ̂𝒕1⋅ ) (D.23)
+By combining (D.11), (D.16), (D.17)and (D.22), we have:
+24
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+𝐿 𝑆𝑡(ℎ𝑡 𝜆)≤ ℎm ∈i n𝐿 𝐷𝑡(ℎ)+3𝜁′+
+2∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀;𝑆𝑡 )⋅𝐻 𝜽− ̂𝒕1{ 𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 )} 𝑇 𝜆 (D.24)
+Combined with (D.15), we have
+𝐿 𝐷𝑡(ℎ𝑡 𝜆)≤ ℎm ∈i n𝐿 𝐷𝑡(ℎ)+4𝜁′+
+2∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀;𝑆𝑡 )⋅𝐻 𝜽− ̂𝒕1{ 𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 )} 𝑇 𝜆 (D.25)
+Letting
+{ }
+𝜁=4𝜁′+2∇𝜃𝐿 𝑡(𝜽̂𝒕 𝝀;𝑆𝑡 )⋅𝐻 𝜽− ̂𝒕1 𝛀𝒕−𝟏◦(𝜽̂𝒕−𝟏 −𝜽̂𝒕 ) 𝑇 𝜆, (D.26)
+if 𝜁∈(0, 1), we conclude that 𝐴𝑡 is a successful agnostic PAC learning algorithm with sample complexity 𝑚 (𝜁, 𝛿)for 𝑡 . As the
+𝜆
+derivation is based on 𝑆𝑡 , we have 𝑚 (𝜁, 𝛿) ≤| |𝑆𝑡| |=𝑚 𝑡. The value of 𝑚 𝑡 is at least 𝑚U C(𝜁′, 𝛿). Therefore, we have 𝑚 (𝜁, 𝛿) ≤
+𝑚UC(𝜁′, 𝛿). According to Corollary2, we obtain:
+
+⌈ ⌉
+log(2|𝑡|∕𝛿)
+𝑚 (𝜁,𝛿)≤𝑚U C(𝜁′,𝛿)≤ . □ (D.27)
+2𝜁′2
+AppendixE. Proof of Theorem3
+In the following Theorem, we establish the conditions under which 𝜎2 can achieve the Cramér-Rao Lower Bound.
+Theorem 3. Considering the variance 𝜎2in Theorem1, we prove that it can be bounded by:
+( 𝜕 [ 𝑇( 𝐷 )] ) 2
+𝜕𝛾 𝛾 𝛾
+𝜎2≥ ∗ . (E.1)
+𝐽(𝐷𝑡)
+which is the Cramér-Rao Lower Bound. 𝜎2can achieve the Cramér-Rao Lower Bound, if
+𝐴
+Φ𝐷𝑡(𝑥)= 𝐽(𝐷𝑡)𝐵 (E.2)
+[ ] [ ( )]
+where 𝐴 = 𝜕𝜕 𝛾 ln𝑓 𝛾(𝑥) 𝛾 and 𝐵= 𝜕𝜕 𝛾 𝑇 𝐷 𝛾 𝛾 , 𝑓 𝛾(𝑥)is the density of some sample distribution 𝐷 𝛾.
+∗ ∗
+Proof. We provide an overview of the conditions under which 𝜎2 can theoretically achieve the Cramér-Rao Lower Bound. More
+details can be seen in [15]. Assuming that every distribution 𝐷can be parameterized by 𝛾, we can denote 𝐷as 𝐷 𝛾. We denote the
+density of 𝐷 𝛾 by 𝑓 𝛾, and set 𝐷 ∗∶=𝐷 𝛾 where 𝛾 ∗is some fixed member of Γ. The Fisher information at 𝐷 ∗equals
+∗
+( )
+( ) 𝜕 [ ] 2
+𝐽 𝐷 ∗ = ∫ 𝜕𝛾 ln𝑓 𝛾(𝑥) 𝛾 𝑑𝐷 ∗. (E.3)
+∗
+Recalling the proof of Theorem1in AppendixC, we derive that the asymptotic variance equals:
+𝜎2= ∫ Φ𝐷𝑡2(𝑥)𝑑𝐷𝑡 (𝑥). (E.4)
+Similar to Eq.(C.7), we have
+𝑇(𝐷 𝛾)=𝑇(𝐷 ∗)+ ∫ Φ𝐷 ∗(𝑥)𝑑𝐷 𝛾(𝑥). (E.5)
+Differentiating both sides of with respect to 𝛾
+[ ]
+𝜕 𝜕 [ ( )]
+𝜕𝛾 ∫ Φ𝐷 ∗(𝑥)𝑑𝐷 𝛾 = 𝜕𝛾 𝑇 𝐷 𝛾 𝛾 (E.6)
+𝛾 ∗
+∗
+Assuming that differentiation and interaction are changeable, we change the order of differentiation and interaction, and obtain:
+𝜕 [ ( )] 𝜕 [ ]
+𝜕𝛾 𝑇 𝐷 𝛾 𝛾 ∗= ∫ 𝜕𝛾 Φ𝐷 ∗(𝑥)𝑑𝐷 𝛾 𝛾
+∗
+𝜕 [ ] (E.7)
+= Φ𝐷 ∗(𝑥) 𝑓 𝛾(𝑥) ∗𝑑𝜋(𝑥)
+∫ 𝜕𝛾 𝛾
+𝑑
+where 𝜋is a probability measure. Using the fact that:
+25
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+𝜕 [ ] 𝜕 [ ] 𝑓 𝛾 (𝑥)
+𝑓 𝛾(𝑥) ∗𝑑𝜋(𝑥)= 𝑓 𝛾(𝑥) 𝛾∗ (𝑥)𝑑𝜋(𝑥)
+𝜕𝛾 𝛾 𝜕𝛾 𝛾 𝑓
+∗
+∗ (E.8)
+𝜕 [ ]
+= ln𝑓 𝛾(𝑥) 𝑑𝐷 ∗(𝑥).
+𝜕𝛾 𝛾
+∗
+Combining (E.7)and (E.8), we derive that:
+𝜕 [ ( )] 𝜕 [ ]
+𝜕𝛾 𝑇 𝐷 𝛾 𝛾 ∗= ∫ Φ𝐷 ∗(𝑥) 𝜕𝛾 ln𝑓 𝛾(𝑥) 𝛾 ∗𝑑𝐷 ∗(𝑥). (E.9)
+Squaring both sides of (E.9), we have:
+( ) ( )
+𝜕 [ ( )] 2 𝜕 [ ] 2
+𝜕𝛾 𝑇 𝐷 𝛾 𝛾 = ∫ Φ𝐷 ∗(𝑥) 𝜕𝛾 ln𝑓 𝛾(𝑥) 𝛾 ∗𝑑𝐷 ∗(𝑥) . (E.10)
+∗
+Making use of Cauchy-Schwarz on the right side of (E.10), we derive that:
+( ) ( )
+𝜕 [ ( )] 2 𝜕 [ ] 2
+𝜕𝛾 𝑇 𝐷 𝛾 𝛾 = ∫ Φ𝐷 ∗(𝑥) 𝜕𝛾 ln𝑓 𝛾(𝑥) 𝛾 ∗𝑑𝐷 ∗(𝑥)
+∗
+( )
+𝜕 [ ] 2
+≤ Φ𝐷 ∗2(𝑥)𝑑𝐷 ∗(𝑥) ln𝑓 𝛾(𝑥) 𝑑𝐷 (E.11)
+∫ ∫ 𝜕𝛾 𝛾 ∗
+∗
+( )
+= Φ𝐷 ∗2(𝑥)𝑑𝐷 ∗(𝑥)𝐽 𝐷 .
+∫ ∗
+Then we obtain the Crameŕ-Rao inequality:
+( 𝜕 [ 𝑇( 𝐷 )] ) 2
+𝜕𝛾 𝛾 𝛾
+∫ Φ𝐷 ∗2(𝑥)𝑑𝐷 ∗(𝑥)≥ 𝐽( 𝐷 ) ∗ . (E.12)
+∗
+To achieve the lower bound of (CR-inequality), we let 𝛾 here be the parameter of distribution 𝐷𝑡 . Finally, we obtain the following
+∗
+condition:
+𝐴
+Φ𝐷𝑡(𝑥)= 𝐽(𝐷𝑡)𝐵 (E.13)
+[ ] [ ( )]
+where 𝐴 = 𝜕𝜕 𝛾 ln𝑓 𝛾(𝑥) 𝛾 and 𝐵= 𝜕𝜕 𝛾 𝑇 𝐷 𝛾 𝛾 . □
+∗ ∗
+AppendixF. Important notations
+Here we provide more descriptions of important notations in this paper. Details are presented in TableF.14.
+TableF.14
+Thedescriptionsofimportantnotations.
+Notations Descriptions
+𝜽 Ω𝑖=(𝜃 1,𝜃 2,...,𝜃 𝑛) T Th he m imo pd oe rl ap na cra em ofe t pe ar rs v mec et to err .
+e t a 𝜃 𝑖with respect to the previous tasks.
+𝜆 The hyperparameter indicating the strength of the penalty.
+𝐹 The parameter distribution.
+𝐹 𝑁𝑛 T Th he e nm umpi br eic ra ol fp ta ar sa km s.eter distribution of 𝜽=(𝜃 1, 𝜃 2, ..., 𝜃 𝑛)
+𝑡𝑎𝑠𝑘 e
+( (𝜏 𝑋1 𝑡, ,𝜏 𝑌2 𝑡, )...,𝜏 𝑁𝑡𝑎𝑠𝑘) 𝑁 (𝑋𝑡𝑎 𝑡,𝑠 𝑘 𝑡t )a bsk es i hn c to ran it nin inu ga l l ae ta ar sn ei tn fg o. T ta as sk 𝜏 𝜏𝑡 𝑡,c wan ea rl eso r 𝑡ep ar ne ds e 𝑌n 𝑡t re ed a res sT ea ns tk h𝑡.
+𝑌 t e d r k h 𝑋 p t e feature and label respectively.
+𝜽 𝜃̂ 𝑖∗𝒕 =(𝜃̂ 1𝑡,𝜃̂ 2𝑡,...,𝜃̂ 𝑛𝑡) A l eo c “a ol dm ”i n ni em twu om kf o pr t ra as mk e𝜏 t𝑡 e.
+Th l r a rs.
+𝐷𝑡 The sample distribution for task 𝑡.
+𝑆𝑡 The sample set for task 𝑡.
+𝑚 𝑡 The size of the sample set 𝑆𝑡.
+𝐷 𝑡𝑡𝑚𝑡 T Th h𝑡e e otm ssep i flr uoi nc ssa tl ios oa m fap osl rke ad si kst 𝑡r 𝑡(i .𝜃b ;u 𝑆ti 𝑡o n fo 𝑚1r ∑tas 𝑖=k 𝑡 𝑙.
+𝐿 𝑡 𝐿 eis h f r t 𝑡 . 𝐿 ) = 𝑚 𝑡 𝑡(𝜃; 𝑥 𝑖).
+𝑙 l c n t 𝑡 1
+𝑇 𝑇𝜆 (( 𝐷𝐷 𝑡𝑚 )𝑡 𝑡) T Th he e es xt pim eca teto dr po af a mre eg tu erla r ti oz a bt eio en v-b ala us ae td dm fe ot rh o tad kfo 𝑡r task 𝑡.
+e r a s e s .
+𝐶 𝜎2𝑚𝑡=𝑑𝑇𝜆 𝑑(𝐷 𝜆𝑚𝑡 𝑡)| | | T Th he c ao sym mp po tn oe tn ict vo af rt ih ae cb ei .as of the estimator 𝑇 𝜆(𝐷 𝑚𝑡 𝑡).
+|𝜆=0
+e n
+26
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+TableF.14(continued)
+Notations Descriptions
+𝑇(⋅) The functional whose domain is the set of sample distributions.
+Φ𝐷𝑡(𝑥) The influence function of 𝑇(⋅)at 𝐷𝑡. It is the typical influence function in [15,16].
+ A hypothesis class.
+𝑚 ∶(0,1)2→ℕ The sample complexity
+𝜁,𝛿 𝜁represents an upper bound of the difference between the agnostic PAC learning algorithm’s error and the best error
+achievable from the hypothesis class. 𝛿is the probability.
+𝐿 (ℎ)d=ef 𝑧∼𝔼 ∑[𝑙(ℎ;𝑧 ()] The true loss for the returned hypothesis ℎfrom a learning algorithm.
+)
+𝐿 ◦𝑆 C(ℎ ∶) (d 0=e ,f 1)𝑚1 2→𝑚 𝑖= ℕ1𝑙 ℎ;𝑧 𝑖 T Th he e pam ip npi tr wli ec a seol ml mo ps us l.
+𝑚 U T h e s om c l e tx ipit ly ain oU nn i ofo pr em tC ioo nn v iner Tge hn ec oe re.
+e i ic ti ra m2.
+ ℎ𝑡 𝜆𝑡 =𝜽̂𝒕 𝝀∈𝑡 T Th he e fi hyn pit oe t hh ey sp io s t th he as ti s a cc tl sa s as s f to hr e t a msk in 𝑡 i. mizer of 𝜽̂𝒕 𝝀=argmin𝜽{ 𝐿 𝑡(𝜽;𝑆𝑡)+ 𝜆∑ 𝑛 𝑗=1Ω𝑡 𝑗−1(𝜃 𝑗−𝜃̂ 𝑗𝑡−1)2} .
+𝐴 𝐷𝑡 𝜆 T Th he a sal eg mso pr ii lat enh m at th ira bit .g tie on ne r wa hte is hℎ 𝑡 𝜆 is.
+𝐻 𝛾𝜽̂𝒕 T h e H s m rt x
+e d is u c parameterized by 𝛾
+𝛾 𝐽∗( 𝐷𝑡) 𝛾 T∗ hep a Fr ia sm hee rt e inri fz oe rs t ah te s na m atp 𝐷le d .istribution 𝐷𝑡for task 𝑡.
+m io 𝑡
+𝑀 A model performance function, which is defined on a convex set containing the parameter distribution 𝐹and all the
+empirical distributions 𝐹 𝑛of 𝐹.
+𝐼𝐹(𝜃;𝑀,𝐹) The influence function (IF) of 𝑀at the parameter distribution 𝐹.
+Δ𝜃 The distribution of the point mass at 𝜃.
+𝜖 A small perturbation.
+𝜽̂𝒕
+𝝐,𝒊 The parameter vector perturbation
+𝟏 An all-ones vector of the same size as 𝜽̂𝒕
+𝐼 𝐼𝐹 𝐹( (1 2) )( (𝜃 𝜃̂ ̂𝑖 𝑖𝑡 𝑡) T Th he fi ser cs ot- no drd -oe rr i en rfl iu ne fln uc ee o cef p oa r pa am rae mte er t𝜃 ê 𝑖𝑡 f 𝜃̂o 𝑖𝑡r ft oa rs k 𝑡 s.
+) e d n f r ta k 𝑡.
+RIF Ourproposedmethod,i.e.RegularizationbasedonInfluenceFunction.
+RIF-1 RIFcalculatesthefirst-orderinfluenceofparameters.
+RIF-2 RIFcalculatesthesecond-orderinfluenceofparameters.
+𝑎𝑐𝑐 𝑖,𝑗 The accuracy where learned model 𝑀 𝑖is evaluated on the test data 𝑆 𝑡𝑗 𝑒𝑠𝑡of task 𝑗.
+𝑆 𝑡𝑗 𝑒𝑠𝑡 The test data of task 𝑗.
+𝑎 𝑎 𝑆𝑐 𝑐 𝑒𝑐 𝑐 𝑠𝑁 𝑗 𝑡,, 0𝑗𝑡 ∶𝑎𝑠 − 𝑖𝑘,𝑗 𝑎𝑐𝑐 𝑁𝑡𝑎𝑠𝑘,𝑗 T T Ah h lle e fi f eo ecn r na g l e rta atc ti anc yu g (wr cra lha ac t ey se ef efo so lr )er at sta oras s fk k 𝑗 r𝑗 mi in n T dTa eas lsk k 𝑀- -I IL L 𝑖. .
+𝑎 𝑐 𝑐 𝑖 T h e a c u a c r n e d o is evaluated on the test data 𝑆 𝑡0 𝑒∶ 𝑠𝑖 𝑡.
+𝑡0 ∶ 𝑖 s d s a .
+𝑎𝑐𝑐 𝑖,𝐹𝑇𝑆 The accuracy of 𝑀 𝑖on a Full Test Set [27]which is fixed and includes patterns of all the classes.
+AppendixG. Convert parameter distribution perturbation into parameter vector perturbation
+Here we show how to convert parameter distribution perturbation into parameter vector perturbation.
+Thinking from parameter distribution. A fundamental question pertaining to regularization-based methods is that of which
+parameters are important for previous tasks. Previous works like EWC, MAS think of this issue from the aspect of parameter. They
+usually perturb the loss or the model output with respect to a specific parameter to determine the importance of this specific parameter
+for current task. For example, the importance of the parameters calculated by EWC is essentially the second-order gradient with
+respect to each parameter. This perturbation is intuitive and straightforward. According to Definition4where we assume that the
+parameters of the model follow a distribution 𝐹, we think about the importance of parameters from a high-level perspective of
+parameter distribution perturbation which is (1 −𝜖)𝐹 +𝜖Δ𝜃. If this perturbation leads to a large change in performance, then this
+parameter can be considered as important.
+Considering empirical parameter distribution 𝐹 𝑛 instead of true parameter distribution 𝐹. It is obvious that we cannot
+perturb true parameter distribution 𝐹 directly. We use the empirical parameter distribution 𝐹 𝑛 to estimate the true parameter dis-
+tribution 𝐹. Assume that the model arrives at the local minimum (𝜽̂𝒕 = (𝜃̂ 1𝑡, 𝜃̂ 2𝑡, ..., 𝜃̂ 𝑛𝑡)) for current task 𝑡. We identify 𝜽̂𝒕 with its
+empirical parameter distribution 𝐹 𝑛. Therefore, we now consider the perturbation of 𝐹 𝑛with respect to a specific parameter 𝜃̂ 𝑖𝑡 , i.e.,
+(1 −𝜖)𝐹 𝑛+𝜖Δ𝜃̂𝑡.
+𝑖
+The corresponding parameters vector perturbation. Although we use the empirical parameter distribution 𝐹 𝑛 to estimate
+the true parameter distribution 𝐹, we still cannot perturb the empirical parameter distribution 𝐹 𝑛. An alternative is to achieve the
+perturbation of parameter vector 𝜽̂𝒕 with respect to the parameter 𝜃̂ 𝑖𝑡 . By observing the perturbation (1 −𝜖)𝐹 𝑛+𝜖Δ𝜃̂𝑡=𝐹 𝑛+𝜖(Δ𝜃̂𝑡−
+𝑖 𝑖
+𝐹 𝑛), we find that the empirical parameter distribution 𝐹 𝑛 changes to Δ𝜃̂𝑡 starting from 𝐹 𝑛. We thus conclude the parameter vector
+𝑖
+perturbation 𝜽̂𝒕 𝝐,𝒊=𝜽̂𝒕 +𝜖(𝜃̂ 𝑖𝑡𝟏 −𝜽̂𝒕 ). 𝜖represents the small perturbation. 𝟏is an all-ones vector of the same size as 𝜽̂𝒕 .
+27
+
+R.GaoandW.Liu ArtificialIntelligence339(2025)104261
+Data availability
+The data that has been used is confidential.
+References
+[1]R.Aljundi,F.Babiloni,M.Elhoseiny,M.Rohrbach,T.Tuytelaars,Memoryawaresynapses:learningwhat(not)toforget,in:ECCV,2018.
+[2]R.Aljundi,M.Rohrbach,T.Tuytelaars,Selflesssequentiallearning,in:ICLR,2019.
+[3]Y.Bengio,J.Louradour,R.Collobert,J.Weston,Curriculumlearning,in:ICML,2009.
+[4]A.S.Benjamin,D.Rolnick,K.P.Körding,Measuringandregularizingnetworksinfunctionspace,in:ICLR,2019.
+[5]P.Buzzega,M.Boschini,A.Porrello,D.Abati,S.Calderara,Darkexperienceforgeneralcontinuallearning:astrong,simplebaseline,in:NeurIPS,2020.
+[6]A.Chaudhry,M.Ranzato,M.Rohrbach,M.Elhoseiny,EfficientlifelonglearningwithA-GEM,in:ICLR,2019.
+[7]H.Chen,S.Si,Y.Li,C.Chelba,S.Kumar,D.S.Boning,C.Hsieh,Multi-stageinfluencefunction,in:NeurIPS,2020.
+[8]Z.Chen,B.Liu,LifelongMachineLearning,secondedition,2018.
+[9]C.Chung,S.Patel,R.Lee,L.Fu,S.Reilly,T.Ho,J.Lionetti,M.D.George,P.Taylor,Implementationofanintegratedcomputerizedprescriberorder-entrysystem
+forchemotherapyinamultisitesafety-nethealthsystem,Bull.Am.Soc.Hosp.Pharm.(2018).
+[10] A.Cossu,G.Graffieti,L.Pellegrini,D.Maltoni,D.Bacciu,A.Carta,V.Lomonaco,Isclass-incrementalenoughforcontinuallearning?,Front.Artif.Intell.5(2022)
+829842.
+[11] M.Delange,R.Aljundi,M.Masana,S.Parisot,X.Jia,A.Leonardis,G.Slabaugh,T.Tuytelaars,Acontinuallearningsurvey:defyingforgettinginclassification
+tasks,IEEETrans.PatternAnal.Mach.Intell.(2021).
+[12] J.Deng,W.Dong,R.Socher,L.Li,K.Li,F.Li,Imagenet:alarge-scalehierarchicalimagedatabase,in:CVPR,2009.
+[13] S.Farquhar,Y.Gal,Towardsrobustevaluationsofcontinuallearning,CoRR,arXiv:1805.09733,2018.
+[14] L.T.Fernholz,VonMisesCalculusforStatisticalFunctionals,2012.
+[15] F.R.Hampel,E.M.Ronchetti,P.Rousseeuw,W.A.Stahel,RobustStatistics:theApproachBasedonInfluenceFunctions,Wiley-Interscience,NewYork,1986.
+[16] F.R.Hampel,E.M.Ronchetti,P.Rousseeuw,W.A.Stahel,RobustStatistics:TheApproachBasedonInfluenceFunctions,2005.
+[17] K.He,X.Zhang,S.Ren,J.Sun,Deepresiduallearningforimagerecognition,in:CVPR,2016,pp.770–778.
+[18] J.Kirkpatrick,R.Pascanu,N.C.Rabinowitz,J.Veness,G.Desjardins,A.A.Rusu,K.Milan,J.Quan,T.Ramalho,A.Grabska-Barwinska,D.Hassabis,C.Clopath,
+D.Kumaran,R.Hadsell,Overcomingcatastrophicforgettinginneuralnetworks,CoRR,arXiv:1612.00796,2016.
+[19] P.W.Koh,P.Liang,Understandingblack-boxpredictionsviainfluencefunctions,in:ICML,2017.
+[20] A.Krizhevsky,I.Sutskever,G.E.Hinton,Imagenetclassificationwithdeepconvolutionalneuralnetworks,in:NeurIPS,2012.
+[21] D.Kumaran,D.Hassabis,J.L.McClelland,Whatlearningsystemsdointelligentagentsneed?Complementarylearningsystemstheoryupdated,TrendsCogn.
+Sci.(2016).
+[22] S.Lee,J.Kim,J.Jun,J.Ha,B.Zhang,Overcomingcatastrophicforgettingbyincrementalmomentmatching,in:NeurIPS,2017.
+[23] T.Lesort,V.Lomonaco,A.Stoian,D.Maltoni,D.Filliat,N.D.Rodríguez,Continuallearningforrobotics,CoRR,arXiv:1907.00182,2019.
+[24] Z.Li,D.Hoiem,Learningwithoutforgetting,in:ECCV,2016.
+[25] S.Lin,L.Yang,D.Fan,J.Zhang,Beyondnot-forgetting:continuallearningwithbackwardknowledgetransfer,in:NeurIPS,2022.
+[26] Y.Liu,Y.Su,A.Liu,B.Schiele,Q.Sun,Mnemonicstraining:multi-classincrementallearningwithoutforgetting,in:CVPR,2020.
+[27] V.Lomonaco,D.Maltoni,Core50:anewdatasetandbenchmarkforcontinuousobjectrecognition,in:CoRL,2017.
+[28] D.Lopez-Paz,M.Ranzato,Gradientepisodicmemoryforcontinuallearning,in:NeurIPS,2017.
+[29] A.Mallya,S.Lazebnik,Packnet:addingmultipletaskstoasinglenetworkbyiterativepruning,in:CVPR,2018.
+[30] P.Pan,S.Swaroop,A.Immer,R.Eschenhagen,R.E.Turner,M.E.Khan,Continualdeeplearningbyfunctionalregularisationofmemorablepast,in:NeurIPS,
+2020.
+[31] G.I.Parisi,R.Kemker,J.L.Part,C.Kanan,S.Wermter,Continuallifelonglearningwithneuralnetworks:areview,NeuralNetw.(2019).
+[32] B.Pfülb,A.Gepperth,Acomprehensive,application-orientedstudyofcatastrophicforgettingindnns,in:ICLR,2019.
+[33] S.Rebuffi,A.Kolesnikov,G.Sperl,C.H.Lampert,icarl:incrementalclassifierandrepresentationlearning,in:CVPR,2017.
+[34] T.G.J.Rudner,F.B.Smith,Q.Feng,Y.W.Teh,Y.Gal,Continuallearningviasequentialfunction-spacevariationalinference,in:ICML,2022,pp.18871–18887.
+[35] A.A.Rusu,N.C.Rabinowitz,G.Desjardins,H.Soyer,J.Kirkpatrick,K.Kavukcuoglu,R.Pascanu,R.Hadsell,Progressiveneuralnetworks,CoRR,arXiv:1606.04671,
+2016.
+[36] J.Serrà,D.Suris,M.Miron,A.Karatzoglou,Overcomingcatastrophicforgettingwithhardattentiontothetask,in:ICML,2018.
+[37] S.Shalev-Shwartz,S.Ben-David,UnderstandingMachineLearning-fromTheorytoAlgorithms,2014.
+[38] A.vanderVaart,AsymptoticStatistics,1998.
+[39] G.M.vandeVen,A.S.Tolias,Threescenariosforcontinuallearning,CoRR,arXiv:1904.07734,2019.
+[40] M.vanderVen,A.S.Tolias,Generativereplaywithfeedbackconnectionsasageneralstrategyforcontinuallearning,CoRR,arXiv:1809.10635,2018.
+[41] M.Wojnowicz,B.Cruz,X.Zhao,B.Wallace,M.Wolff,J.Luan,C.Crable,“Influencesketching”:findinginfluentialsamplesinlarge-scaleregressions,in:BigData,
+2016.
+[42] J.Xu,Z.Zhu,Reinforcedcontinuallearning,in:NeurIPS,2018.
+[43] F.Zenke,B.Poole,S.Ganguli,Continuallearningthroughsynapticintelligence,in:ICML,2017.
+[44] W.Liu,I.W.Tsang,Makingdecisiontreesfeasibleinultrahighfeatureandlabeldimensions,J.Mach.Learn.Res.(2017).
+[45] W.Liu,I.W.Tsang,Ontheoptimalityofclassifierchainformulti-labelclassification,in:NeurIPS,2015.
+[46] P.Xu,W.Hu,J.Wu,W.Liu,Opinionmaximizationinsocialtrustnetworks,in:IJCAI,2020.
+[47] Y.Mao,Z.Wang,W.Liu,X.Lin,P.Xie,MetaWeighting:learningtoweighttasksinmulti-tasklearning,in:ACL,2022.
+[48] Y.Mao,S.Yun,W.Liu,B.Du,Tchebycheffprocedureformulti-tasktextclassification,in:ACL,2020.
+[49] R.Gao,W.Liu,DDGR:continuallearningwithdeepdiffusion-basedgenerativereplay,in:ICML,2023.
+[50] X.Li,Z.Xin,W.Liu,Defendingagainstadversarialattacksvianeuraldynamicsystem,in:NeurIPS,2022.
+28
+
