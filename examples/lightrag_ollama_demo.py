@@ -42,21 +42,13 @@ for filename in os.listdir(TEXT_DIR):
             rag.insert(f.read())
 
 # Perform naive search
-print(
-    rag.query("硬盘物理结构", param=QueryParam(mode="naive"))
-)
+print(rag.query("硬盘物理结构", param=QueryParam(mode="naive")))
 
 # Perform local search
-print(
-    rag.query("硬盘存储结构", param=QueryParam(mode="local"))
-)
+print(rag.query("硬盘存储结构", param=QueryParam(mode="local")))
 
 # Perform global search
-print(
-    rag.query("硬盘的数据组织方式", param=QueryParam(mode="global"))
-)
+print(rag.query("硬盘的数据组织方式", param=QueryParam(mode="global")))
 
 # Perform hybrid search
-print(
-    rag.query("数据读写过程", param=QueryParam(mode="hybrid"))
-)
+print(rag.query("数据读写过程", param=QueryParam(mode="hybrid")))

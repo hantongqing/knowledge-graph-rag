@@ -66,7 +66,7 @@ class Neo4JStorage(BaseGraphStorage):
             result = await session.run(query)
             single_result = await result.single()
             logger.debug(
-                f'{inspect.currentframe().f_code.co_name}:query:{query}:result:{single_result["node_exists"]}'
+                f"{inspect.currentframe().f_code.co_name}:query:{query}:result:{single_result['node_exists']}"
             )
             return single_result["node_exists"]
 
@@ -82,7 +82,7 @@ class Neo4JStorage(BaseGraphStorage):
             result = await session.run(query)
             single_result = await result.single()
             logger.debug(
-                f'{inspect.currentframe().f_code.co_name}:query:{query}:result:{single_result["edgeExists"]}'
+                f"{inspect.currentframe().f_code.co_name}:query:{query}:result:{single_result['edgeExists']}"
             )
             return single_result["edgeExists"]
 

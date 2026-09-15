@@ -79,7 +79,7 @@ if not os.path.exists(WORKING_DIR):
 
 rag = LightRAG(
     working_dir=WORKING_DIR,
-    llm_model_func=gpt_4o_mini_complete  # Use gpt_4o_mini_complete LLM model
+    llm_model_func=gpt_4o_mini_complete,  # Use gpt_4o_mini_complete LLM model
     # llm_model_func=gpt_4o_complete  # Optionally, use a stronger model
 )
 
@@ -87,16 +87,24 @@ with open("./book.txt") as f:
     rag.insert(f.read())
 
 # Perform naive search
-print(rag.query("What are the top themes in this story?", param=QueryParam(mode="naive")))
+print(
+    rag.query("What are the top themes in this story?", param=QueryParam(mode="naive"))
+)
 
 # Perform local search
-print(rag.query("What are the top themes in this story?", param=QueryParam(mode="local")))
+print(
+    rag.query("What are the top themes in this story?", param=QueryParam(mode="local"))
+)
 
 # Perform global search
-print(rag.query("What are the top themes in this story?", param=QueryParam(mode="global")))
+print(
+    rag.query("What are the top themes in this story?", param=QueryParam(mode="global"))
+)
 
 # Perform hybrid search
-print(rag.query("What are the top themes in this story?", param=QueryParam(mode="hybrid")))
+print(
+    rag.query("What are the top themes in this story?", param=QueryParam(mode="hybrid"))
+)
 ```
 
 <details>
@@ -114,25 +122,25 @@ async def llm_model_func(
         history_messages=history_messages,
         api_key=os.getenv("UPSTAGE_API_KEY"),
         base_url="https://api.upstage.ai/v1/solar",
-        **kwargs
+        **kwargs,
     )
+
 
 async def embedding_func(texts: list[str]) -> np.ndarray:
     return await openai_embedding(
         texts,
         model="solar-embedding-1-large-query",
         api_key=os.getenv("UPSTAGE_API_KEY"),
-        base_url="https://api.upstage.ai/v1/solar"
+        base_url="https://api.upstage.ai/v1/solar",
     )
+
 
 rag = LightRAG(
     working_dir=WORKING_DIR,
     llm_model_func=llm_model_func,
     embedding_func=EmbeddingFunc(
-        embedding_dim=4096,
-        max_token_size=8192,
-        func=embedding_func
-    )
+        embedding_dim=4096, max_token_size=8192, func=embedding_func
+    ),
 )
 ```
 </details>
@@ -150,16 +158,20 @@ from lightrag.utils import EmbeddingFunc
 rag = LightRAG(
     working_dir=WORKING_DIR,
     llm_model_func=hf_model_complete,  # Use Hugging Face model for text generation
-    llm_model_name='meta-llama/Llama-3.1-8B-Instruct',  # Model name from Hugging Face
+    llm_model_name="meta-llama/Llama-3.1-8B-Instruct",  # Model name from Hugging Face
     # Use Hugging Face embedding function
     embedding_func=EmbeddingFunc(
         embedding_dim=384,
         max_token_size=5000,
         func=lambda texts: hf_embedding(
             texts,
-            tokenizer=AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2"),
-            embed_model=AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
-        )
+            tokenizer=AutoTokenizer.from_pretrained(
+                "sentence-transformers/all-MiniLM-L6-v2"
+            ),
+            embed_model=AutoModel.from_pretrained(
+                "sentence-transformers/all-MiniLM-L6-v2"
+            ),
+        ),
     ),
 )
 ```
@@ -181,15 +193,12 @@ from lightrag.utils import EmbeddingFunc
 rag = LightRAG(
     working_dir=WORKING_DIR,
     llm_model_func=ollama_model_complete,  # Use Ollama model for text generation
-    llm_model_name='your_model_name', # Your model name
+    llm_model_name="your_model_name",  # Your model name
     # Use Ollama embedding function
     embedding_func=EmbeddingFunc(
         embedding_dim=768,
         max_token_size=8192,
-        func=lambda texts: ollama_embedding(
-            texts,
-            embed_model="nomic-embed-text"
-        )
+        func=lambda texts: ollama_embedding(texts, embed_model="nomic-embed-text"),
     ),
 )
 ```
@@ -254,16 +263,13 @@ Tiy can use `llm_model_kwargs` param to configure ollama:
 rag = LightRAG(
     working_dir=WORKING_DIR,
     llm_model_func=ollama_model_complete,  # Use Ollama model for text generation
-    llm_model_name='your_model_name', # Your model name
+    llm_model_name="your_model_name",  # Your model name
     llm_model_kwargs={"options": {"num_ctx": 32768}},
     # Use Ollama embedding function
     embedding_func=EmbeddingFunc(
         embedding_dim=768,
         max_token_size=8192,
-        func=lambda texts: ollama_embedding(
-            texts,
-            embed_model="nomic-embed-text"
-        )
+        func=lambda texts: ollama_embedding(texts, embed_model="nomic-embed-text"),
     ),
 )
 ```
@@ -298,7 +304,7 @@ class QueryParam:
 
 ```python
 # Batch Insert: Insert multiple texts at once
-rag.insert(["TEXT1", "TEXT2",...])
+rag.insert(["TEXT1", "TEXT2", ...])
 ```
 
 ### Incremental Insert
@@ -306,13 +312,13 @@ rag.insert(["TEXT1", "TEXT2",...])
 ```python
 # Incremental Insert: Insert new documents into an existing LightRAG instance
 rag = LightRAG(
-     working_dir=WORKING_DIR,
-     llm_model_func=llm_model_func,
-     embedding_func=EmbeddingFunc(
-          embedding_dim=embedding_dimension,
-          max_token_size=8192,
-          func=embedding_func,
-     ),
+    working_dir=WORKING_DIR,
+    llm_model_func=llm_model_func,
+    embedding_func=EmbeddingFunc(
+        embedding_dim=embedding_dimension,
+        max_token_size=8192,
+        func=embedding_func,
+    ),
 )
 
 with open("./newText.txt") as f:
@@ -324,13 +330,13 @@ with open("./newText.txt") as f:
 ```python
 #  Delete Entity: Deleting entities by their names
 rag = LightRAG(
-     working_dir=WORKING_DIR,
-     llm_model_func=llm_model_func,
-     embedding_func=EmbeddingFunc(
-          embedding_dim=embedding_dimension,
-          max_token_size=8192,
-          func=embedding_func,
-     ),
+    working_dir=WORKING_DIR,
+    llm_model_func=llm_model_func,
+    embedding_func=EmbeddingFunc(
+        embedding_dim=embedding_dimension,
+        max_token_size=8192,
+        func=embedding_func,
+    ),
 )
 
 rag.delete_by_entity("Project Gutenberg")
@@ -343,10 +349,10 @@ The `textract` supports reading file types such as TXT, DOCX, PPTX, CSV, and PDF
 ```python
 import textract
 
-file_path = 'TEXT.pdf'
+file_path = "TEXT.pdf"
 text_content = textract.process(file_path)
 
-rag.insert(text_content.decode('utf-8'))
+rag.insert(text_content.decode("utf-8"))
 ```
 
 ### Graph Visualization
@@ -361,7 +367,7 @@ import networkx as nx
 from pyvis.network import Network
 
 # Load the GraphML file
-G = nx.read_graphml('./dickens/graph_chunk_entity_relation.graphml')
+G = nx.read_graphml("./dickens/graph_chunk_entity_relation.graphml")
 
 # Create a Pyvis network
 net = Network(notebook=True)
@@ -370,7 +376,7 @@ net = Network(notebook=True)
 net.from_nx(G)
 
 # Save and display the network
-net.show('knowledge_graph.html')
+net.show("knowledge_graph.html")
 ```
 
 </details>
@@ -396,6 +402,7 @@ NEO4J_URI = "bolt://localhost:7687"
 NEO4J_USERNAME = "neo4j"
 NEO4J_PASSWORD = "your_password"
 
+
 def convert_xml_to_json(xml_path, output_path):
     """Converts XML file to JSON and saves the output."""
     if not os.path.exists(xml_path):
@@ -404,7 +411,7 @@ def convert_xml_to_json(xml_path, output_path):
 
     json_data = xml_to_json(xml_path)
     if json_data:
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
         print(f"JSON file created: {output_path}")
         return json_data
@@ -412,16 +419,18 @@ def convert_xml_to_json(xml_path, output_path):
         print("Failed to create JSON data")
         return None
 
+
 def process_in_batches(tx, query, data, batch_size):
     """Process data in batches and execute the given query."""
     for i in range(0, len(data), batch_size):
-        batch = data[i:i + batch_size]
+        batch = data[i : i + batch_size]
         tx.run(query, {"nodes": batch} if "nodes" in query else {"edges": batch})
+
 
 def main():
     # Paths
-    xml_file = os.path.join(WORKING_DIR, 'graph_chunk_entity_relation.graphml')
-    json_file = os.path.join(WORKING_DIR, 'graph_data.json')
+    xml_file = os.path.join(WORKING_DIR, "graph_chunk_entity_relation.graphml")
+    json_file = os.path.join(WORKING_DIR, "graph_data.json")
 
     # Convert XML to JSON
     json_data = convert_xml_to_json(xml_file, json_file)
@@ -429,8 +438,8 @@ def main():
         return
 
     # Load nodes and edges
-    nodes = json_data.get('nodes', [])
-    edges = json_data.get('edges', [])
+    nodes = json_data.get("nodes", [])
+    edges = json_data.get("edges", [])
 
     # Neo4j queries
     create_nodes_query = """
@@ -483,10 +492,14 @@ def main():
         # Execute queries in batches
         with driver.session() as session:
             # Insert nodes in batches
-            session.execute_write(process_in_batches, create_nodes_query, nodes, BATCH_SIZE_NODES)
+            session.execute_write(
+                process_in_batches, create_nodes_query, nodes, BATCH_SIZE_NODES
+            )
 
             # Insert edges in batches
-            session.execute_write(process_in_batches, create_edges_query, edges, BATCH_SIZE_EDGES)
+            session.execute_write(
+                process_in_batches, create_edges_query, edges, BATCH_SIZE_EDGES
+            )
 
             # Set displayName and labels
             session.run(set_displayname_and_labels_query)
@@ -496,6 +509,7 @@ def main():
 
     finally:
         driver.close()
+
 
 if __name__ == "__main__":
     main()
@@ -750,7 +764,7 @@ def extract_unique_contexts(input_directory, output_directory):
 
     os.makedirs(output_directory, exist_ok=True)
 
-    jsonl_files = glob.glob(os.path.join(input_directory, '*.jsonl'))
+    jsonl_files = glob.glob(os.path.join(input_directory, "*.jsonl"))
     print(f"Found {len(jsonl_files)} JSONL files.")
 
     for file_path in jsonl_files:
@@ -764,18 +778,20 @@ def extract_unique_contexts(input_directory, output_directory):
         print(f"Processing file: {filename}")
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as infile:
+            with open(file_path, "r", encoding="utf-8") as infile:
                 for line_number, line in enumerate(infile, start=1):
                     line = line.strip()
                     if not line:
                         continue
                     try:
                         json_obj = json.loads(line)
-                        context = json_obj.get('context')
+                        context = json_obj.get("context")
                         if context and context not in unique_contexts_dict:
                             unique_contexts_dict[context] = None
                     except json.JSONDecodeError as e:
-                        print(f"JSON decoding error in file {filename} at line {line_number}: {e}")
+                        print(
+                            f"JSON decoding error in file {filename} at line {line_number}: {e}"
+                        )
         except FileNotFoundError:
             print(f"File not found: {filename}")
             continue
@@ -784,17 +800,18 @@ def extract_unique_contexts(input_directory, output_directory):
             continue
 
         unique_contexts_list = list(unique_contexts_dict.keys())
-        print(f"There are {len(unique_contexts_list)} unique `context` entries in the file {filename}.")
+        print(
+            f"There are {len(unique_contexts_list)} unique `context` entries in the file {filename}."
+        )
 
         try:
-            with open(output_path, 'w', encoding='utf-8') as outfile:
+            with open(output_path, "w", encoding="utf-8") as outfile:
                 json.dump(unique_contexts_list, outfile, ensure_ascii=False, indent=4)
             print(f"Unique `context` entries have been saved to: {output_filename}")
         except Exception as e:
             print(f"An error occurred while saving to the file {output_filename}: {e}")
 
     print("All files have been processed.")
-
 ```
 </details>
 
@@ -806,7 +823,7 @@ For the extracted contexts, we insert them into the LightRAG system.
 
 ```python
 def insert_text(rag, file_path):
-    with open(file_path, mode='r') as f:
+    with open(file_path, mode="r") as f:
         unique_contexts = json.load(f)
 
     retries = 0
@@ -832,14 +849,15 @@ We extract tokens from the first and the second half of each context in the data
 <summary> Code </summary>
 
 ```python
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+
 
 def get_summary(context, tot_tokens=2000):
     tokens = tokenizer.tokenize(context)
     half_tokens = tot_tokens // 2
 
-    start_tokens = tokens[1000:1000 + half_tokens]
-    end_tokens = tokens[-(1000 + half_tokens):1000]
+    start_tokens = tokens[1000 : 1000 + half_tokens]
+    end_tokens = tokens[-(1000 + half_tokens) : 1000]
 
     summary_tokens = start_tokens + end_tokens
     summary = tokenizer.convert_tokens_to_string(summary_tokens)
@@ -856,12 +874,12 @@ For the queries generated in Step-2, we will extract them and query LightRAG.
 
 ```python
 def extract_queries(file_path):
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         data = f.read()
 
-    data = data.replace('**', '')
+    data = data.replace("**", "")
 
-    queries = re.findall(r'- Question \d+: (.+)', data)
+    queries = re.findall(r"- Question \d+: (.+)", data)
 
     return queries
 ```
